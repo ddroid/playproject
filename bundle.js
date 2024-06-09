@@ -1,194 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
-const make_page = require('../') 
-const theme = require('theme')
-
-const appleTouch = bel`<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
-const icon32 = bel`<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
-const icon16 = bel`<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
-const webmanifest = bel`<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
-document.head.append(appleTouch, icon32, icon16, webmanifest)
-
-const params = new URL(location.href).searchParams
-const lang = params.get('lang')
-
-if (lang === 'en') {
-	params.delete('lang')
-	location.search = params
-}
-
-const styles = csjs`
-html {
-	font-size: 82.5%;
-	scroll-behavior: smooth;
-}
-body {
-	font-family: var(--bodyFont);
-	font-size: 1.4rem;
-	color: var(--bodyColor);
-	margin: 0;
-	padding: 0;
-	background-color: var(--bodyBg);
-	overflow-x: hidden;
-}
-a {
-	text-decoration: none;
-}
-button {
-	outline: none;
-	border: none;
-	font-family: var(--titleFont);
-	font-size: var(--sectionButtonSize);
-	color: var(--titleColor);
-	border-radius: 2rem;
-	padding: 1.2rem 3.8rem;
-	cursor: pointer;
-}
-img {
-	width: 100%;
-	height: auto;
-}
-article {
-	font-size: var(--articleSize);
-	color: var(--articleColor);
-	line-height: 2.5rem;
-	padding-bottom: 4rem;
-}
-@media only screen and (min-width: 2561px) {
-	article {
-		font-size: calc(var(--articleSize) * 1.5 );
-		line-height: calc(2.5rem * 1.5);
-	}
-	button {
-		font-size: calc(var(--sectionButtonSize) * 1.5 );
-}
-}
-@media only screen and (min-width: 4096px) {
-	article {
-		font-size: calc(var(--articleSize) * 2.25 );
-		line-height: calc(2.5rem * 2.25);
-	}
-	button {
-		font-size: calc(var(--sectionButtonSize) * 2.25 );
-	}
-}
-`
-
-// callback done()
-const el = (err, landingPage) => {
-	const vars = theme
-
-	if (err) {
-		document.body.style = `color: red; font-size: 1.6rem; text-align:center; background-color: #d9d9d9;`
-		document.body.innerHTML = `<p>${err.stack}</p>`
-	} else {
-		document.body.appendChild(landingPage)
-	}
-
-	updateTheme(vars)
-} 
-
-function updateTheme (vars) {
-	Object.keys(vars).forEach(name => {
-		document.body.style.setProperty(`--${name}`, vars[name])
-	})
-}
-
-make_page({theme}, el, lang)
-},{"../":29,"bel":4,"csjs-inject":7,"theme":2}],2:[function(require,module,exports){
-const bel = require('bel')
-const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
-const loadFont = bel`<link href=${font} rel='stylesheet' type='text/css'>`
-document.head.appendChild(loadFont)
-
-const defines = {
-    fonts: {
-        slackey         : `'Slackey', Arial, sans-serif`,
-        nunito          : `'Nunito', Arial, sans-serif`,
-    },
-    sizes: {
-        'xx-small'      : '1.2rem',
-        'x-small'       : '1.3rem',
-        small           : '1.4rem',
-        medium          : '1.6rem',
-        large           : '2rem',
-        'x-large'       : '3rem',
-        'xx-large'      : '4rem',
-        'xxx-large'     : '5rem',
-    },
-    colors: {
-        white           : '#fff',
-        skyblue         : '#b3e2ff',
-        turquoise       : '#aae6ed',
-        pink            : '#e14365',
-        grey            : '#333333',
-        lightGrey       : '#999999',
-        lightGreen      : '#a1e9da',
-        blueGreen       : '#00a6ad',
-        purple          : '#b337fb',
-        lightBluePurple : '#9db9ee',
-        bluePurple      : '#9a91ff',
-        lightPurple     : '#beb2d7',
-        lightYellow     : '#eddca4',
-        lightSky        : '#b4e4fd',
-        green           : '#4aa95b',
-        lowYellow       : '#fdfbee',
-        brown           : '#b06d56',
-    }
-}
-
-const theme = {
-    bodyFont            : defines.fonts.nunito,
-    bodyColor           : defines.colors.grey,
-    bodyBg              : defines.colors.lightSky,
-    menuSize            : defines.sizes.small,
-    titleFont           : defines.fonts.slackey,
-    titleSize           : defines.sizes['xxx-large'],
-    titleSizeM          : '3.6rem',
-    titlesSizeS         : '2.8rem',
-    titleColor          : defines.colors.white,
-    playBgGStart        : defines.colors.skyblue,
-    playBgGEnd          : defines.colors.turquoise,
-    subTitleSize        : '4.2rem',
-    section1TitleColor  : defines.colors.pink,
-    section2TitleColor  : defines.colors.blueGreen,
-    section3TitleColor  : defines.colors.purple,
-    section4TitleColor  : defines.colors.brown,
-    section5TitleColor  : defines.colors.green,
-    articleSize         : defines.sizes.small,
-    articleColor        : defines.colors.grey,
-    section1BgGStart    : defines.colors.turquoise,
-    section1BgGEnd      : defines.colors.lightGreen,
-    section2BgGStart    : defines.colors.lightGreen,
-    section2BgGEnd      : defines.colors.lightBluePurple,
-    section3BgGStart    : defines.colors.lightBluePurple,
-    section3BgGEnd      : defines.colors.bluePurple,
-    section4BgGStart    : defines.colors.bluePurple,
-    section4BgGEnd      : defines.colors.lightPurple,
-    section5BgGStart    : defines.colors.lightPurple,
-    section5BgGMiddle   : defines.colors.lightYellow,
-    section5BgGEnd      : defines.colors.lightSky,
-    sectionButtonSize   : defines.sizes.small,
-    roadmapHeadlline    : '4rem',
-    roadmapHeadllineM   : '3rem',
-    roadmapHeadllineS   : '1.6rem',
-    roadmapTitleSize    : defines.sizes.large,
-    roadmapTitleSizeM   : defines.sizes.medium,
-    roadmapTitleColor   : defines.colors.blueGreen,
-    roadmapTextSize     : defines.sizes.medium,
-    roadmapTextSizeM    : defines.sizes["x-small"],
-    contributorsBg              : defines.colors.lowYellow,
-    contributorsTextSize        : defines.sizes.small,
-    contributorsTextSizeS       : defines.sizes["xx-small"],
-    contributorsCareerColor     : defines.colors.lightGrey,
-    footerTextColor     : defines.colors.grey,
-    footerBg            : defines.colors.lightSky
-}
-
-module.exports = theme
-
-},{"bel":4}],3:[function(require,module,exports){
 var trailingNewlineRegex = /\n[\s]+$/
 var leadingNewlineRegex = /^\n[\s]+/
 var trailingSpaceRegex = /[\s]+$/
@@ -321,7 +131,7 @@ module.exports = function appendChild (el, childs) {
   }
 }
 
-},{}],4:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 var hyperx = require('hyperx')
 var appendChild = require('./appendChild')
 
@@ -422,8 +232,8 @@ module.exports = hyperx(belCreateElement, {comments: true})
 module.exports.default = module.exports
 module.exports.createElement = belCreateElement
 
-},{"./appendChild":3,"hyperx":25}],5:[function(require,module,exports){
-(function (global){
+},{"./appendChild":1,"hyperx":23}],3:[function(require,module,exports){
+(function (global){(function (){
 'use strict';
 
 var csjs = require('csjs');
@@ -440,13 +250,13 @@ function csjsInserter() {
 
 module.exports = csjsInserter;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"csjs":10,"insert-css":26}],6:[function(require,module,exports){
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"csjs":8,"insert-css":24}],4:[function(require,module,exports){
 'use strict';
 
 module.exports = require('csjs/get-css');
 
-},{"csjs/get-css":9}],7:[function(require,module,exports){
+},{"csjs/get-css":7}],5:[function(require,module,exports){
 'use strict';
 
 var csjs = require('./csjs');
@@ -455,17 +265,17 @@ module.exports = csjs;
 module.exports.csjs = csjs;
 module.exports.getCss = require('./get-css');
 
-},{"./csjs":5,"./get-css":6}],8:[function(require,module,exports){
+},{"./csjs":3,"./get-css":4}],6:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib/csjs');
 
-},{"./lib/csjs":14}],9:[function(require,module,exports){
+},{"./lib/csjs":12}],7:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib/get-css');
 
-},{"./lib/get-css":18}],10:[function(require,module,exports){
+},{"./lib/get-css":16}],8:[function(require,module,exports){
 'use strict';
 
 var csjs = require('./csjs');
@@ -475,7 +285,7 @@ module.exports.csjs = csjs;
 module.exports.noScope = csjs({ noscope: true });
 module.exports.getCss = require('./get-css');
 
-},{"./csjs":8,"./get-css":9}],11:[function(require,module,exports){
+},{"./csjs":6,"./get-css":7}],9:[function(require,module,exports){
 'use strict';
 
 /**
@@ -497,7 +307,7 @@ module.exports = function encode(integer) {
   return str;
 };
 
-},{}],12:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 var makeComposition = require('./composition').makeComposition;
@@ -541,7 +351,7 @@ function getClassChain(obj) {
   return acc;
 }
 
-},{"./composition":13}],13:[function(require,module,exports){
+},{"./composition":11}],11:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -621,7 +431,7 @@ function ignoreComposition(values) {
  */
 function Composition() {}
 
-},{}],14:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict';
 
 var extractExtends = require('./css-extract-extends');
@@ -699,7 +509,7 @@ function without(obj, unwanted) {
   }, {});
 }
 
-},{"./build-exports":12,"./composition":13,"./css-extract-extends":15,"./css-key":16,"./extract-exports":17,"./scopeify":23}],15:[function(require,module,exports){
+},{"./build-exports":10,"./composition":11,"./css-extract-extends":13,"./css-key":14,"./extract-exports":15,"./scopeify":21}],13:[function(require,module,exports){
 'use strict';
 
 var makeComposition = require('./composition').makeComposition;
@@ -752,7 +562,7 @@ function getClassName(str) {
   return trimmed[0] === '.' ? trimmed.substr(1) : trimmed;
 }
 
-},{"./composition":13}],16:[function(require,module,exports){
+},{"./composition":11}],14:[function(require,module,exports){
 'use strict';
 
 /**
@@ -762,7 +572,7 @@ function getClassName(str) {
 
 module.exports = ' css ';
 
-},{}],17:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 'use strict';
 
 var regex = require('./regex');
@@ -789,7 +599,7 @@ function getExport(css, regex) {
   return prop;
 }
 
-},{"./regex":20}],18:[function(require,module,exports){
+},{"./regex":18}],16:[function(require,module,exports){
 'use strict';
 
 var cssKey = require('./css-key');
@@ -798,7 +608,7 @@ module.exports = function getCss(csjs) {
   return csjs[cssKey];
 };
 
-},{"./css-key":16}],19:[function(require,module,exports){
+},{"./css-key":14}],17:[function(require,module,exports){
 'use strict';
 
 /**
@@ -816,7 +626,7 @@ module.exports = function hashStr(str) {
   return hash >>> 0;
 };
 
-},{}],20:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var findClasses = /(\.)(?!\d)([^\s\.,{\[>+~#:)]*)(?![^{]*})/.source;
@@ -832,7 +642,7 @@ module.exports = {
   ignoreComments: ignoreComments,
 };
 
-},{}],21:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var ignoreComments = require('./regex').ignoreComments;
 
 module.exports = replaceAnimations;
@@ -863,7 +673,7 @@ function replaceAnimations(result) {
   return result;
 }
 
-},{"./regex":20}],22:[function(require,module,exports){
+},{"./regex":18}],20:[function(require,module,exports){
 'use strict';
 
 var encode = require('./base62-encode');
@@ -877,7 +687,7 @@ module.exports = function fileScoper(fileSrc) {
   }
 };
 
-},{"./base62-encode":11,"./hash-string":19}],23:[function(require,module,exports){
+},{"./base62-encode":9,"./hash-string":17}],21:[function(require,module,exports){
 'use strict';
 
 var fileScoper = require('./scoped-name');
@@ -918,7 +728,7 @@ function scopify(css, ignores) {
   return replaceAnimations(result);
 }
 
-},{"./regex":20,"./replace-animations":21,"./scoped-name":22}],24:[function(require,module,exports){
+},{"./regex":18,"./replace-animations":19,"./scoped-name":20}],22:[function(require,module,exports){
 module.exports = attributeToProperty
 
 var transform = {
@@ -939,7 +749,7 @@ function attributeToProperty (h) {
   }
 }
 
-},{}],25:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var attrToProp = require('hyperscript-attribute-to-property')
 
 var VAR = 0, TEXT = 1, OPEN = 2, CLOSE = 3, ATTR = 4
@@ -1236,7 +1046,7 @@ var closeRE = RegExp('^(' + [
 ].join('|') + ')(?:[\.#][a-zA-Z0-9\u007F-\uFFFF_:-]+)*$')
 function selfClosing (tag) { return closeRE.test(tag) }
 
-},{"hyperscript-attribute-to-property":24}],26:[function(require,module,exports){
+},{"hyperscript-attribute-to-property":22}],24:[function(require,module,exports){
 var inserted = {};
 
 module.exports = function (css, options) {
@@ -1260,8 +1070,8 @@ module.exports = function (css, options) {
     }
 };
 
-},{}],27:[function(require,module,exports){
-(function (global){
+},{}],25:[function(require,module,exports){
+(function (global){(function (){
 
 // ------------------------------------------
 // Rellax.js
@@ -1760,8 +1570,8 @@ module.exports = function (css, options) {
   return Rellax;
 }));
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],28:[function(require,module,exports){
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],26:[function(require,module,exports){
 /**
  * Zenscroll 4.0.2
  * https://github.com/zengabor/zenscroll/
@@ -2120,7 +1930,7 @@ module.exports = function (css, options) {
 
 }));
 
-},{}],29:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 
@@ -2178,7 +1988,7 @@ const styles = csjs`
     transition: left 0.6s, bottom 0.5s, top 0.5s linear;
 }`
 
-},{"bel":4,"csjs-inject":7,"datdot":33,"editor":34,"fetch-data":35,"footer":36,"header":38,"our-contributors":40,"smartcontract-codes":41,"supporters":42,"topnav":43}],30:[function(require,module,exports){
+},{"bel":2,"csjs-inject":5,"datdot":31,"editor":32,"fetch-data":33,"footer":34,"header":36,"our-contributors":38,"smartcontract-codes":39,"supporters":40,"topnav":41}],28:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 
@@ -2242,7 +2052,7 @@ let styles = csjs`
 }
 `
 module.exports = content
-},{"bel":4,"csjs-inject":7}],31:[function(require,module,exports){
+},{"bel":2,"csjs-inject":5}],29:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // Widgets
@@ -2366,7 +2176,7 @@ const styles = csjs`
 
 
 
-},{"bel":4,"csjs-inject":7,"graphic":37}],32:[function(require,module,exports){
+},{"bel":2,"csjs-inject":5,"graphic":35}],30:[function(require,module,exports){
 const bel = require('bel')
 
 function crystalIsland({date, info}, deco, island, css, title) {
@@ -2387,7 +2197,7 @@ function crystalIsland({date, info}, deco, island, css, title) {
 }
 
 module.exports = crystalIsland
-},{"bel":4}],33:[function(require,module,exports){
+},{"bel":2}],31:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // widgets
@@ -2618,7 +2428,7 @@ const styles = csjs`
 `
 
 module.exports = datdot
-},{"bel":4,"content":30,"csjs-inject":7,"graphic":37,"rellax":27}],34:[function(require,module,exports){
+},{"bel":2,"content":28,"csjs-inject":5,"graphic":35,"rellax":25}],32:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // Widgets
@@ -2829,7 +2639,7 @@ const styles = csjs`
 `
 
 module.exports = editor
-},{"bel":4,"content":30,"csjs-inject":7,"graphic":37,"rellax":27}],35:[function(require,module,exports){
+},{"bel":2,"content":28,"csjs-inject":5,"graphic":35,"rellax":25}],33:[function(require,module,exports){
 module.exports = fetch_data
 
 async function fetch_data(path) {
@@ -2840,7 +2650,7 @@ async function fetch_data(path) {
     }
     throw new Error(response.status)
 }
-},{}],36:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // widgets
@@ -2867,7 +2677,7 @@ async function footer(footer) {
             </nav>
         </div>
         
-        <p class=${css.copyright}>${footer.copyright}</p>
+        <p class=${css.copyright}>${new Date().getFullYear()+' '+footer.copyright}</p>
     </footer>
     `
     return el
@@ -2938,7 +2748,7 @@ let styles = csjs`
 `
 
 module.exports = footer
-},{"bel":4,"csjs-inject":7,"graphic":37}],37:[function(require,module,exports){
+},{"bel":2,"csjs-inject":5,"graphic":35}],35:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -2955,7 +2765,7 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":39}],38:[function(require,module,exports){
+},{"loadSVG":37}],36:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // widgets
@@ -3192,7 +3002,7 @@ let styles = csjs`
 }
 `
 
-},{"bel":4,"csjs-inject":7,"graphic":37,"rellax":27}],39:[function(require,module,exports){
+},{"bel":2,"csjs-inject":5,"graphic":35,"rellax":25}],37:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -3205,7 +3015,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],40:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // Widgets
@@ -3304,7 +3114,6 @@ let styles = csjs`
     width: 62%;
 }
 .groups {
-    position: relative;
     z-index: 9;
     grid-row-start: 2;
     grid-row-end: 3;
@@ -3315,87 +3124,61 @@ let styles = csjs`
     grid-template-rows: auto;
     grid-template-columns: repeat(12, 12.5%);
     justify-self: end;
+    margin-top: 400px;
 }
 .group {
     position: relative;
     z-index: 4;
     width: 100%;
 }
+.group:nth-child(4n) {
+  grid-column-start: 2;
+  grid-column-end: 5;
+}
+.group:nth-child(4n + 1) {
+  grid-column-start: 6;
+  grid-column-end: 9;
+}
+.group:nth-child(4n + 2) {
+  grid-column-start: 1;
+  grid-column-end: 4;
+}
+.group:nth-child(4n + 3) {
+  grid-column-start: 5;
+  grid-column-end: 8;
+}
+
 .group:nth-child(1) {
-    grid-row-start: 1;
-    grid-column-start: 4;
-    grid-column-end: 7;
+  grid-column-start: 4;
+  grid-column-end: 7;
 }
 .group:nth-child(2) {
-    grid-row-start: 2;
-    grid-column-start: 2;
-    grid-column-end: 5;
-    margin-top: -10%;
-    margin-left: -5%;
+  grid-column-start: 2;
+  grid-column-end: 5;
 }
 .group:nth-child(3) {
-    grid-row-start: 2;
-    grid-column-start: 6;
-    grid-column-end: 9;
-    margin-left: 0vw;
-    margin-top: -10%;
+  grid-column-start: 6;
+  grid-column-end: 9;
 }
 .group:nth-child(4) {
-    grid-row-start: 3;
-    grid-column-start: 1;
-    grid-column-end: 4;
-    margin-left: -10%;
+  grid-column-start: 1;
+  grid-column-end: 4;
 }
 .group:nth-child(5) {
-    grid-row-start: 3;
-    grid-column-start: 5;
-    grid-column-end: 8;
-    margin-left: -20%;
+  grid-column-start: 5;
+  grid-column-end: 8;
 }
-.group:nth-child(6) {
-    grid-row-start: 4;
-    grid-column-start: 3;
-    grid-column-end: 6;
-}
-.group:nth-child(7) {
-    grid-row-start: 4;
-    grid-column-start: 8;
-    grid-column-end: 11;
-}
-.group:nth-child(8) {
-    grid-row-start: 5;
-    grid-column-start: 1;
-    grid-column-end: 4;
-}
-.group:nth-child(9) {
-    grid-row-start: 5;
-    grid-column-start: 5;
-    grid-column-end: 8;
-}
-.group:nth-child(10) {
-    grid-row-start: 5;
-    grid-column-start: 9;
-    grid-column-end: 12;
-}
-.group:nth-child(11) {
-    grid-row-start: 6;
-    grid-column-start: 2;
-    grid-column-end:5;
-}
-.group:nth-child(12) {
-    grid-row-start: 6;
-    grid-column-start: 7;
-    grid-column-end: 10;
-}
-.group:nth-child(13) {
-    grid-row-start: 7;
-    grid-column-start: 1;
-    grid-column-end: 4;
-}
-.group:nth-child(14) {
-    grid-row-start: 7;
-    grid-column-start: 5;
-    grid-column-end: 8;
+
+@media only screen and (max-width: 640px) {
+  .groups {
+    position: relative;
+    z-index: 3;
+    grid-template-columns: 1fr;
+    margin-top: 0;
+  }
+  .group {
+    grid-column-end: 1 !important;
+  }
 }
 .avatar {
     position: relative;
@@ -3474,413 +3257,6 @@ let styles = csjs`
         font-size: calc(var(--contributorsTextSize) * 1.35);
     }
 }
-@media only screen and (min-width: 1920px) {
-    .groups {
-      grid-template-columns: repeat(12, 8.33%);
-      margin-top: 2vw;
-    }
-    .group:nth-child(1) {
-      grid-row-start: 1;
-      grid-column-start: 7;
-      grid-column-end: 11;
-      margin-left: 0;
-    }
-    .group:nth-child(2) {
-      grid-row-start: 2;
-      grid-column-start: 4;
-      grid-column-end: 8;
-    }
-    .group:nth-child(3) {
-      grid-row-start: 2;
-      grid-column-start: 9;
-      grid-column-end: 13;
-    }
-    .group:nth-child(4) {
-      grid-row-start: 3;
-      grid-column-start: 3;
-      grid-column-end: 7;
-      margin-left: 0;
-    }
-    .group:nth-child(5) {
-      grid-row-start: 3;
-      grid-column-start: 8;
-      grid-column-end: 12;
-      margin-left: 0;
-    }
-    .group:nth-child(6) {
-      grid-row-start: 4;
-      grid-column-start: 4;
-      grid-column-end: 8;
-      margin-left: 0;
-    }
-    .group:nth-child(7) {
-      grid-row-start: 4;
-      grid-column-start: 9;
-      grid-column-end: 13;
-      margin-left: 0;
-    }
-    .group:nth-child(8) {
-      grid-row-start: 5;
-      grid-column-start: 3;
-      grid-column-end: 7;
-      margin-left: 0;
-    }
-    .group:nth-child(9) {
-      grid-row-start: 5;
-      grid-column-start: 8;
-      grid-column-end: 12;
-      margin-left: 0;
-    }
-    .group:nth-child(8) {
-      grid-row-start: 5;
-      grid-column-start: 3;
-      grid-column-end: 7;
-      margin-left: 0;
-    }
-    .group:nth-child(9) {
-      grid-row-start: 5;
-      grid-column-start: 8;
-      grid-column-end: 12;
-      margin-left: 0;
-    }
-    .group:nth-child(10) {
-      grid-row-start: 6;
-      grid-column-start: 4;
-      grid-column-end: 8;
-      margin-left: 0;
-    }
-    .group:nth-child(11) {
-      grid-row-start: 6;
-      grid-column-start: 9;
-      grid-column-end: 13;
-      margin-left: 0;
-    }
-    .group:nth-child(12) {
-      grid-row-start: 7;
-      grid-column-start: 3;
-      grid-column-end: 7;
-      margin-left: 0;
-    }
-    .group:nth-child(13) {
-      grid-row-start: 7;
-      grid-column-start: 8;
-      grid-column-end: 12;
-      margin-left: 0;
-    }
-    .group:nth-child(14) {
-      grid-row-start: 8;
-      grid-column-start: 4;
-      grid-column-end: 8;
-    }
-    .group:nth-child(15) {
-      grid-row-start: 8;
-      grid-column-start: 9;
-      grid-column-end: 13;
-    }
-}
-@media only screen and (max-width: 1900px) {
-  .group:nth-child(1) {
-    margin-left: 15%;
-  }
-  .group:nth-child(2) {
-    grid-column-start: 2;
-    grid-column-end: 5;
-  }
-  .group:nth-child(3) {
-    grid-column-start: 6;
-    grid-column-end: 9;
-  }
-  .group:nth-child(4) {
-    grid-column-start: 1;
-    grid-column-end: 4;
-  }
-  .group:nth-child(5) {
-    grid-column-start: 5;
-    grid-column-end: 8;
-  }
-  .group:nth-child(6) {
-    grid-row-start: 4;
-    grid-column-start: 3;
-    grid-column-end: 6;
-  }
-  .group:nth-child(7) {
-      grid-row-start: 5;
-      grid-column-start: 1;
-      grid-column-end: 4;
-  }
-  .group:nth-child(8) {
-      grid-row-start: 5;
-      grid-column-start: 5;
-      grid-column-end: 8;
-  }
-  .group:nth-child(9) {
-      grid-row-start: 6;
-      grid-column-start: 2;
-      grid-column-end: 5;
-  }
-  .group:nth-child(10) {
-    grid-row-start: 6;
-    grid-column-start: 6;
-    grid-column-end: 9;
-  }
-  .group:nth-child(11) {
-    grid-row-start: 7;
-    grid-column-start: 3;
-    grid-column-end: 6;
-  }
-  .group:nth-child(12) {
-    grid-row-start: 8;
-    grid-column-start: 1;
-    grid-column-end: 4;
-  }
-  .group:nth-child(13) {
-    grid-row-start: 8;
-    grid-column-start: 5;
-    grid-column-end: 8;
-  }
-  .group:nth-child(14) {
-    grid-row-start: 9;
-    grid-column-start: 2;
-    grid-column-end: 5;
-  }
-  .group:nth-child(15) {
-    grid-row-start: 9;
-    grid-column-start: 6;
-    grid-column-end: 9;
-  }
-}
-@media only screen and (max-width: 1024px) {
-    .section {
-        grid-template-columns: 1fr;
-    }
-    .content {
-        grid-row-start: 1;
-        grid-row-end: 2;
-        grid-column-start: 1;
-        padding: 0 5vw;
-    }
-    .inner {
-        justify-content: center;
-        grid-row-start: 2;
-        grid-row-end: 3;
-        padding-top: 10%;
-    }
-    .island {
-        width: 90%;
-    }
-    .groups {
-        grid-row-start: 3;
-        grid-row-end: 4;
-        grid-column-start: 1;
-        width: 90%;
-        grid-template-columns: 1fr 1fr;
-        margin: 0 auto;
-    }
-    .group:nth-child(1) {
-        grid-column-start: 1;
-        grid-column-end: 1;
-        margin-left: 0;
-    }
-    .group:nth-child(2) {
-        grid-row-start: 2;
-        grid-column-start: 2;
-        margin-top: -30%;
-    }
-    .group:nth-child(3) {
-        grid-row-start: 3;
-        grid-column-start: 1;
-        grid-column-end: 1;
-        margin-top: -30%;
-        margin-left: 0;
-    }
-    .group:nth-child(4) {
-        grid-row-start: 4;
-        grid-column-start: 2;
-        margin-top: -30%;
-    }
-    .group:nth-child(5) {
-        grid-row-start: 5;
-        grid-column-start: 1;
-        grid-column-end: 1;
-        margin-top: -30%;
-        margin-left: 0;
-    }
-    .group:nth-child(6) {
-        grid-row-start: 6;
-        grid-column-start: 2;
-        margin-top: -30%;
-    }
-    .group:nth-child(7) {
-      grid-row-start: 7;
-      grid-column-start: 1;
-      grid-column-end: 1;
-      margin-top: -30%;
-      margin-left: 0;
-    }
-    .group:nth-child(8) {
-      grid-row-start: 8;
-      grid-column-start: 2;
-      margin-top: -30%;
-    }
-    .group:nth-child(9) {
-      grid-row-start: 9;
-      grid-column-start: 1;
-      grid-column-end: 1;
-      margin-top: -30%;
-      margin-left: 0;
-    }
-    .group:nth-child(10) {
-      grid-row-start: 10;
-      grid-column-start: 2;
-      margin-top: -30%;
-    }
-    .group:nth-child(11) {
-      grid-row-start: 11;
-      grid-column-start: 1;
-      grid-column-end: 1;
-      margin-top: -30%;
-      margin-left: 0;
-    }
-    .group:nth-child(12) {
-      grid-row-start: 12;
-      grid-column-start: 2;
-      margin-top: -30%;
-    }
-    .group:nth-child(13) {
-      grid-row-start: 13;
-      grid-column-start: 1;
-      grid-column-end: 1;
-      margin-top: -30%;
-      margin-left: 0;
-    }
-    .group:nth-child(14) {
-      grid-row-start: 14;
-      grid-column-start: 2;
-      margin-top: -30%;
-    }
-    .group:nth-child(15) {
-      grid-row-start: 15;
-      grid-column-start: 1;
-      grid-column-end: 1;
-      margin-top: -30%;
-      margin-left: 0;
-    }
-    .cloud1 {
-        width: 10vw;
-        top: 35vw;
-        left: 8vw;
-    }
-    .cloud2 {
-        width: 20vw;
-        top : 22vw;
-        left: 30vw;
-    }
-    .cloud3 {
-        width: 10vw;
-        top: 38vw;
-        left: 70vw;
-    }
-}
-
-@media only screen and (max-width: 960px) {
-    .cloud1 {
-        top: 22vw;
-    }
-    .cloud2 {
-        top: 12vw;
-    }
-    .cloud3 {
-        top: 30vw;
-    }
-}
-@media only screen and (max-width: 640px) {
-    .groups {
-        position: relative;
-        z-index: 3;
-        grid-template-columns: 1fr;
-    }
-    .groups > div {
-        width: 80%;
-        margin-bottom: 5vw;
-    }
-    .group:nth-child(1) {
-        margin-left: 8vw;
-    }
-    .group:nth-child(2) {
-        grid-column-end: 1;
-        margin-left: 20vw;
-        margin-top: -10vw;
-    }
-    .group:nth-child(3) {
-        grid-column-end: 1;
-        margin-left: 8vw;
-        margin-top: -3vw;
-    }
-    .group:nth-child(4) {
-        grid-column-end: 1;
-        margin-left: 20vw;
-        margin-top: -5vw;
-    }
-    .group:nth-child(5) {
-        grid-column-end: 1;
-        margin-left: 8vw;
-        margin-top: -5vw;
-    }
-    .group:nth-child(6) {
-      grid-column-end: 1;
-      margin-left: 20vw;
-      margin-top: -10vw;
-    }
-    .group:nth-child(7) {
-      grid-column-end: 1;
-      margin-left: 8vw;
-      margin-top: -3vw;
-    }
-    .group:nth-child(8) {
-      grid-column-end: 1;
-      margin-left: 20vw;
-      margin-top: -5vw;
-    }
-    .group:nth-child(9) {
-      grid-column-end: 1;
-      margin-left: 8vw;
-      margin-top: -5vw;
-    }
-    .group:nth-child(10) {
-      grid-column-end: 1;
-      margin-left: 20vw;
-      margin-top: -10vw;
-    }
-    .group:nth-child(11) {
-      grid-column-end: 1;
-      margin-left: 8vw;
-      margin-top: -3vw;
-    }
-    .group:nth-child(12) {
-      grid-column-end: 1;
-      margin-left: 20vw;
-      margin-top: -5vw;
-    }
-    .group:nth-child(13) {
-      grid-column-end: 1;
-      margin-left: 8vw;
-      margin-top: -5vw;
-    }
-    .group:nth-child(14) {
-      grid-column-end: 1;
-      margin-left: 20vw;
-      margin-top: -10vw;
-    }
-    .group:nth-child(15) {
-      grid-column-end: 1;
-      margin-left: 8vw;
-      margin-top: -10vw;
-    }
-    .group:nth-child(16) {
-      grid-column-end: 1;
-      margin-left: 20vw;
-      margin-top: -5vw;
-    }
     .info {
         font-size: var(--contributorsTextSizeS);
     }
@@ -3964,7 +3340,7 @@ and (max-width: 736px) and (orientation: landscape) {
 
 module.exports = our_contributors
 
-},{"bel":4,"content":30,"contributor":31,"csjs-inject":7,"graphic":37,"rellax":27}],41:[function(require,module,exports){
+},{"bel":2,"content":28,"contributor":29,"csjs-inject":5,"graphic":35,"rellax":25}],39:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // Widgets
@@ -4158,7 +3534,7 @@ const styles = csjs`
     }
 }
 `
-},{"bel":4,"content":30,"csjs-inject":7,"graphic":37}],42:[function(require,module,exports){
+},{"bel":2,"content":28,"csjs-inject":5,"graphic":35}],40:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // widgets
@@ -4681,7 +4057,7 @@ let styles = csjs`
 `
 
 module.exports = supporters
-},{"bel":4,"crystalIsland":32,"csjs-inject":7,"graphic":37,"rellax":27}],43:[function(require,module,exports){
+},{"bel":2,"crystalIsland":30,"csjs-inject":5,"graphic":35,"rellax":25}],41:[function(require,module,exports){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // widgets
@@ -4841,4 +4217,194 @@ let css = csjs`
 		}
 }
 `
-},{"bel":4,"csjs-inject":7,"graphic":37,"zenscroll":28}]},{},[1]);
+},{"bel":2,"csjs-inject":5,"graphic":35,"zenscroll":26}],42:[function(require,module,exports){
+const bel = require('bel')
+const csjs = require('csjs-inject')
+const make_page = require('../') 
+const theme = require('theme')
+
+const appleTouch = bel`<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
+const icon32 = bel`<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
+const icon16 = bel`<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
+const webmanifest = bel`<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
+document.head.append(appleTouch, icon32, icon16, webmanifest)
+
+const params = new URL(location.href).searchParams
+const lang = params.get('lang')
+
+if (lang === 'en') {
+	params.delete('lang')
+	location.search = params
+}
+
+const styles = csjs`
+html {
+	font-size: 82.5%;
+	scroll-behavior: smooth;
+}
+body {
+	font-family: var(--bodyFont);
+	font-size: 1.4rem;
+	color: var(--bodyColor);
+	margin: 0;
+	padding: 0;
+	background-color: var(--bodyBg);
+	overflow-x: hidden;
+}
+a {
+	text-decoration: none;
+}
+button {
+	outline: none;
+	border: none;
+	font-family: var(--titleFont);
+	font-size: var(--sectionButtonSize);
+	color: var(--titleColor);
+	border-radius: 2rem;
+	padding: 1.2rem 3.8rem;
+	cursor: pointer;
+}
+img {
+	width: 100%;
+	height: auto;
+}
+article {
+	font-size: var(--articleSize);
+	color: var(--articleColor);
+	line-height: 2.5rem;
+	padding-bottom: 4rem;
+}
+@media only screen and (min-width: 2561px) {
+	article {
+		font-size: calc(var(--articleSize) * 1.5 );
+		line-height: calc(2.5rem * 1.5);
+	}
+	button {
+		font-size: calc(var(--sectionButtonSize) * 1.5 );
+}
+}
+@media only screen and (min-width: 4096px) {
+	article {
+		font-size: calc(var(--articleSize) * 2.25 );
+		line-height: calc(2.5rem * 2.25);
+	}
+	button {
+		font-size: calc(var(--sectionButtonSize) * 2.25 );
+	}
+}
+`
+
+// callback done()
+const el = (err, landingPage) => {
+	const vars = theme
+
+	if (err) {
+		document.body.style = `color: red; font-size: 1.6rem; text-align:center; background-color: #d9d9d9;`
+		document.body.innerHTML = `<p>${err.stack}</p>`
+	} else {
+		document.body.appendChild(landingPage)
+	}
+
+	updateTheme(vars)
+} 
+
+function updateTheme (vars) {
+	Object.keys(vars).forEach(name => {
+		document.body.style.setProperty(`--${name}`, vars[name])
+	})
+}
+
+make_page({theme}, el, lang)
+},{"../":27,"bel":2,"csjs-inject":5,"theme":43}],43:[function(require,module,exports){
+const bel = require('bel')
+const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
+const loadFont = bel`<link href=${font} rel='stylesheet' type='text/css'>`
+document.head.appendChild(loadFont)
+
+const defines = {
+    fonts: {
+        slackey         : `'Slackey', Arial, sans-serif`,
+        nunito          : `'Nunito', Arial, sans-serif`,
+    },
+    sizes: {
+        'xx-small'      : '1.2rem',
+        'x-small'       : '1.3rem',
+        small           : '1.4rem',
+        medium          : '1.6rem',
+        large           : '2rem',
+        'x-large'       : '3rem',
+        'xx-large'      : '4rem',
+        'xxx-large'     : '5rem',
+    },
+    colors: {
+        white           : '#fff',
+        skyblue         : '#b3e2ff',
+        turquoise       : '#aae6ed',
+        pink            : '#e14365',
+        grey            : '#333333',
+        lightGrey       : '#999999',
+        lightGreen      : '#a1e9da',
+        blueGreen       : '#00a6ad',
+        purple          : '#b337fb',
+        lightBluePurple : '#9db9ee',
+        bluePurple      : '#9a91ff',
+        lightPurple     : '#beb2d7',
+        lightYellow     : '#eddca4',
+        lightSky        : '#b4e4fd',
+        green           : '#4aa95b',
+        lowYellow       : '#fdfbee',
+        brown           : '#b06d56',
+    }
+}
+
+const theme = {
+    bodyFont            : defines.fonts.nunito,
+    bodyColor           : defines.colors.grey,
+    bodyBg              : defines.colors.lightSky,
+    menuSize            : defines.sizes.small,
+    titleFont           : defines.fonts.slackey,
+    titleSize           : defines.sizes['xxx-large'],
+    titleSizeM          : '3.6rem',
+    titlesSizeS         : '2.8rem',
+    titleColor          : defines.colors.white,
+    playBgGStart        : defines.colors.skyblue,
+    playBgGEnd          : defines.colors.turquoise,
+    subTitleSize        : '4.2rem',
+    section1TitleColor  : defines.colors.pink,
+    section2TitleColor  : defines.colors.blueGreen,
+    section3TitleColor  : defines.colors.purple,
+    section4TitleColor  : defines.colors.brown,
+    section5TitleColor  : defines.colors.green,
+    articleSize         : defines.sizes.small,
+    articleColor        : defines.colors.grey,
+    section1BgGStart    : defines.colors.turquoise,
+    section1BgGEnd      : defines.colors.lightGreen,
+    section2BgGStart    : defines.colors.lightGreen,
+    section2BgGEnd      : defines.colors.lightBluePurple,
+    section3BgGStart    : defines.colors.lightBluePurple,
+    section3BgGEnd      : defines.colors.bluePurple,
+    section4BgGStart    : defines.colors.bluePurple,
+    section4BgGEnd      : defines.colors.lightPurple,
+    section5BgGStart    : defines.colors.lightPurple,
+    section5BgGMiddle   : defines.colors.lightYellow,
+    section5BgGEnd      : defines.colors.lightSky,
+    sectionButtonSize   : defines.sizes.small,
+    roadmapHeadlline    : '4rem',
+    roadmapHeadllineM   : '3rem',
+    roadmapHeadllineS   : '1.6rem',
+    roadmapTitleSize    : defines.sizes.large,
+    roadmapTitleSizeM   : defines.sizes.medium,
+    roadmapTitleColor   : defines.colors.blueGreen,
+    roadmapTextSize     : defines.sizes.medium,
+    roadmapTextSizeM    : defines.sizes["x-small"],
+    contributorsBg              : defines.colors.lowYellow,
+    contributorsTextSize        : defines.sizes.small,
+    contributorsTextSizeS       : defines.sizes["xx-small"],
+    contributorsCareerColor     : defines.colors.lightGrey,
+    footerTextColor     : defines.colors.grey,
+    footerBg            : defines.colors.lightSky
+}
+
+module.exports = theme
+
+},{"bel":2}]},{},[42]);
