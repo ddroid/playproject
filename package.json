@@ -4,8 +4,8 @@
   "description": "Playproject.io official landing page",
   "main": "src/index.js",
   "scripts": {
-    "start": "budo demo/demo.js:bundle.js --dir ./ --live --open",
-    "build": "browserify demo/demo.js -o bundle.js"
+    "start": "budo web/demo.js:bundle.js --dir ./ --live --open",
+    "build": "browserify web/demo.js -o bundle.js"
   },
   "repository": {
     "type": "git",
