@@ -3126,6 +3126,7 @@ let styles = csjs`
     grid-template-rows: auto;
     grid-template-columns: repeat(12, 12.5%);
     justify-self: end;
+    margin-top: 20%;
 }
 .group {
     position: relative;
@@ -3153,17 +3154,56 @@ let styles = csjs`
   grid-column-start: 4;
   grid-column-end: 7;
 }
-
+@media only screen and (max-width: 1024px) {
+    .section {
+        grid-template-columns: 1fr;
+    }
+    .content {
+        grid-column-start: 1;
+        grid-row-start: 1;
+    }
+    .inner {
+        grid-column-start: 1;
+        grid-row-start: 2;
+    }
+    .inner .island {
+        width: 98%;
+    }
+    .groups {
+        position: relative;
+        grid-column-start: 1;
+        grid-row-start: 3;
+        grid-template-columns: 1fr 1fr;
+        margin-top: 0;
+    }
+    .group{
+        margin-top: 5%;
+    }
+    .group:nth-child(2n + 1) {
+        grid-column-start: 1;
+        grid-column-end: 1;
+        margin-top: -35%;
+    }
+    .group:nth-child(2n) {
+        grid-column-start: 2;
+        grid-column-end: 2;
+    }
+}
 @media only screen and (max-width: 640px) {
-  .groups {
-    position: relative;
-    z-index: 3;
-    grid-template-columns: 1fr;
-    margin-top: 0;
-  }
-  .group {
-    grid-column-end: 1 !important;
-  }
+    .groups {
+        grid-template-columns: 1fr;
+    }
+    .group {
+        grid-column-end: 1 !important;
+        width: 82%;
+        margin-top: 2% !important;
+        margin-left: 5%;
+        grid-column-start: 1 !important;
+        grid-column-end: 1 !important;
+    }
+    .group:nth-child(2n) {
+        margin-left: 15%;
+    }
 }
 .avatar {
     position: relative;
@@ -3688,7 +3728,7 @@ let styles = csjs`
     position: relative;
     width: 36%;
     margin: 0 0 -12% 64%;
-    z-index: 2;
+    z-index: 1;
 }
 .yellowCrystal, .blueCrystal, .purpleCrystal, .stone{
     position: absolute;
@@ -3739,16 +3779,17 @@ let styles = csjs`
     margin: 0 0 -11% -12%;
 }
 .scene:first-child .content{
-    left: 39%;
+    left: 38%;
 }
 .scene:first-child .yellowCrystal{
     width: 20%;
-    left: 98px;
+    left: 14%;
     bottom: 0px;
 }
 .scene:first-child .card{
-    left: 140px;
+    left: 20%;
     bottom: 12px;
+    width: 73%;
 }
 
 @media only screen and (min-width: 3840px) {
@@ -3761,6 +3802,35 @@ let styles = csjs`
     }
 }
 
+@media only screen and (max-width: 1024px) {
+    .section{
+        grid-template-columns: 50% 50%;
+    }
+    .scene{
+        width: 40vw;
+        margin-left: 14%;
+    }
+    .scene:nth-child(2n) {
+        grid-column-start: 1;
+        transform: translateY(0);
+    }
+    .scene:nth-child(2n + 1) {
+        grid-column-start: 2;
+        transform: translateY(-35%);
+    }
+    .scene:first-child {
+        width: 70vw;
+        grid-column-start: 1;
+        grid-column-end: 3;
+        transform: translateY(0);
+    }
+    .content {
+        width: 42%;
+    }
+    .content p {
+        font-size: 15px;
+    }
+}
 @media only screen and (max-width: 812px) {
     .info h3 {
         margin-bottom: 6px;
@@ -3770,7 +3840,23 @@ let styles = csjs`
         font-size: var(--supportersTextSizeM);
     }
 }
-
+@media only screen and (max-width: 640px) {
+    .scene:nth-child(2n) {
+        grid-column-end: 2;
+    }
+    .scene:nth-child(2n + 1) {
+        transform: translateY(-60%);
+    }
+    .scene{
+        width: 50vw;
+        margin-left: 1%;
+        margin-top: 9em;
+    }   
+    .scene:first-child {
+        margin-left: 14%;
+        transform: translateY(0%);
+    }
+}
 
 `
 
