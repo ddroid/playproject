@@ -1,4 +1,3 @@
-
 // pages
 const topnav = require('topnav')
 const Header = require('header')
