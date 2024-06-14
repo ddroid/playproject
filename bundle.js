@@ -1071,6 +1071,192 @@ module.exports = function (css, options) {
 };
 
 },{}],25:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+},{}],26:[function(require,module,exports){
 (function (global){(function (){
 
 // ------------------------------------------
@@ -1571,7 +1757,7 @@ module.exports = function (css, options) {
 }));
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /**
  * Zenscroll 4.0.2
  * https://github.com/zengabor/zenscroll/
@@ -1930,9 +2116,8 @@ module.exports = function (css, options) {
 
 }));
 
-},{}],27:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
+},{}],28:[function(require,module,exports){
+(function (process,__filename){(function (){
 
 // pages
 const topnav = require('topnav')
@@ -1944,10 +2129,34 @@ const supporters = require('supporters')
 const our_contributors = require('our-contributors')
 const Footer = require('footer')
 const fetch_data = require('fetch-data')
+/******************************************************************************
+  MAKE_PAGE COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
 
 module.exports = make_page
 
-function make_page(opts, done, lang) {
+async function make_page(opts, done, lang) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const id = `${ID}:${count++}` // assigns their own name
+  const status = {}
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
   switch(lang) {
     case 'zh-tw':
     case 'ja':
@@ -1958,55 +2167,84 @@ function make_page(opts, done, lang) {
     default:
       var path = `./src/node_modules/lang/en-us.json`
   }
-  fetch_data(path).then(async (text) => {
-    let { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
-    const {theme} = opts
-    const css = styles
-    const landingPage = bel`
-      <div id="top" class=${css.wrap}>
-        ${await topnav(menu)}
-        ${await Header(header)}
-        ${await datdot(section1)}
-        ${await editor(section2)}
-        ${await smartcontract_codes(section3)}
-        ${await supporters(section4)}
-        ${await our_contributors(section5)}
-        ${await Footer(footer)}
-      </div>`
-  return done(null, landingPage)
+  const text = await fetch_data(path)
+  const { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
+  const {theme} = opts
 
-  }).catch( err => {
-    return done(err, null)
-  })
+
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.adoptedStyleSheets = [sheet]
+  shadow.innerHTML = `
+  <div id="top" class='wrap'>
+  </div>`
+  const main = shadow.querySelector('div')
+  main.append(await topnav(menu), await Header(header), await datdot(section1), await editor(section2), await smartcontract_codes(section3), await supporters(section4), await our_contributors(section5), await Footer(footer))
+  return el
 }
 
-const styles = csjs`
+function get_theme() {
+  return `
 .wrap {
     background: var(--bodyBg);
 }
 [class^="cloud"] {
     transition: left 0.6s, bottom 0.5s, top 0.5s linear;
-}`
+}`}
 
-},{"bel":2,"csjs-inject":5,"datdot":31,"editor":32,"fetch-data":33,"footer":34,"header":36,"our-contributors":38,"smartcontract-codes":39,"supporters":40,"topnav":41}],28:[function(require,module,exports){
+}).call(this)}).call(this,require('_process'),"/src/index.js")
+},{"_process":25,"datdot":32,"editor":33,"fetch-data":34,"footer":35,"header":37,"our-contributors":39,"smartcontract-codes":40,"supporters":41,"topnav":42}],29:[function(require,module,exports){
+(function (process,__filename){(function (){
 const bel = require('bel')
 const csjs = require('csjs-inject')
+/******************************************************************************
+  CONTENT COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = content
 
 function content(data, theme) {
-    const css = Object.assign({}, styles, theme)
-    let el = bel`
-    <div class="${css.content}">
-        <h2 class="${css.subTitle} ${css.subTitleColor}">${data.title}</h2>
-        <article class=${css.article}>${data.article}</article>
-        <a class="${css.button} ${css.buttonBg}" href=${data.url} target="_blank">${data.action}</a>
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    el.classList.add('content')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+    <div class="main">
+        <h2 class="subTitle subTitleColor">${data.title}</h2>
+        <article class=article>${data.article}</article>
+        ${data.url ? `<a class="button buttonBg" href=${data.url} target="_blank">${data.action}</a>` : ''}
     </div>
     `
     return el
 }
 
-let styles = csjs`
-.content {
-    
+function get_theme () {
+  return `
+.main {
+    text-align: center;
 }
 .subTitle {
     font-family: var(--titleFont);
@@ -2017,7 +2255,10 @@ let styles = csjs`
     color: var(--section2TitleColor);
 }
 .article {
-    
+    font-size: var(--articleSize);
+    color: var(--articleColor);
+    line-height: 2.5rem;
+    padding-bottom: 4rem;
 }
 .button {
     display: inline-block;
@@ -2029,6 +2270,9 @@ let styles = csjs`
     border-radius: 2rem;
     padding: 1.2rem 3.8rem;
     cursor: pointer;
+}
+a {
+    text-decoration: none;
 }
 .buttonBg {
 
@@ -2050,39 +2294,67 @@ let styles = csjs`
         margin-bottom: 1.5rem;
     }
 }
-`
-module.exports = content
-},{"bel":2,"csjs-inject":5}],29:[function(require,module,exports){
+`}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/content.js")
+},{"_process":25,"bel":2,"csjs-inject":5}],30:[function(require,module,exports){
+(function (process,__filename){(function (){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // Widgets
 const Graphic = require('graphic')
-
+/******************************************************************************
+  CONTRIBUTOR COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
 module.exports = contributor
 
 async function contributor(person, className, theme) {
-    let css = Object.assign({}, styles, theme)
-    let lifeIsland = await Graphic(css.lifeIsland,'./src/node_modules/assets/svg/life-island.svg')
-    let el = bel`
-      <div class=${className}>
-        <div class=${css.member}>
-          <img class=${css.avatar} src=${person.avatar} alt=${person.name}>
-          <div class=${css.info}>
-            <h3 class=${css.name}>${person.name}</h3>
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    const lifeIsland = await Graphic('lifeIsland','./src/node_modules/assets/svg/life-island.svg')
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    el.classList.add(className)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+      <div>
+        <div class='member'>
+          <img class='avatar' src=${person.avatar} alt=${person.name}>
+          <div class='info'>
+            <h3 class='name'>${person.name}</h3>
             ${person.careers &&
                 person.careers.map( career =>
-                    bel`<span class=${css.career}>${career}</span>`
+                    `<span class='career'>${career}</span>`
                 )
             }
           </div>
         </div>
-        ${lifeIsland}
+        ${lifeIsland.outerHTML}
       </div>
-  `
+    `
     return el
 }
 
-const styles = csjs`
+function get_theme () {
+  return `
 .member {
     position: absolute;
     z-index: 1;
@@ -2094,6 +2366,8 @@ const styles = csjs`
 .avatar {
     position: relative;
     z-index: 2;
+    width: 100%;
+    height: auto;
 }
 .info {
     display: flex;
@@ -2173,50 +2447,102 @@ const styles = csjs`
     }
 }
 `
+}
 
 
+}).call(this)}).call(this,require('_process'),"/src/node_modules/contributor.js")
+},{"_process":25,"bel":2,"csjs-inject":5,"graphic":36}],31:[function(require,module,exports){
+(function (process,__filename){(function (){
+/******************************************************************************
+  SUPPORTERS COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
 
-},{"bel":2,"csjs-inject":5,"graphic":35}],30:[function(require,module,exports){
-const bel = require('bel')
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = crystalIsland
 
-async function crystalIsland({date, info}, deco, island, css, title) {
-    console.log(css)
+async function crystalIsland({date, info}, deco, island, title) {
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
     deco = await Promise.all(deco)
-    let el = bel`
-                <div class=${css.scene}>
-                    <div class=${css.deco}>
-                        <div class=${css.content}>
-                            <h3>${date}</h3>
-                            ${ info === 'Coming soon' ? bel`<h3>${info}</h3>` : bel`<p>${info}</p>` }
-                        </div>
-                        ${deco.map(item => item)}
-                    </div>
-                    ${title}
-                    ${island}
-                </div>
-                `
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    el.classList.add('scene')
+    el.innerHTML = `
+        <div class='deco'>
+            <div class='content'>
+                <h3>${date}</h3>
+                ${ info === 'Coming soon' ? `<h3>${info}</h3>` : `<p>${info}</p>` }
+            </div>
+            ${title}
+        </div>
+    `
+    // ----------------------------------------
+    const deco_el = el.querySelector('.deco')
+    el.append( island)
+    deco_el.append(...deco)
     return el
 }
 
 module.exports = crystalIsland
-},{"bel":2}],31:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
-// widgets
+}).call(this)}).call(this,require('_process'),"/src/node_modules/crystalIsland.js")
+},{"_process":25}],32:[function(require,module,exports){
+(function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
+/******************************************************************************
+  DATDOT COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = datdot
 
 async function datdot(data) {
-    const css = styles
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
     var graphics = [
-      graphic(css.blockchainIsland, './src/node_modules/assets/svg/blockchian-island.svg'),
-      graphic(css.blossomIsland, './src/node_modules/assets/svg/blossom-island.svg'),
-      graphic(css.cloud1, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud2, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud3, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud4, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud5, './src/node_modules/assets/svg/cloud.svg'),
+      graphic('blockchainIsland', './src/node_modules/assets/svg/blockchian-island.svg'),
+      graphic('blossomIsland', './src/node_modules/assets/svg/blossom-island.svg'),
+      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
     ]
 
     const [blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5] = await Promise.all(graphics)
@@ -2227,22 +2553,24 @@ async function datdot(data) {
     let cloud4Rellax = new Rellax( cloud4, { speed: 2})
     let cloud5Rellax = new Rellax( cloud5, { speed: 4})
     
-    let el = bel`
-    <section id="datdot" class="${css.section}">
-        ${content(data, css)}
-        ${blockchainIsland}
-        ${blossomIsland} 
-        ${cloud1}
-        ${cloud2}
-        ${cloud3}
-        ${cloud4}
-        ${cloud5}
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+    <section id="datdot" class="section">
     </section>
     `
+    const main = shadow.querySelector('section')
+    main.append(content(data), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+
     return el
 }
 
-const styles = csjs`
+function get_theme () {
+  return `
 .section {
     position: relative;
     display: grid;
@@ -2427,29 +2755,53 @@ const styles = csjs`
         width: 15vw;
     }
 }
-`
-
-module.exports = datdot
-},{"bel":2,"content":28,"csjs-inject":5,"graphic":35,"rellax":25}],32:[function(require,module,exports){
+`}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/datdot.js")
+},{"_process":25,"content":29,"graphic":36,"rellax":26}],33:[function(require,module,exports){
+(function (process,__filename){(function (){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 // Widgets
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
+/******************************************************************************
+  EDITOR COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = editor
 
 async function editor (data) {
-    const css = styles
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
     const graphics = [
-      graphic(css.island, './src/node_modules/assets/svg/floating-island.svg'),
-      graphic(css.energyIsland, './src/node_modules/assets/svg/energy-island.svg'),
-      graphic(css.tree, './src/node_modules/assets/svg/single-tree.svg'),
-      graphic(css.stone, './src/node_modules/assets/svg/stone.svg'),
-      graphic(css.cloud1, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud2, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud3, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud4, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud5, './src/node_modules/assets/svg/cloud.svg'),
+      graphic('island', './src/node_modules/assets/svg/floating-island.svg'),
+      graphic('energyIsland', './src/node_modules/assets/svg/energy-island.svg'),
+      graphic('tree', './src/node_modules/assets/svg/single-tree.svg'),
+      graphic('stone', './src/node_modules/assets/svg/stone.svg'),
+      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
     ]
 
     const [island, energyIsland, tree, stone, cloud1, cloud2, cloud3, cloud4, cloud5] = await Promise.all(graphics)
@@ -2461,33 +2813,36 @@ async function editor (data) {
     let cloud4Rellax = new Rellax( cloud4, { speed: 4})
     let cloud5Rellax = new Rellax( cloud5, { speed: 3})
 
-    let el = bel`
-    <section id="smartcontractUI" class="${css.section}">
-        ${Content(data, css)}
-        
-        <div class=${css.scene}>
-            <div class=${css.objects}>
-                <img class=${css.logo} src=${data.logo} alt="${data.title} logo">
-                <img class=${css.screenshot} src=${data.image} alt=${data.title}>
-                <div class=${css.deco}>
-                    ${stone}
-                    ${tree}
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+    <section id="smartcontractUI" class='section'>
+        <div class='scene'>
+            <div class='objects'>
+                <img class='logo' src=${data.logo} alt="${data.title} logo">
+                <img class='screenshot' src=${data.image} alt=${data.title}>
+                <div class='deco'>
+                    ${stone.outerHTML}
+                    ${tree.outerHTML}
                 </div>
             </div>
-            ${island}
+            ${island.outerHTML}
         </div>
-        ${energyIsland}
-        ${cloud1}
-        ${cloud2}
-        ${cloud3}
-        ${cloud4}
-        ${cloud5}
     </section>
     `
+    // ----------------------------------------
+    const main = shadow.querySelector('section')
+    main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+    main.prepend(Content(data))
     return el
 }
 
-const styles = csjs`
+function get_theme () {
+  return `
 .section {
     position: relative;
     display: grid;
@@ -2638,10 +2993,9 @@ const styles = csjs`
         bottom: 30vw;
     }
 }
-`
-
-module.exports = editor
-},{"bel":2,"content":28,"csjs-inject":5,"graphic":35,"rellax":25}],33:[function(require,module,exports){
+`}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/editor.js")
+},{"_process":25,"bel":2,"content":29,"csjs-inject":5,"graphic":36,"rellax":26}],34:[function(require,module,exports){
 module.exports = fetch_data
 
 async function fetch_data(path) {
@@ -2652,40 +3006,69 @@ async function fetch_data(path) {
     }
     throw new Error(response.status)
 }
-},{}],34:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
+},{}],35:[function(require,module,exports){
+(function (process,__filename){(function (){
 // widgets
 const graphic = require('graphic')
+/******************************************************************************
+  APP FOOTER COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = footer
 
-async function footer(footer) {
-    const css = styles
-    let island = await graphic(css.island, './src/node_modules/assets/svg/deco-island.svg')
-    const graphics = footer.icons.map(icon => graphic(css.icon, icon.imgURL))
+async function footer(opts) {
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    const cache = resources({})
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
+    let island = await graphic('island', './src/node_modules/assets/svg/deco-island.svg')
+    const graphics = opts.icons.map(icon => graphic('icon', icon.imgURL))
     const icons = await Promise.all(graphics)
-
-    let el = bel`
-    <footer class=${css.footer}>
-        <div class=${css.scene}>
-            ${island}
-            <nav class=${css.contacts}>
-                ${footer.icons.map((icon, i) => 
-                    bel`
-                    <a href=${icon.url} 
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+    <footer class='footer'>
+        <div class='scene'>
+            ${island.outerHTML}
+            <nav class='contacts'>
+                ${opts.icons.map((icon, i) => 
+                    `<a href=${icon.url} 
                     title=${icon.name} 
                     target="${icon.url.includes('http') ? "_blank" : null}"
-                    >${icons[i]}</a>`
+                    >${icons[i].outerHTML}</a>`
                 )}
             </nav>
         </div>
         
-        <p class=${css.copyright}>${new Date().getFullYear()+' '+footer.copyright}</p>
+        <p class='copyright'>${new Date().getFullYear()+' '+opts.copyright}</p>
     </footer>
     `
     return el
 }
 
-let styles = csjs`
+function get_theme () {
+  return `
 .footer {
     display: grid;
     grid-template-rows: auto;
@@ -2748,15 +3131,66 @@ let styles = csjs`
     }
 }
 `
+}
 
-module.exports = footer
-},{"bel":2,"csjs-inject":5,"graphic":35}],35:[function(require,module,exports){
+// ----------------------------------------------------------------------------
+function shadowfy (props = {}, sheets = []) {
+  return element => {
+    const el = Object.assign(document.createElement('div'), { ...props })
+    const sh = el.attachShadow(shopts)
+    sh.adoptedStyleSheets = sheets
+    sh.append(element)
+    return el
+  }
+}
+function use_protocol (petname) {
+  return ({ protocol, state, on = { } }) => {
+    if (petname in state.aka) throw new Error('petname already initialized')
+    const { id } = state
+    const invalid = on[''] || (message => console.error('invalid type', message))
+    if (protocol) return handshake(protocol(Object.assign(listen, { id })))
+    else return handshake
+    // ----------------------------------------
+    // @TODO: how to disconnect channel
+    // ----------------------------------------
+    function handshake (send) {
+      state.aka[petname] = send.id
+      const channel = state.net[send.id] = { petname, mid: 0, send, on }
+      return protocol ? channel : Object.assign(listen, { id })
+    }
+    function listen (message) {
+      const [from] = message.head
+      const by = state.aka[petname]
+      if (from !== by) return invalid(message) // @TODO: maybe forward
+      console.log(`[${id}]:${petname}>`, message)
+      const { on } = state.net[by]
+      const action = on[message.type] || invalid
+      action(message)
+    }
+  }
+}
+// ----------------------------------------------------------------------------
+function resources (pool) {
+  var num = 0
+  return factory => {
+    const prefix = num++
+    const get = name => {
+      const id = prefix + name
+      if (pool[id]) return pool[id]
+      const type = factory[name]
+      return pool[id] = type()
+    }
+    return Object.assign(get, factory)
+  }
+}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/footer.js")
+},{"_process":25,"graphic":36}],36:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
   
   return new Promise((resolve, reject) => {
-    let el = document.createElement('div')
+    const el = document.createElement('div')
     el.classList.add(className)
     loadSVG(url, (err, svg) => {
       if (err) return console.error(err)
@@ -2767,27 +3201,47 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":37}],36:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
-// widgets
+},{"loadSVG":38}],37:[function(require,module,exports){
+(function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
-
+/******************************************************************************
+  HEADER COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
 module.exports = header
 
 async function header(data) {
-		const css = styles
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
     var graphics = [
-      graphic(css.playIsland, './src/node_modules/assets/svg/play-island.svg'),
-      graphic(css.sun, './src/node_modules/assets/svg/sun.svg'),
-      graphic(css.cloud1, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud2, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud3, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud4, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud5, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud6, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud7, './src/node_modules/assets/svg/cloud.svg'),
+      graphic('playIsland', './src/node_modules/assets/svg/play-island.svg'),
+      graphic('sun', './src/node_modules/assets/svg/sun.svg'),
+      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
     ]
 
     const [playIsland, sun, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
@@ -2802,29 +3256,31 @@ async function header(data) {
 		let cloud5Rellax = new Rellax(cloud5, { speed: 4 })
 		let cloud6Rellax = new Rellax(cloud6, { speed: 3 })
 		let cloud7Rellax = new Rellax(cloud7, { speed: 3 })
-		
-		let el = bel`
-		<div class=${css.header}">
-				<h1 class=${css.title}>${data.title}</h1>
-				<section class=${css.scene}>
-						<div class=${css.sunCloud}>
-								${cloud1}
-								${sun}
-								${cloud2}
+		// ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+		<div class='header'>
+				<h1 class='title'>${data.title}</h1>
+				<section class='scene'>
+						<div class='sunCloud'>
 						</div>
-						${cloud3}
-						${cloud4}
-						${cloud5}
-						${cloud6}
-						${cloud7}
-						${playIsland}
 				</section>
 		</div>
 		`
+    // ----------------------------------------
+		const scene = shadow.querySelector('.scene')
+		const sunCloud = shadow.querySelector('.sunCloud')
+		scene.append(cloud3, cloud4, cloud5, cloud6, cloud7, playIsland)
+		sunCloud.append(cloud1, sun, cloud2)
 		return el
 }
 
-let styles = csjs`
+function get_theme () {
+  return `
 .header {
 		position: relative;
 		padding-top: 0vw;
@@ -3002,9 +3458,10 @@ let styles = csjs`
 				right: -5vw;
 		}
 }
-`
+`}
 
-},{"bel":2,"csjs-inject":5,"graphic":35,"rellax":25}],37:[function(require,module,exports){
+}).call(this)}).call(this,require('_process'),"/src/node_modules/header.js")
+},{"_process":25,"graphic":36,"rellax":26}],38:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -3017,70 +3474,89 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],38:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
+},{}],39:[function(require,module,exports){
+(function (process,__filename){(function (){
 // Widgets
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
 const Contributor = require('contributor')
+/******************************************************************************
+  OUR CONTRIBUTORS COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = our_contributors
 
 async function our_contributors (data) {
-    const css = styles
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
     const graphics = [
-      graphic(css.island,'./src/node_modules/assets/svg/waterfall-island.svg'),
-      graphic(css.cloud1, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud2, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud3, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud4, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud5, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud6, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud7, './src/node_modules/assets/svg/cloud.svg'),
+      graphic('island','./src/node_modules/assets/svg/waterfall-island.svg'),
+      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
     ]
 
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
-    const contributors = await Promise.all(data.contributors.map(person => Contributor( person, css.group, css)))
+    const contributors = await Promise.all(data.contributors.map(person => Contributor( person, 'group')))
 
     let cloud1Rellax = new Rellax( cloud1, { speed: 0.3})
     let cloud2Rellax = new Rellax( cloud2, { speed: 0.4})
     let cloud3Rellax = new Rellax( cloud3, { speed: 0.3})
-
-    let el = bel`
-        <section id="ourContributors" class="${css.section}">
-            ${Content(data, css)}
-
-            <div class=${css.inner}>
-                ${island}
-                ${cloud1}
-                ${cloud2}
-                ${cloud3}
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+        <section id="ourContributors" class="section">
+            <div class='inner'>
             </div>
 
-            <div class=${css.groups}>
-                ${contributors}
+            <div class='groups'>
             </div>
 
-            ${cloud4}
-            ${cloud5}
-            ${cloud6}
-            ${cloud7}
+            ${cloud4.outerHTML}
+            ${cloud5.outerHTML}
+            ${cloud6.outerHTML}
+            ${cloud7.outerHTML}
         </section>
     `
-
+    // ----------------------------------------
+    const inner = shadow.querySelector('.inner')
+    const groups = shadow.querySelector('.groups')
+    const main = shadow.querySelector('section')
+    groups.append(...contributors)
+    main.prepend(Content(data))
+    inner.append(island, cloud1, cloud2, cloud3)
     return el
 
-    function spacing() {
-        let subTitle = content.querySelector(`.${css.subTitle}`)
-        let article = content.querySelector(`.${css.article}`)
-        let contentH = content.offsetTop + subTitle.clientHeight + article.clientHeight
-        let groups = document.querySelector(`.${css.groups}`)
-        let screen = window.innerWidth
-
-    }
 }
-
-let styles = csjs`
+function get_theme () {
+  return `
 .section {
     position: relative;
     background-image: linear-gradient(0deg, var(--section5BgGEnd), var(--section5BgGMiddle), var(--section5BgGStart));
@@ -3112,7 +3588,7 @@ let styles = csjs`
 }
 .island {
     position: relative;
-    z-index: 7;
+    z-index: 10;
     width: 62%;
 }
 .groups {
@@ -3358,69 +3834,129 @@ and (max-width: 736px) and (orientation: landscape) {
         top: 55vw;
     }
 }
-`
-
-module.exports = our_contributors
-
-},{"bel":2,"content":28,"contributor":29,"csjs-inject":5,"graphic":35,"rellax":25}],39:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
-// Widgets
+`}
+// ----------------------------------------------------------------------------
+function shadowfy (props = {}, sheets = []) {
+    return element => {
+      const el = Object.assign(document.createElement('div'), { ...props })
+      const sh = el.attachShadow(shopts)
+      sh.adoptedStyleSheets = sheets
+      sh.append(element)
+      return el
+    }
+  }
+  function use_protocol (petname) {
+    return ({ protocol, state, on = { } }) => {
+      if (petname in state.aka) throw new Error('petname already initialized')
+      const { id } = state
+      const invalid = on[''] || (message => console.error('invalid type', message))
+      if (protocol) return handshake(protocol(Object.assign(listen, { id })))
+      else return handshake
+      // ----------------------------------------
+      // @TODO: how to disconnect channel
+      // ----------------------------------------
+      function handshake (send) {
+        state.aka[petname] = send.id
+        const channel = state.net[send.id] = { petname, mid: 0, send, on }
+        return protocol ? channel : Object.assign(listen, { id })
+      }
+      function listen (message) {
+        const [from] = message.head
+        const by = state.aka[petname]
+        if (from !== by) return invalid(message) // @TODO: maybe forward
+        console.log(`[${id}]:${petname}>`, message)
+        const { on } = state.net[by]
+        const action = on[message.type] || invalid
+        action(message)
+      }
+    }
+  }
+}).call(this)}).call(this,require('_process'),"/src/node_modules/our-contributors.js")
+},{"_process":25,"content":29,"contributor":30,"graphic":36,"rellax":26}],40:[function(require,module,exports){
+(function (process,__filename){(function (){
 const graphic = require('graphic')
 const Content = require('content')
-
+/******************************************************************************
+  SMARTCONTRACT-CODES COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
 module.exports = smartcontract_codes
 
 async function smartcontract_codes (data) {
-  const css = styles
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
   const graphics = [
-    graphic(css.island, './src/node_modules/assets/svg/floating-island1.svg'),
-    graphic(css.islandMiddle, './src/node_modules/assets/svg/floating-island2.svg'),
-    graphic(css.islandRight, './src/node_modules/assets/svg/floating-island2.svg'),
-    graphic(css.blossom, './src/node_modules/assets/svg/blossom-tree.svg'),
-    graphic(css.tree, './src/node_modules/assets/svg/single-tree.svg'),
-    graphic(css.trees, './src/node_modules/assets/svg/two-trees.svg'),
-    graphic(css.stone, './src/node_modules/assets/svg/stone.svg'),
-    graphic(css.smallStone, './src/node_modules/assets/svg/small-stone.svg'),
+    graphic('island', './src/node_modules/assets/svg/floating-island1.svg'),
+    graphic('islandMiddle', './src/node_modules/assets/svg/floating-island2.svg'),
+    graphic('islandRight', './src/node_modules/assets/svg/floating-island2.svg'),
+    graphic('blossom', './src/node_modules/assets/svg/blossom-tree.svg'),
+    graphic('tree', './src/node_modules/assets/svg/single-tree.svg'),
+    graphic('trees', './src/node_modules/assets/svg/two-trees.svg'),
+    graphic('stone', './src/node_modules/assets/svg/stone.svg'),
+    graphic('smallStone', './src/node_modules/assets/svg/small-stone.svg'),
   ]
 
-  const [island, islandMiddle, islandRight, blossom, tree, trees, stone, smallStone] = await Promise.all(graphics)
+    const [island, islandMiddle, islandRight, blossom, tree, trees, stone, smallStone] = await Promise.all(graphics)
 
-  let el = bel`
-  <section id="smartcontractCodes" class="${css.section}">
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+    <section id="smartcontractCodes" class='section'>
 
-      ${Content(data, css)}
-
-      <div class=${css.scene}>
-          <div class=${css.deco}>
-              <img class=${css.logo} src=${data.logo} alt="${data.title} logo">
-              <img class=${css.screenshot} src=${data.image} alt=${data.title}>
-              ${trees}
+      <div class='scene'>
+          <div class='deco'>
+              <img class='logo' src=${data.logo} alt="${data.title} logo">
+              <img class='screenshot' src=${data.image} alt=${data.title}>
+              ${trees.outerHTML}
           </div>
-          ${island}
+          ${island.outerHTML}
       </div>
-      <div class=${css.sceneMedium}>
-          <div class=${css.deco}>
-              <div class=${css.container}>
-                  ${smallStone}
-                  ${stone}
-                  ${blossom}
+      <div class='sceneMedium'>
+          <div class='deco'>
+              <div class='container'>
+                  ${smallStone.outerHTML}
+                  ${stone.outerHTML}
+                  ${blossom.outerHTML}
               </div>
-              ${islandMiddle}
+              ${islandMiddle.outerHTML}
           </div>
-          <div class=${css.deco}>
-              ${tree}
-              ${islandRight}
+          <div class='deco'>
+              ${tree.outerHTML}
+              ${islandRight.outerHTML}
           </div>
       </div>
       
   </section>
   `
-
+  const main = shadow.querySelector('section')
+  main.prepend(Content(data))
   return el
 }
 
-const styles = csjs`
+function get_theme () {
+  return `
 .section {
     position: relative;
     display: grid;
@@ -3555,18 +4091,41 @@ const styles = csjs`
         bottom: -5.5%;
     }
 }
-`
-},{"bel":2,"content":28,"csjs-inject":5,"graphic":35}],40:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
-// widgets
+`}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract-codes.js")
+},{"_process":25,"content":29,"graphic":36}],41:[function(require,module,exports){
+(function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const crystalIsland = require('crystalIsland')
+/******************************************************************************
+  SUPPORTERS COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = supporters
 
 async function supporters (data) {
-    const css = styles
-    let pageTitle = bel`<div class=${css.title}>${data.title}</div>`
+    // ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
+    let pageTitle = `<div class='title'>${data.title}</div>`
     const paths = {
         island: './src/node_modules/assets/svg/floating-island3.svg',
         tree: './src/node_modules/assets/svg/big-tree.svg',
@@ -3582,29 +4141,29 @@ async function supporters (data) {
 
     const graphics = [
       // crystals
-      graphic(css.yellowCrystal,'./src/node_modules/assets/svg/crystal-yellow.svg'),
-      graphic(css.purpleCrystal,'./src/node_modules/assets/svg/crystal-purple.svg'),
-      graphic(css.blueCrystal,'./src/node_modules/assets/svg/crystal-blue.svg'),
+      graphic('yellowCrystal','./src/node_modules/assets/svg/crystal-yellow.svg'),
+      graphic('purpleCrystal','./src/node_modules/assets/svg/crystal-purple.svg'),
+      graphic('blueCrystal','./src/node_modules/assets/svg/crystal-blue.svg'),
       // stone
-      graphic(css.stone,'./src/node_modules/assets/svg/stone1.svg'),
+      graphic('stone','./src/node_modules/assets/svg/stone1.svg'),
       // trees
-      graphic(css.tree,'./src/node_modules/assets/svg/big-tree.svg'),
-      graphic(css.tree,'./src/node_modules/assets/svg/single-tree1.svg'),
-      graphic(css.tree,'./src/node_modules/assets/svg/single-tree3.svg'),
-      graphic(css.treeGold,'./src/node_modules/assets/svg/single-tree2.svg'),
+      graphic('tree','./src/node_modules/assets/svg/big-tree.svg'),
+      graphic('tree','./src/node_modules/assets/svg/single-tree1.svg'),
+      graphic('tree','./src/node_modules/assets/svg/single-tree3.svg'),
+      graphic('treeGold','./src/node_modules/assets/svg/single-tree2.svg'),
       // islands
-      graphic(css.island,'./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic(css.island,'./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic(css.island,'./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic(css.island,'./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic(css.island,'./src/node_modules/assets/svg/floating-island3.svg'),
+      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
+      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
+      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
+      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
+      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
       // clouds
-      graphic(css.cloud1, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud2, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud3, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud4, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud5, './src/node_modules/assets/svg/cloud.svg'),
-      graphic(css.cloud6, './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+      graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
     ]
 
     const [yellowCrystal, purpleCrystal, blueCrystal, stone, tree, tree1, tree2, tree3, 
@@ -3619,26 +4178,27 @@ async function supporters (data) {
     let cloud6Rellax = new Rellax( cloud6, { speed: 3})
 
     const scenes = await data.supporters.map(async (supporter, i) => 
-        await crystalIsland(supporter, supporter.deco.map(async v => await graphic(v.includes('tree') ? css.tree : css[v], paths[v])), await graphic(css.island, paths.island), css, i ? '' : pageTitle)
+        await crystalIsland(supporter, supporter.deco.map(async v => await graphic(v.includes('tree') ? 'tree' : v, paths[v])), await graphic('island', paths.island), i ? '' : pageTitle)
     )
-    let el = bel`
-        <section id="supporters" class="${css.section}">
-
-            ${(await Promise.all(scenes)).map(v => v)}
-
-            ${cloud1}
-            ${cloud2}
-            ${cloud3}
-            ${cloud4}
-            ${cloud5}
-            ${cloud6}
+    // ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+        <section id="supporters" class="section">
             
         </section>
     `
+    // ----------------------------------------
+    const main = shadow.querySelector('section')
+    main.append(...(await Promise.all(scenes)).map(v => v), cloud1, cloud2, cloud3, cloud4, cloud5, cloud6)
     return el
 }
 
-let styles = csjs`
+function get_theme () {
+  return `
 .section {
     position: relative;
     background-image: linear-gradient(0deg, var(--section4BgGEnd), var(--section4BgGStart));
@@ -3859,29 +4419,60 @@ let styles = csjs`
 }
 
 `
-
-module.exports = supporters
-},{"bel":2,"crystalIsland":30,"csjs-inject":5,"graphic":35,"rellax":25}],41:[function(require,module,exports){
-const bel = require('bel')
-const csjs = require('csjs-inject')
-// widgets
+}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/supporters.js")
+},{"_process":25,"crystalIsland":31,"graphic":36,"rellax":26}],42:[function(require,module,exports){
+(function (process,__filename){(function (){
 const graphic = require('graphic')
-// plugins
 const zenscroll = require('zenscroll')
-
+/******************************************************************************
+  OUR CONTRIBUTORS COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
 module.exports = topnav
 
 async function topnav(data) {
-		const playLogo = await graphic(css.playLogo, './src/node_modules/assets/svg/logo.svg')
+		// ----------------------------------------
+    // ID + JSON STATE
+    // ----------------------------------------
+    const id = `${ID}:${count++}` // assigns their own name
+    const status = {}
+    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    // ----------------------------------------
+    // OPTS
+    // ----------------------------------------
 
-		function click(url) {
-				let id = document.querySelector(`#${url}`)
-				zenscroll.to(id, 20000)
-		}
-
-		const body = document.body
-		const scrollUp = css.scrollUp
-		const scrollDown = css.scrollDown
+		const playLogo = await graphic('playLogo', './src/node_modules/assets/svg/logo.svg')
+		// ----------------------------------------
+    // TEMPLATE
+    // ----------------------------------------
+    const el = document.createElement('div')
+    const shadow = el.attachShadow(shopts)
+    shadow.adoptedStyleSheets = [sheet]
+    shadow.innerHTML = `
+			<section class='topnav'>
+					<a href="#top">${playLogo.outerHTML}</a>
+					<nav class='menu'>
+					</nav>
+			</section>
+		`
+		// ----------------------------------------
+		const menu = shadow.querySelector('.menu')
+		const body = shadow.querySelector('section')
+		menu.append(...data.map(make_link))
+		const scrollUp = 'scrollUp'
+		const scrollDown = 'scrollDown'
 		let lastScroll = 0
 		
 		window.addEventListener('scroll', ()=> {
@@ -3909,27 +4500,23 @@ async function topnav(data) {
 						body.classList.remove(scrollDown)
 				}
 		})
-		
-		return bel`
-						<div class=${css.topnav}>
-								<a href="#top">${playLogo}</a>
-								<nav class=${css.menu}>
-										${ data.map(menu =>  
-												{ 
-														if (menu.url.includes('http')) {
-																return bel`<a href="${menu.url}" target="_blank">${menu.text}</a>` 
-														} else {
-																return bel`<a href="#${menu.url}" onclick=${() => click(menu.url)}>${menu.text}</a>` 
-														}
-														
-												}
-										)}
-								</nav>
-						</div>
-		`
+		return el
+		function click(url) {
+			let id = document.querySelector(`#${url}`)
+			console.log("@TODO: Implement scroll to specific component")
+		}
+		function make_link(link){
+			const a = document.createElement('a')
+			a.href = `#${link.url}`
+			a.textContent = link.text
+			a.onclick = () => click(link.url)
+			return a
+		}
+
 }
 
-let css = csjs`
+function get_theme () {
+  return `
 .topnav {
 		position: relative;
 		width: 100%;
@@ -3960,17 +4547,18 @@ let css = csjs`
 		color: #575551;
 		text-transform: uppercase;
 		transition: color .6s linear;
+		text-decoration: none;
 }
 .menu a:hover {
 		color: #00acff;
 }
-.scrollUp .topnav {
+.topnav.scrollUp {
 		position: fixed;
 		background-color: white;
 		-webkit-transform: none;
 		transform: none;
 }
-.scrollDown .topnav {
+.topnav.scrollDown {
 		position: fixed;
 		-webkit-transform: translate3d(0, -100%, 0);
 		transform: translate3d(0, -100%, 0);
@@ -4020,106 +4608,247 @@ let css = csjs`
 				min-width: 20vw;
 		}
 }
-`
-},{"bel":2,"csjs-inject":5,"graphic":35,"zenscroll":26}],42:[function(require,module,exports){
+`}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
+},{"_process":25,"graphic":36,"zenscroll":27}],43:[function(require,module,exports){
+(function (process,__filename,__dirname){(function (){
 const bel = require('bel')
 const csjs = require('csjs-inject')
 const make_page = require('../') 
 const theme = require('theme')
+/******************************************************************************
+  INITIALIZE PAGE
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+let current_theme = theme
+const sheet = new CSSStyleSheet()
+sheet.replaceSync(get_theme(current_theme))
+// ----------------------------------------
+config().then(() => boot({ themes: { theme } }))
 
-const appleTouch = bel`<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
-const icon32 = bel`<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
-const icon16 = bel`<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
-const webmanifest = bel`<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
-document.head.append(appleTouch, icon32, icon16, webmanifest)
+/******************************************************************************
+  CSS & HTML Defaults
+******************************************************************************/
+async function config () {
+  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
 
-const params = new URL(location.href).searchParams
-const lang = params.get('lang')
+  const html = document.documentElement
+  const meta = document.createElement('meta')
+	const appleTouch = bel`<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
+	const icon32 = bel`<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
+	const icon16 = bel`<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
+	const webmanifest = bel`<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
+  html.setAttribute('lang', 'en')
+  meta.setAttribute('name', 'viewport')
+  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
+  const fonts = new CSSStyleSheet()
+  // @TODO: use font api and cache to avoid re-downloading the font data every time
+  const font1_url = path('theme/assets/fonts/Silkscreen-Regular.ttf')
+  const font2_url = path('theme/assets/fonts/Silkscreen-Bold.ttf')
+  fonts.replaceSync(`
+  /* latin-ext */
+  @font-face {
+    font-family: 'Silkscreen';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url(${font1_url}) format('truetype');
+    unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  /* latin */
+  @font-face {
+    font-family: 'Silkscreen';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url(${font1_url}) format('truetype');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  /* latin-ext */
+  @font-face {
+    font-family: 'Silkscreen';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url(${font2_url}) format('truetype');
+    unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  /* latin */
+  @font-face {
+    font-family: 'Silkscreen';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url(${font2_url}) format('truetype');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  `)
+  document.adoptedStyleSheets = [fonts, sheet]
+  document.head.append(meta, appleTouch, icon16, icon32, webmanifest)
+  await document.fonts.ready // @TODO: investigate why there is a FOUC
+}
+/******************************************************************************
+  PAGE BOOT
+******************************************************************************/
+async function boot (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const id = `${ID}:${count++}` // assigns their own name
+  const status = {}
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+  const cache = resources({})
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  const { page = 'INFO', theme = 'theme' } = opts
+  const themes = opts.themes
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.body
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.adoptedStyleSheets = [sheet]
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // desktop
+    const on = { 'theme_change': on_theme }
+    const protocol = use_protocol('make_page')({ state, on })
+    const opts = { page, theme, themes }
+    const element = await make_page(opts, protocol)
+    shadow.append(element)
+  }
+  // ----------------------------------------
+  // INIT
+  // ----------------------------------------
 
-if (lang === 'en') {
-	params.delete('lang')
-	location.search = params
-}
+  return
 
-const styles = csjs`
-html {
-	font-size: 82.5%;
-	scroll-behavior: smooth;
+  function on_theme (message) {
+    ;current_theme = current_theme === light_theme ? dark_theme : light_theme
+    sheet.replaceSync(get_theme(current_theme))
+  }
 }
-body {
-	font-family: var(--bodyFont);
-	font-size: 1.4rem;
-	color: var(--bodyColor);
-	margin: 0;
-	padding: 0;
-	background-color: var(--bodyBg);
-	overflow-x: hidden;
-}
-a {
-	text-decoration: none;
-}
-button {
-	outline: none;
-	border: none;
-	font-family: var(--titleFont);
-	font-size: var(--sectionButtonSize);
-	color: var(--titleColor);
-	border-radius: 2rem;
-	padding: 1.2rem 3.8rem;
-	cursor: pointer;
-}
-img {
-	width: 100%;
-	height: auto;
-}
-article {
-	font-size: var(--articleSize);
-	color: var(--articleColor);
-	line-height: 2.5rem;
-	padding-bottom: 4rem;
-}
-@media only screen and (min-width: 2561px) {
-	article {
-		font-size: calc(var(--articleSize) * 1.5 );
-		line-height: calc(2.5rem * 1.5);
+function get_theme (opts) {
+	return`
+	:host{
+		${Object.entries(opts).map(entry => `--${entry[0]}: ${entry[1]};`).join('')}
+	}
+	html {
+		font-size: 82.5%;
+		scroll-behavior: smooth;
+	}
+	body {
+		font-family: var(--bodyFont);
+		font-size: 1.4rem;
+		color: var(--bodyColor);
+		margin: 0;
+		padding: 0;
+		background-color: var(--bodyBg);
+		overflow-x: hidden;
+	}
+	a {
+		text-decoration: none;
 	}
 	button {
-		font-size: calc(var(--sectionButtonSize) * 1.5 );
-}
-}
-@media only screen and (min-width: 4096px) {
+		outline: none;
+		border: none;
+		font-family: var(--titleFont);
+		font-size: var(--sectionButtonSize);
+		color: var(--titleColor);
+		border-radius: 2rem;
+		padding: 1.2rem 3.8rem;
+		cursor: pointer;
+	}
+	img {
+		width: 100%;
+		height: auto;
+	}
 	article {
-		font-size: calc(var(--articleSize) * 2.25 );
-		line-height: calc(2.5rem * 2.25);
+		font-size: var(--articleSize);
+		color: var(--articleColor);
+		line-height: 2.5rem;
+		padding-bottom: 4rem;
 	}
-	button {
-		font-size: calc(var(--sectionButtonSize) * 2.25 );
+	@media only screen and (min-width: 2561px) {
+		article {
+			font-size: calc(var(--articleSize) * 1.5 );
+			line-height: calc(2.5rem * 1.5);
+		}
+		button {
+			font-size: calc(var(--sectionButtonSize) * 1.5 );
 	}
+	}
+	@media only screen and (min-width: 4096px) {
+		article {
+			font-size: calc(var(--articleSize) * 2.25 );
+			line-height: calc(2.5rem * 2.25);
+		}
+		button {
+			font-size: calc(var(--sectionButtonSize) * 2.25 );
+		}
+	}`
 }
-`
-
-// callback done()
-const el = (err, landingPage) => {
-	const vars = theme
-
-	if (err) {
-		document.body.style = `color: red; font-size: 1.6rem; text-align:center; background-color: #d9d9d9;`
-		document.body.innerHTML = `<p>${err.stack}</p>`
-	} else {
-		document.body.appendChild(landingPage)
-	}
-
-	updateTheme(vars)
-} 
-
-function updateTheme (vars) {
-	Object.keys(vars).forEach(name => {
-		document.body.style.setProperty(`--${name}`, vars[name])
-	})
+// ----------------------------------------------------------------------------
+function shadowfy (props = {}, sheets = []) {
+  return element => {
+    const el = Object.assign(document.createElement('div'), { ...props })
+    const sh = el.attachShadow(shopts)
+    sh.adoptedStyleSheets = sheets
+    sh.append(element)
+    return el
+  }
 }
-
-make_page({theme}, el, lang)
-},{"../":27,"bel":2,"csjs-inject":5,"theme":43}],43:[function(require,module,exports){
+function use_protocol (petname) {
+  return ({ protocol, state, on = { } }) => {
+    if (petname in state.aka) throw new Error('petname already initialized')
+    const { id } = state
+    const invalid = on[''] || (message => console.error('invalid type', message))
+    if (protocol) return handshake(protocol(Object.assign(listen, { id })))
+    else return handshake
+    // ----------------------------------------
+    // @TODO: how to disconnect channel
+    // ----------------------------------------
+    function handshake (send) {
+      state.aka[petname] = send.id
+      const channel = state.net[send.id] = { petname, mid: 0, send, on }
+      return protocol ? channel : Object.assign(listen, { id })
+    }
+    function listen (message) {
+      const [from] = message.head
+      const by = state.aka[petname]
+      if (from !== by) return invalid(message) // @TODO: maybe forward
+      console.log(`[${id}]:${petname}>`, message)
+      const { on } = state.net[by]
+      const action = on[message.type] || invalid
+      action(message)
+    }
+  }
+}
+// ----------------------------------------------------------------------------
+function resources (pool) {
+  var num = 0
+  return factory => {
+    const prefix = num++
+    const get = name => {
+      const id = prefix + name
+      if (pool[id]) return pool[id]
+      const type = factory[name]
+      return pool[id] = type()
+    }
+    return Object.assign(get, factory)
+  }
+}
+}).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
+},{"../":28,"_process":25,"bel":2,"csjs-inject":5,"theme":44}],44:[function(require,module,exports){
 const bel = require('bel')
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = bel`<link href=${font} rel='stylesheet' type='text/css'>`
@@ -4211,4 +4940,4 @@ const theme = {
 
 module.exports = theme
 
-},{"bel":2}]},{},[42]);
+},{"bel":2}]},{},[43]);

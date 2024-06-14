@@ -1,5 +1,3 @@
-const bel = require('bel')
-const csjs = require('csjs-inject')
 
 // pages
 const topnav = require('topnav')
@@ -11,10 +9,34 @@ const supporters = require('supporters')
 const our_contributors = require('our-contributors')
 const Footer = require('footer')
 const fetch_data = require('fetch-data')
+/******************************************************************************
+  MAKE_PAGE COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
 
 module.exports = make_page
 
-function make_page(opts, done, lang) {
+async function make_page(opts, done, lang) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const id = `${ID}:${count++}` // assigns their own name
+  const status = {}
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
   switch(lang) {
     case 'zh-tw':
     case 'ja':
@@ -25,32 +47,30 @@ function make_page(opts, done, lang) {
     default:
       var path = `./src/node_modules/lang/en-us.json`
   }
-  fetch_data(path).then(async (text) => {
-    let { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
-    const {theme} = opts
-    const css = styles
-    const landingPage = bel`
-      <div id="top" class=${css.wrap}>
-        ${await topnav(menu)}
-        ${await Header(header)}
-        ${await datdot(section1)}
-        ${await editor(section2)}
-        ${await smartcontract_codes(section3)}
-        ${await supporters(section4)}
-        ${await our_contributors(section5)}
-        ${await Footer(footer)}
-      </div>`
-  return done(null, landingPage)
+  const text = await fetch_data(path)
+  const { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
+  const {theme} = opts
 
-  }).catch( err => {
-    return done(err, null)
-  })
+
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.adoptedStyleSheets = [sheet]
+  shadow.innerHTML = `
+  <div id="top" class='wrap'>
+  </div>`
+  const main = shadow.querySelector('div')
+  main.append(await topnav(menu), await Header(header), await datdot(section1), await editor(section2), await smartcontract_codes(section3), await supporters(section4), await our_contributors(section5), await Footer(footer))
+  return el
 }
 
-const styles = csjs`
+function get_theme() {
+  return `
 .wrap {
     background: var(--bodyBg);
 }
 [class^="cloud"] {
     transition: left 0.6s, bottom 0.5s, top 0.5s linear;
-}`
+}`}
