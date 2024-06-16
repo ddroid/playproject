@@ -1,4 +1,4 @@
-// pages
+const theme_widget = require('theme-widget')
 const topnav = require('topnav')
 const Header = require('header')
 const datdot = require('datdot')
@@ -26,13 +26,18 @@ const shopts = { mode: 'closed' }
 
 module.exports = make_page
 
-async function make_page(opts, done, lang) {
+async function make_page(opts, lang) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
   const status = {}
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: {}} // all state of component instance
+  const on_rx = {
+    init_ch,
+    req_ch,
+    send,
+  }
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -50,7 +55,7 @@ async function make_page(opts, done, lang) {
   const { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
   const {theme} = opts
 
-
+  
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -61,8 +66,26 @@ async function make_page(opts, done, lang) {
   <div id="top" class='wrap'>
   </div>`
   const main = shadow.querySelector('div')
-  main.append(await topnav(menu), await Header(header), await datdot(section1), await editor(section2), await smartcontract_codes(section3), await supporters(section4), await our_contributors(section5), await Footer(footer))
+  main.append(await topnav(menu, init_ch({name: 'topnav'})), await Header(header, init_ch({name: 'header'})), await datdot(section1, init_ch({name: 'datdot'})), await editor(section2, init_ch({name: 'editor'})), await smartcontract_codes(section3, init_ch({name: 'smartcontract_codes'})), await supporters(section4, init_ch({name: 'supporters'})), await our_contributors(section5, init_ch({name: 'our_contributors'})), await Footer(footer, init_ch({name: 'footer'})), await theme_widget(Object.keys(state.ports), init_ch({name: 'theme_widget'})))
   return el
+  
+  function init_ch({ name }) {
+    const ch = new MessageChannel()
+    state.ports[name] = ch.port1
+    ch.port1.onmessage = event => {
+      console.log('Message from', name, ':', event.data)
+      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, from: name})
+    }
+    return ch.port2
+  }
+  function req_ch({ from, data }){
+    const port = init_ch({ name: data })
+    state.ports[from].postMessage({ data: 'hi' }, [port])
+  }
+  function send({ data, to, to_type }){
+    console.error(state.ports[to], to)
+    state.ports[to].postMessage({ data, type: to_type})
+  }
 }
 
 function get_theme() {
