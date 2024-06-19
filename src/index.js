@@ -1,13 +1,15 @@
-const theme_widget = require('theme-widget')
-const topnav = require('topnav')
-const Header = require('header')
-const datdot = require('datdot')
-const editor = require('editor')
-const smartcontract_codes = require('smartcontract-codes')
-const supporters = require('supporters')
-const our_contributors = require('our-contributors')
-const Footer = require('footer')
 const fetch_data = require('fetch-data')
+const modules = {
+ theme_widget : require('theme-widget'),
+ topnav : require('topnav'),
+ header : require('header'),
+ datdot : require('datdot'),
+ editor : require('editor'),
+ smartcontract_codes : require('smartcontract-codes'),
+ supporters : require('supporters'),
+ our_contributors : require('our-contributors'),
+ footer : require('footer'),
+}
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -52,9 +54,8 @@ async function make_page(opts, lang) {
       var path = `./src/node_modules/lang/en-us.json`
   }
   const text = await fetch_data(path)
-  const { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
+  const data = text.pages
   const {theme} = opts
-
   
   // ----------------------------------------
   // TEMPLATE
@@ -66,25 +67,31 @@ async function make_page(opts, lang) {
   <div id="top" class='wrap'>
   </div>`
   const main = shadow.querySelector('div')
-  main.append(await topnav(menu, init_ch({name: 'topnav'})), await Header(header, init_ch({name: 'header'})), await datdot(section1, init_ch({name: 'datdot'})), await editor(section2, init_ch({name: 'editor'})), await smartcontract_codes(section3, init_ch({name: 'smartcontract_codes'})), await supporters(section4, init_ch({name: 'supporters'})), await our_contributors(section5, init_ch({name: 'our_contributors'})), await Footer(footer, init_ch({name: 'footer'})), await theme_widget(Object.keys(state.ports), init_ch({name: 'theme_widget'})))
+  main.append(...await Promise.all(Object.entries(data).map(async entry => {
+    return await modules[entry[0]](entry[1], init_ch({name: entry[0]}))
+  })))
+  update_theme_widget()
   return el
   
   function init_ch({ name }) {
     const ch = new MessageChannel()
     state.ports[name] = ch.port1
     ch.port1.onmessage = event => {
-      console.log('Message from', name, ':', event.data)
-      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, from: name})
+      console.log('Message by', name, ':', event.data)
+      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: name})
     }
     return ch.port2
   }
-  function req_ch({ from, data }){
+  function req_ch({ by, data }){
     const port = init_ch({ name: data })
-    state.ports[from].postMessage({ data: 'hi' }, [port])
+    state.ports[by].postMessage({ data: 'hi' }, [port])
   }
   function send({ data, to, to_type }){
     console.error(state.ports[to], to)
     state.ports[to].postMessage({ data, type: to_type})
+  }
+  async function update_theme_widget(){
+    state.ports.theme_widget.postMessage({ data: Object.keys(state.ports), type: 'refresh'})
   }
 }
 
