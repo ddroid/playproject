@@ -1,13 +1,13 @@
 const fetch_data = require('fetch-data')
 const modules = {
- theme_widget : require('theme-widget'),
+ theme_widget : require('theme_widget'),
  topnav : require('topnav'),
  header : require('header'),
  datdot : require('datdot'),
  editor : require('editor'),
- smartcontract_codes : require('smartcontract-codes'),
+ smartcontract_codes : require('smartcontract_codes'),
  supporters : require('supporters'),
- our_contributors : require('our-contributors'),
+ our_contributors : require('our_contributors'),
  footer : require('footer'),
 }
 /******************************************************************************
@@ -77,20 +77,18 @@ async function make_page(opts, lang) {
     const ch = new MessageChannel()
     state.ports[name] = ch.port1
     ch.port1.onmessage = event => {
-      console.log('Message by', name, ':', event.data)
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: name})
     }
     return ch.port2
   }
-  function req_ch({ by, data }){
+  function req_ch ({ by, data }) {
     const port = init_ch({ name: data })
     state.ports[by].postMessage({ data: 'hi' }, [port])
   }
-  function send({ data, to, to_type }){
-    console.error(state.ports[to], to)
-    state.ports[to].postMessage({ data, type: to_type})
+  function send ({ data, to, to_type, by }) {
+    state.ports[to].postMessage({ data, type: to_type, by })
   }
-  async function update_theme_widget(){
+  async function update_theme_widget () {
     state.ports.theme_widget.postMessage({ data: Object.keys(state.ports), type: 'refresh'})
   }
 }

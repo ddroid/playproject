@@ -687,16 +687,18 @@ process.umask = function() { return 0; };
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
 (function (process,__filename){(function (){
-const theme_widget = require('theme-widget')
-const topnav = require('topnav')
-const Header = require('header')
-const datdot = require('datdot')
-const editor = require('editor')
-const smartcontract_codes = require('smartcontract-codes')
-const supporters = require('supporters')
-const our_contributors = require('our-contributors')
-const Footer = require('footer')
 const fetch_data = require('fetch-data')
+const modules = {
+ theme_widget : require('theme_widget'),
+ topnav : require('topnav'),
+ header : require('header'),
+ datdot : require('datdot'),
+ editor : require('editor'),
+ smartcontract_codes : require('smartcontract_codes'),
+ supporters : require('supporters'),
+ our_contributors : require('our_contributors'),
+ footer : require('footer'),
+}
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -741,9 +743,8 @@ async function make_page(opts, lang) {
       var path = `./src/node_modules/lang/en-us.json`
   }
   const text = await fetch_data(path)
-  const { menu, header, section1, section2, section3, section4, section5, footer } = text.pages
+  const data = text.pages
   const {theme} = opts
-
   
   // ----------------------------------------
   // TEMPLATE
@@ -755,25 +756,29 @@ async function make_page(opts, lang) {
   <div id="top" class='wrap'>
   </div>`
   const main = shadow.querySelector('div')
-  main.append(await topnav(menu, init_ch({name: 'topnav'})), await Header(header, init_ch({name: 'header'})), await datdot(section1, init_ch({name: 'datdot'})), await editor(section2, init_ch({name: 'editor'})), await smartcontract_codes(section3, init_ch({name: 'smartcontract_codes'})), await supporters(section4, init_ch({name: 'supporters'})), await our_contributors(section5, init_ch({name: 'our_contributors'})), await Footer(footer, init_ch({name: 'footer'})), await theme_widget(Object.keys(state.ports), init_ch({name: 'theme_widget'})))
+  main.append(...await Promise.all(Object.entries(data).map(async entry => {
+    return await modules[entry[0]](entry[1], init_ch({name: entry[0]}))
+  })))
+  update_theme_widget()
   return el
   
   function init_ch({ name }) {
     const ch = new MessageChannel()
     state.ports[name] = ch.port1
     ch.port1.onmessage = event => {
-      console.log('Message from', name, ':', event.data)
-      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, from: name})
+      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: name})
     }
     return ch.port2
   }
-  function req_ch({ from, data }){
+  function req_ch ({ by, data }) {
     const port = init_ch({ name: data })
-    state.ports[from].postMessage({ data: 'hi' }, [port])
+    state.ports[by].postMessage({ data: 'hi' }, [port])
   }
-  function send({ data, to, to_type }){
-    console.error(state.ports[to], to)
-    state.ports[to].postMessage({ data, type: to_type})
+  function send ({ data, to, to_type, by }) {
+    state.ports[to].postMessage({ data, type: to_type, by })
+  }
+  async function update_theme_widget () {
+    state.ports.theme_widget.postMessage({ data: Object.keys(state.ports), type: 'refresh'})
   }
 }
 
@@ -787,7 +792,7 @@ function get_theme() {
 }`}
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":12,"our-contributors":14,"smartcontract-codes":15,"supporters":16,"theme-widget":17,"topnav":18}],4:[function(require,module,exports){
+},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":12,"our_contributors":14,"smartcontract_codes":15,"supporters":16,"theme_widget":17,"topnav":18}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
   CONTENT COMPONENT
@@ -906,7 +911,6 @@ const shopts = { mode: 'closed' }
 module.exports = contributor
 
 async function contributor(person, className, port) {
-    port.postMessage({data: 'Hi', type: ''})
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2073,15 +2077,13 @@ const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').hr
 const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
-const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
+const sheet = new CSSStyleSheet()
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = our_contributors
 
 async function our_contributors (data, port) {
-    port.postMessage({data: 'Hi', type: ''})
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2091,7 +2093,6 @@ async function our_contributors (data, port) {
     const on_rx = {
         inject
     }
-    status.css = get_theme()
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2121,7 +2122,6 @@ async function our_contributors (data, port) {
     // ----------------------------------------
     const el = document.createElement('div')
     const shadow = el.attachShadow(shopts)
-    shadow.adoptedStyleSheets = [sheet]
     shadow.innerHTML = `
         <section id="ourContributors" class="section">
             <div class='inner'>
@@ -2143,346 +2143,52 @@ async function our_contributors (data, port) {
     groups.append(...contributors)
     main.prepend(Content(data))
     inner.append(island, cloud1, cloud2, cloud3)
+
+    const css = await get_theme()
+    inject({ data: css })
     return el
 
     async function init_ch({ name }) {
-        port.postMessage({type: 'req_ch', data: name})
-        return new Promise(resolve => 
-            port.onmessage = event => {
-                resolve(event.ports[0])
-                port.onmessage = onmessage
-            }
-        )
+      port.postMessage({type: 'req_ch', data: name})
+      return new Promise(resolve => 
+        port.onmessage = event => {
+            resolve(event.ports[0])
+            port.onmessage = onmessage
+        }
+      )
     }
-    async function onmessage(event) {
-        on_rx[event.data.type](event.data)
+    async function onmessage (event) {
+      on_rx[event.data.type](event.data)
     }
-    async function inject({ data }) {
-        const css = new CSSStyleSheet()
-        status.css += data
-        css.replaceSync(status.css)
-        shadow.adoptedStyleSheets = [css]
+    async function inject ({ data }) {
+      sheet.replaceSync(data)
+      shadow.adoptedStyleSheets = [sheet]
     }
-
-
-}
-function get_theme () {
-  return `
-.section {
-    position: relative;
-    background-image: linear-gradient(0deg, var(--section5BgGEnd), var(--section5BgGMiddle), var(--section5BgGStart));
-    display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: repeat(3, 1fr);
-    padding: 5vw 2vw 10vw 2vw;
-}
-.content {
-    position: relative;
-    z-index: 9;
-    grid-row-start: 1;
-    grid-row-end: 2;
-    grid-column-start: 3;
-    text-align: center;
-    padding: 0;
-}
-.subTitleColor {
-    color: var(--section5TitleColor);
-    margin: 0;
-    padding: 2.5rem 0;
-}
-.inner {
-    position: relative;
-    grid-row-start: 1;
-    grid-row-end: 3;
-    grid-column-start: 1;
-    grid-column-end: 4;
-}
-.island {
-    position: relative;
-    z-index: 10;
-    width: 62%;
-}
-.groups {
-    z-index: 9;
-    grid-row-start: 2;
-    grid-row-end: 3;
-    grid-column-start: 2;
-    grid-column-end: 4;
-    width: 100%;
-    display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: repeat(12, 12.5%);
-    justify-self: end;
-    margin-top: 20%;
-}
-.group {
-    position: relative;
-    z-index: 4;
-    width: 100%;
-}
-.group:nth-child(4n) {
-  grid-column-start: 1;
-  grid-column-end: 4;
-}
-.group:nth-child(4n + 1) {
-  grid-column-start: 5;
-  grid-column-end: 8;
-}
-.group:nth-child(4n + 2) {
-  grid-column-start: 2;
-  grid-column-end: 5;
-}
-.group:nth-child(4n + 3) {
-  grid-column-start: 6;
-  grid-column-end: 9;
-}
-
-.group:nth-child(1) {
-  grid-column-start: 4;
-  grid-column-end: 7;
-}
-@media only screen and (max-width: 1024px) {
-    .section {
-        grid-template-columns: 1fr;
-    }
-    .content {
-        grid-column-start: 1;
-        grid-row-start: 1;
-    }
-    .inner {
-        grid-column-start: 1;
-        grid-row-start: 2;
-    }
-    .inner .island {
-        width: 98%;
-    }
-    .groups {
-        position: relative;
-        grid-column-start: 1;
-        grid-row-start: 3;
-        grid-template-columns: 1fr 1fr;
-        margin-top: 0;
-    }
-    .group{
-        margin-top: 5%;
-    }
-    .group:nth-child(2n + 1) {
-        grid-column-start: 1;
-        grid-column-end: 1;
-        margin-top: -35%;
-    }
-    .group:nth-child(2n) {
-        grid-column-start: 2;
-        grid-column-end: 2;
+    async function get_theme () {
+      const pref = JSON.parse(localStorage.pref)['our_contributors']
+      let theme
+      if(pref){
+        if(Object.keys(localStorage).includes(pref))
+          theme = JSON.parse(localStorage[pref]).css['our_contributors']
+        else
+          theme = await (await fetch(`./src/node_modules/css/${pref}/our_contributors.css`)).text()
+      }
+      else
+        theme = await (await fetch('./src/node_modules/css/default/our_contributors.css')).text()
+      return theme
     }
 }
-@media only screen and (max-width: 640px) {
-    .groups {
-        grid-template-columns: 1fr;
-    }
-    .group {
-        grid-column-end: 1 !important;
-        width: 82%;
-        margin-top: 2% !important;
-        margin-left: 5%;
-        grid-column-start: 1 !important;
-        grid-column-end: 1 !important;
-    }
-    .group:nth-child(2n) {
-        margin-left: 15%;
-    }
-}
-.avatar {
-    position: relative;
-    z-index: 2;
-}
-.info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-size: var(--contributorsTextSize);
-    text-align: center;
-    background-color: var(--contributorsBg);
-    padding: 0% 2% 4% 20%;
-    margin-left: -20%;
-}
-.name {
-    color: var(--section5TitleColor);
-    margin-top: 0;
-    margin-bottom: 3%;
-}
-.career {
-    display: block;
-    color: var(--contributorsCareerColor);
-}
-.cloud1 {
-    position: absolute;
-    z-index: 2;
-    width: 8vw;
-    top: 10vw;
-    left: 5vw;
-}
-.cloud2 {
-    position: absolute;
-    z-index: 3;
-    width: 12vw;
-    top: 5vw;
-    left: 20vw;
-}
-.cloud3 {
-    position: absolute;
-    z-index: 4;
-    width: 6vw;
-    top: 15vw;
-    left: 50vw;
-}
-.cloud4 {
-    position: absolute;
-    z-index: 5;
-    width: 12vw;
-    bottom: 12vw;
-    left: 5vw;
-}
-.cloud5 {
-    position: absolute;
-    z-index: 5;
-    width: 8vw;
-    bottom: 5vw;
-    left: 30vw;
-}
-.cloud6 {
-    position: absolute;
-    z-index: 4;
-    width: 14vw;
-    bottom: 0;
-    right: 25vw;
-}
-.cloud7 {
-    position: absolute;
-    z-index: 3;
-    width: 6vw;
-    bottom: 5vw;
-    right: 10vw;
-}
-@media only screen and (min-width: 2561px) {
-    .info {
-        font-size: calc(var(--contributorsTextSize) * 1.35);
-    }
-}
-    .info {
-        font-size: var(--contributorsTextSizeS);
-    }
-    .cloud1 {
-        width: 12vw;
-        top: 30vw;
-    }
-    .cloud2 {
-        top: 22vw;
-    }
-    .cloud3 {
-        width: 12vw;
-        top: 35vw;
-        left: 75vw;
-    }
-    .cloud4 {
-        z-index: 1;
-        width: 20vw;
-        bottom: 40vw;
-    }
-    .cloud5 {
-        width: 15vw;
-        left: 10vw;
-        bottom: 20vw;
-    }
-    .cloud6 {
-        width: 30vw;
-        bottom: 5vw;
-        right: 35vw;
-    }
-    .cloud7 {
-        width: 15vw;
-        bottom: 20vw;
-    }
-}
-@media only screen and (max-width: 414px) {
-    .groups {
-        width: 100%;
-    }
-    .cloud1 {
-        top: 63vw;
-    }
-    .cloud2 {
-        top: 56vw;
-    }
-    .cloud3 {
-        top: 65vw;
-    }
-    .cloud4 {
-        bottom: 30vw;
-    }
-    .cloud5 {
-        bottom: 10vw;
-    }
-    .cloud6 {
-        bottom: 5vw;
-    }
-    .cloud7 {
-        bottom: 8vw;
-    }
-}
-@media only screen and (min-width: 414px)
-and (max-width: 736px) and (orientation: landscape) {
-    .section {
-        margin-top: -1px;
-    }
-    .cloud1 {
-        top: 50vw;
-    }
-    .cloud2 {
-        top: 48vw;
-    }
-    .cloud3 {
-        top: 55vw;
-    }
-}
-`}
 // ----------------------------------------------------------------------------
 function shadowfy (props = {}, sheets = []) {
-    return element => {
-      const el = Object.assign(document.createElement('div'), { ...props })
-      const sh = el.attachShadow(shopts)
-      sh.adoptedStyleSheets = sheets
-      sh.append(element)
-      return el
-    }
+  return element => {
+    const el = Object.assign(document.createElement('div'), { ...props })
+    const sh = el.attachShadow(shopts)
+    sh.adoptedStyleSheets = sheets
+    sh.append(element)
+    return el
   }
-  function use_protocol (petname) {
-    return ({ protocol, state, on = { } }) => {
-      if (petname in state.aka) throw new Error('petname already initialized')
-      const { id } = state
-      const invalid = on[''] || (message => console.error('invalid type', message))
-      if (protocol) return handshake(protocol(Object.assign(listen, { id })))
-      else return handshake
-      // ----------------------------------------
-      // @TODO: how to disconnect channel
-      // ----------------------------------------
-      function handshake (send) {
-        state.aka[petname] = send.id
-        const channel = state.net[send.id] = { petname, mid: 0, send, on }
-        return protocol ? channel : Object.assign(listen, { id })
-      }
-      function listen (message) {
-        const [from] = message.head
-        const by = state.aka[petname]
-        if (from !== by) return invalid(message) // @TODO: maybe forward
-        console.log(`[${id}]:${petname}>`, message)
-        const { on } = state.net[by]
-        const action = on[message.type] || invalid
-        action(message)
-      }
-    }
-  }
-}).call(this)}).call(this,require('_process'),"/src/node_modules/our-contributors.js")
+}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/our_contributors.js")
 },{"_process":1,"content":4,"contributor":5,"graphic":11,"rellax":2}],15:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
@@ -2703,7 +2409,7 @@ function get_theme () {
     }
 }
 `}
-}).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract-codes.js")
+}).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract_codes.js")
 },{"_process":1,"content":4,"graphic":11}],16:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
@@ -3053,13 +2759,22 @@ const shopts = { mode: 'closed' }
 module.exports = theme_widget
 
 async function theme_widget(components, port) {
+  port.onmessage = event => on_rx[event.data.type](event.data)
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of component instance
-
+  localStorage.pref || (localStorage.pref = '{}')
+  status.components = components
+  status.themes = {
+    local: ['default', 'dark'],
+    saved: Object.entries(localStorage).filter(entry => JSON.parse(entry[1]).theme && entry[0] ).map(entry => entry[0])
+  }
+  const on_rx = {
+    refresh
+  }
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -3074,42 +2789,118 @@ async function theme_widget(components, port) {
     <div class="popup">
       <div class="box">
         <div class="stats">
-          Active components: ${components.length}
+          Active components: ${status.components.length}
         </div>
         <div class="list">
         </div>
       </div>
       <div class="editor">
+          <h3></h3>
           <textarea></textarea>
+          <select></select>
           <button class="inject">
             Inject
+          </button>
+          <button class="load">
+            Load
+          </button>
+          <button class="save">
+            Save
+          </button>
+          <input placeholder='Enter theme' />
+          <button class="add">
+            Add
           </button>
       </div>
     </div>
   </section>`
   const btn = shadow.querySelector('.btn')
   const popup = shadow.querySelector('.popup')
-  const list = shadow.querySelector('.list')
-  const editor = shadow.querySelector('.popup .editor')
-  const inject = shadow.querySelector('.popup .editor .inject')
-  const textarea = shadow.querySelector('.popup .editor textarea')
+  const list = popup.querySelector('.list')
+  const stats = popup.querySelector('.stats')
+  const editor = popup.querySelector('.editor')
+  const title = popup.querySelector('h3')
+  const inject_btn = editor.querySelector('.inject')
+  const load_btn = editor.querySelector('.load')
+  const save_btn = editor.querySelector('.save')
+  const add_btn = editor.querySelector('.add')
+  const textarea = editor.querySelector('textarea')
+  const dropdown = editor.querySelector('select')
+  const input = editor.querySelector('input')
 
   btn.onclick = () => popup.classList.toggle('active')
-  inject.onclick = () => port.postMessage({type: 'send', to_type: 'inject', to: status.active_comp, data: textarea.value})
-
-  list.append(...components.map(component => {
-    const el = document.createElement('div')
-    el.classList.add('item')
-    el.innerHTML = component
-    el.onclick = () => {
-      status.active_comp = component
-      editor.classList.add('active')
-      textarea.value = ''
-    }
-    return el
-  }))
-
+  inject_btn.onclick = inject
+  load_btn.onclick = load
+  save_btn.onclick = save
+  add_btn.onclick = add
+  update_dropdown()
+  refresh({ data: components })
   return el
+
+  async function add () {
+    localStorage[input.value] = '{"theme":"true","css":{}}'
+    status.themes.saved.push(input.value)
+    update_dropdown()
+  }
+  async function save () {
+    const theme = localStorage[dropdown.value] && JSON.parse(localStorage[dropdown.value])
+    if(theme){
+      theme.css[title.innerHTML] = textarea.value
+      localStorage[dropdown.value] = JSON.stringify(theme)
+    }
+    const pref = JSON.parse(localStorage.pref)
+    pref[title.innerHTML] = dropdown.value
+    localStorage.pref = JSON.stringify(pref)
+  }
+  async function inject () {
+    port.postMessage({type: 'send', to_type: 'inject', to: title.innerHTML, data: textarea.value})
+  }
+  async function load () {
+    const name = dropdown.value
+    let theme
+    if(status.themes.local.includes(name)){
+      const temp = await fetch(`./src/node_modules/css/${name}/${title.innerHTML}.css`)
+      theme = await temp.text()
+    }
+    else{
+      theme = JSON.parse(localStorage[name]).css[title.innerHTML]
+    }
+    textarea.value = theme
+  }
+  async function refresh ({ data }) {
+    status.components = data
+    stats.innerHTML = `Active components: ${status.components.length}`
+    list.append(...status.components.map(component => {
+      const el = document.createElement('div')
+      el.classList.add('item')
+      el.innerHTML = component
+      el.onclick = async () => {
+        title.innerHTML = component
+        editor.classList.add('active')
+        textarea.value = await get_css(component)
+      }
+      return el
+    }))
+  }
+  async function get_css (name) {
+    const temp = JSON.parse(localStorage.pref)
+    const pref = temp[name]
+    let theme
+    if(pref){
+      if(Object.keys(localStorage).includes(pref))
+        theme = JSON.parse(localStorage[pref]).css[name]
+      else
+        theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+    }
+    else
+      theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+    dropdown.value = pref
+    return theme
+  }
+  async function update_dropdown () {
+    dropdown.innerHTML = `<optgroup label='Local'>${status.themes.local.map(theme => `<option>${theme}</option>`)}</optgroup>` +
+    `<optgroup label='Saved'> ${status.themes.saved.map(theme => `<option>${theme}</option>`)}</optgroup>`
+  }
 }
 
 function get_theme() {
@@ -3153,13 +2944,13 @@ function get_theme() {
     display: block;
   }
   .popup .editor textarea{
-    max-height: 92%;
-    min-height: 92%;
+    max-height: 77%;
+    min-height: 77%;
     min-width: 50vw;
   }
   `
 }
-}).call(this)}).call(this,require('_process'),"/src/node_modules/theme-widget.js")
+}).call(this)}).call(this,require('_process'),"/src/node_modules/theme_widget.js")
 },{"_process":1}],18:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
