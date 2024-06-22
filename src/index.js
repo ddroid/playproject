@@ -33,13 +33,15 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
-  const status = {}
+  const status = { tree: { } }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: {}} // all state of component instance
   const on_rx = {
     init_ch,
     req_ch,
     send,
+    jump
   }
+  status.id = 0
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -68,28 +70,37 @@ async function make_page(opts, lang) {
   </div>`
   const main = shadow.querySelector('div')
   main.append(...await Promise.all(Object.entries(data).map(async entry => {
-    return await modules[entry[0]](entry[1], init_ch({name: entry[0]}))
+    const el = document.createElement('div')
+    el.id = entry[0]
+    const shadow = el.attachShadow(shopts)
+    shadow.append(await modules[entry[0]](entry[1], init_ch({name: entry[0]})))
+    return el
   })))
   update_theme_widget()
   return el
   
-  function init_ch({ name }) {
+  function init_ch({ name, hub = '' }) {
     const ch = new MessageChannel()
-    state.ports[name] = ch.port1
+    const id = status.id++
+    state.ports[id] = ch.port1
+    status.tree[id] = { name, hub }
     ch.port1.onmessage = event => {
-      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: name})
+      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
     return ch.port2
   }
   function req_ch ({ by, data }) {
-    const port = init_ch({ name: data })
+    const port = init_ch({ name: data, hub: by })
     state.ports[by].postMessage({ data: 'hi' }, [port])
   }
   function send ({ data, to, to_type, by }) {
     state.ports[to].postMessage({ data, type: to_type, by })
   }
   async function update_theme_widget () {
-    state.ports.theme_widget.postMessage({ data: Object.keys(state.ports), type: 'refresh'})
+    state.ports[0].postMessage({ data: status.tree, type: 'refresh'})
+  }
+  async function jump ({ data }) {
+    main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
 }
 

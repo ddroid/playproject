@@ -722,13 +722,15 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
-  const status = {}
+  const status = { tree: { } }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: {}} // all state of component instance
   const on_rx = {
     init_ch,
     req_ch,
     send,
+    jump
   }
+  status.id = 0
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -757,28 +759,37 @@ async function make_page(opts, lang) {
   </div>`
   const main = shadow.querySelector('div')
   main.append(...await Promise.all(Object.entries(data).map(async entry => {
-    return await modules[entry[0]](entry[1], init_ch({name: entry[0]}))
+    const el = document.createElement('div')
+    el.id = entry[0]
+    const shadow = el.attachShadow(shopts)
+    shadow.append(await modules[entry[0]](entry[1], init_ch({name: entry[0]})))
+    return el
   })))
   update_theme_widget()
   return el
   
-  function init_ch({ name }) {
+  function init_ch({ name, hub = '' }) {
     const ch = new MessageChannel()
-    state.ports[name] = ch.port1
+    const id = status.id++
+    state.ports[id] = ch.port1
+    status.tree[id] = { name, hub }
     ch.port1.onmessage = event => {
-      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: name})
+      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
     return ch.port2
   }
   function req_ch ({ by, data }) {
-    const port = init_ch({ name: data })
+    const port = init_ch({ name: data, hub: by })
     state.ports[by].postMessage({ data: 'hi' }, [port])
   }
   function send ({ data, to, to_type, by }) {
     state.ports[to].postMessage({ data, type: to_type, by })
   }
   async function update_theme_widget () {
-    state.ports.theme_widget.postMessage({ data: Object.keys(state.ports), type: 'refresh'})
+    state.ports[0].postMessage({ data: status.tree, type: 'refresh'})
+  }
+  async function jump ({ data }) {
+    main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
 }
 
@@ -2767,7 +2778,6 @@ async function theme_widget(components, port) {
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of component instance
   localStorage.pref || (localStorage.pref = '{}')
-  status.components = components
   status.themes = {
     local: ['default', 'dark'],
     saved: Object.entries(localStorage).filter(entry => JSON.parse(entry[1]).theme && entry[0] ).map(entry => entry[0])
@@ -2789,28 +2799,28 @@ async function theme_widget(components, port) {
     <div class="popup">
       <div class="box">
         <div class="stats">
-          Active components: ${status.components.length}
+          Active components: 
         </div>
         <div class="list">
         </div>
       </div>
       <div class="editor">
-          <h3></h3>
-          <textarea></textarea>
-          <select></select>
-          <button class="inject">
-            Inject
-          </button>
-          <button class="load">
-            Load
-          </button>
-          <button class="save">
-            Save
-          </button>
-          <input placeholder='Enter theme' />
-          <button class="add">
-            Add
-          </button>
+        <h3></h3>
+        <textarea></textarea>
+        <select></select>
+        <button class="inject">
+          Inject
+        </button>
+        <button class="load">
+          Load
+        </button>
+        <button class="save">
+          Save
+        </button>
+        <input placeholder='Enter theme' />
+        <button class="add">
+          Add
+        </button>
       </div>
     </div>
   </section>`
@@ -2819,7 +2829,7 @@ async function theme_widget(components, port) {
   const list = popup.querySelector('.list')
   const stats = popup.querySelector('.stats')
   const editor = popup.querySelector('.editor')
-  const title = popup.querySelector('h3')
+  const title = editor.querySelector('h3')
   const inject_btn = editor.querySelector('.inject')
   const load_btn = editor.querySelector('.load')
   const save_btn = editor.querySelector('.save')
@@ -2834,7 +2844,6 @@ async function theme_widget(components, port) {
   save_btn.onclick = save
   add_btn.onclick = add
   update_dropdown()
-  refresh({ data: components })
   return el
 
   async function add () {
@@ -2853,7 +2862,7 @@ async function theme_widget(components, port) {
     localStorage.pref = JSON.stringify(pref)
   }
   async function inject () {
-    port.postMessage({type: 'send', to_type: 'inject', to: title.innerHTML, data: textarea.value})
+    port.postMessage({type: 'send', to_type: 'inject', to: status.active_id, data: textarea.value})
   }
   async function load () {
     const name = dropdown.value
@@ -2868,19 +2877,32 @@ async function theme_widget(components, port) {
     textarea.value = theme
   }
   async function refresh ({ data }) {
-    status.components = data
-    stats.innerHTML = `Active components: ${status.components.length}`
-    list.append(...status.components.map(component => {
-      const el = document.createElement('div')
-      el.classList.add('item')
-      el.innerHTML = component
-      el.onclick = async () => {
-        title.innerHTML = component
-        editor.classList.add('active')
-        textarea.value = await get_css(component)
-      }
-      return el
-    }))
+    status.tree = data
+    stats.innerHTML = `Active components: ${Object.keys(data).length}`
+    list.append(...Object.entries(data).filter(entry => entry[1].hub === '').map(make_node))
+  }
+  function make_node (component){
+    const el = document.createElement('div')
+    el.classList.add('item')
+    el.innerHTML = `<span class='pre'>+</span> <span class='name'>${component[1].name}</span> <div class="sub"></div>`
+    const pre_btn = el.querySelector('.pre')
+    const name = el.querySelector('.name')
+    const sub = el.querySelector('.sub')
+    pre_btn.onclick = () => {
+      pre_btn.innerHTML = pre_btn.innerHTML === '+' ? '-' : '+'
+      console.log(component)
+      if(sub.children.length)
+        sub.classList.toggle('hide')
+      else
+        sub.append(...Object.entries(status.tree).filter(entry => entry[1].hub == component[0]).map(make_node))
+    }
+    name.onclick = async () => {
+      title.innerHTML = component[1].name
+      editor.classList.toggle('active')
+      textarea.value = await get_css(component[1].name)
+      status.active_id = component[0]
+    }
+    return el
   }
   async function get_css (name) {
     const temp = JSON.parse(localStorage.pref)
@@ -2905,11 +2927,16 @@ async function theme_widget(components, port) {
 
 function get_theme() {
   return `
+  *{
+    box-sizing: border-box;
+  }
   section{
     position: fixed;
     bottom: 20px;
     left: 20px;
     z-index: 50;
+    display: flex;
+    align-items: end;
   }
   .btn{
     font-size: 30px;
@@ -2917,14 +2944,18 @@ function get_theme() {
   }
   .popup{
     display: none;
-    position: absolute;
+    position: relative;
     bottom: 44px;
-    background: #beb2d7;
-    border-radius: 5px;
+    margin-left: -42px;
     gap: 10px;
+    align-items: end;
   }
   .popup.active{
     display: flex;
+  }
+  .popup .box{
+    background: #beb2d7;
+    border-radius: 5px;
     padding: 10px;
   }
   .popup .list{
@@ -2933,20 +2964,32 @@ function get_theme() {
   }
   .popup .list .item{
     white-space: nowrap;
+    cursor: pointer;
   }
-  .popup .list .item:hover{
+  .popup .list .item > .sub{
+    display: block;
+    margin-left: 10px;
+  }
+  .popup .list .item > .sub.hide{
+    display: none;
+  }
+  .popup .list .item > .name:hover{
     background: #ada1c6;
   }
   .popup .editor{
     display: none;
+    min-height: 60vh;
+    background: #beb2d7;
+    position: relative;
+    border-radius: 5px;
+    padding: 0 10px;
   }
   .popup .editor.active{
     display: block;
   }
   .popup .editor textarea{
-    max-height: 77%;
-    min-height: 77%;
-    min-width: 50vw;
+    min-height: 44vh;
+    min-width: 100%;
   }
   `
 }
@@ -2971,7 +3014,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = topnav
 
-async function topnav(data) {
+async function topnav(data, port) {
 		// ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -3031,8 +3074,7 @@ async function topnav(data) {
 		})
 		return el
 		function click(url) {
-			let id = document.querySelector(`#${url}`)
-			console.log("@TODO: Implement scroll to specific component")
+			port.postMessage({ type: 'jump', data: url })
 		}
 		function make_link(link){
 			const a = document.createElement('a')
