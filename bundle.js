@@ -2884,13 +2884,12 @@ async function theme_widget(components, port) {
   function make_node (component){
     const el = document.createElement('div')
     el.classList.add('item')
-    el.innerHTML = `<span class='pre'>+</span> <span class='name'>${component[1].name}</span> <div class="sub"></div>`
+    el.innerHTML = `<main><span class='pre'>+</span> <span class='name'>${component[1].name}</span></main> <div class="sub"></div>`
     const pre_btn = el.querySelector('.pre')
     const name = el.querySelector('.name')
     const sub = el.querySelector('.sub')
     pre_btn.onclick = () => {
       pre_btn.innerHTML = pre_btn.innerHTML === '+' ? '-' : '+'
-      console.log(component)
       if(sub.children.length)
         sub.classList.toggle('hide')
       else
@@ -2916,7 +2915,7 @@ async function theme_widget(components, port) {
     }
     else
       theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
-    dropdown.value = pref
+    dropdown.value = pref || 'default'
     return theme
   }
   async function update_dropdown () {
@@ -2973,16 +2972,15 @@ function get_theme() {
   .popup .list .item > .sub.hide{
     display: none;
   }
-  .popup .list .item > .name:hover{
+  .popup .list .item > main:hover{
     background: #ada1c6;
   }
   .popup .editor{
     display: none;
-    min-height: 60vh;
     background: #beb2d7;
     position: relative;
     border-radius: 5px;
-    padding: 0 10px;
+    padding: 10px;
   }
   .popup .editor.active{
     display: block;
@@ -3216,50 +3214,10 @@ async function config () {
   html.setAttribute('lang', 'en')
   meta.setAttribute('name', 'viewport')
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
-  const fonts = new CSSStyleSheet()
   // @TODO: use font api and cache to avoid re-downloading the font data every time
-  const font1_url = path('theme/assets/fonts/Silkscreen-Regular.ttf')
-  const font2_url = path('theme/assets/fonts/Silkscreen-Bold.ttf')
-  fonts.replaceSync(`
-  /* latin-ext */
-  @font-face {
-    font-family: 'Silkscreen';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url(${font1_url}) format('truetype');
-    unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
-  }
-  /* latin */
-  @font-face {
-    font-family: 'Silkscreen';
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url(${font1_url}) format('truetype');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-  }
-  /* latin-ext */
-  @font-face {
-    font-family: 'Silkscreen';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url(${font2_url}) format('truetype');
-    unicode-range: U+0100-02AF, U+0304, U+0308, U+0329, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
-  }
-  /* latin */
-  @font-face {
-    font-family: 'Silkscreen';
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url(${font2_url}) format('truetype');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-  }
-  `)
-  document.adoptedStyleSheets = [fonts, sheet]
-  document.head.append(meta, appleTouch, icon16, icon32, webmanifest)
+  document.adoptedStyleSheets = [sheet]
+  document.head.append(meta)
+  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest
   await document.fonts.ready // @TODO: investigate why there is a FOUC
 }
 /******************************************************************************

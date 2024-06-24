@@ -42,6 +42,7 @@ async function make_page(opts, lang) {
     jump
   }
   status.id = 0
+  status.hubs = {}
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -83,7 +84,12 @@ async function make_page(opts, lang) {
     const ch = new MessageChannel()
     const id = status.id++
     state.ports[id] = ch.port1
-    status.tree[id] = { name, hub }
+    if(!status.hubs[hub])
+      status.hubs[hub] = []
+    if(!status.hubs[hub].includes(name)){
+      status.tree[id] = { name, hub }
+      status.hubs[hub].push(name)
+    }
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
