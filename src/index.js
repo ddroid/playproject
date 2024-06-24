@@ -86,7 +86,7 @@ async function make_page(opts, lang) {
     state.ports[id] = ch.port1
     if(!status.hubs[hub])
       status.hubs[hub] = []
-    if(!status.hubs[hub].includes(name)){
+    if(!status.hubs[hub].includes(name) && name !== 'theme_widget'){
       status.tree[id] = { name, hub }
       status.hubs[hub].push(name)
     }
