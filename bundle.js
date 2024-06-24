@@ -731,6 +731,7 @@ async function make_page(opts, lang) {
     jump
   }
   status.id = 0
+  status.hubs = {}
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -772,7 +773,12 @@ async function make_page(opts, lang) {
     const ch = new MessageChannel()
     const id = status.id++
     state.ports[id] = ch.port1
-    status.tree[id] = { name, hub }
+    if(!status.hubs[hub])
+      status.hubs[hub] = []
+    if(!status.hubs[hub].includes(name)){
+      status.tree[id] = { name, hub }
+      status.hubs[hub].push(name)
+    }
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
@@ -816,13 +822,12 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = content
 
-function content(data, theme) {
+async function content(data, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -843,63 +848,32 @@ function content(data, theme) {
         ${data.url ? `<a class="button buttonBg" href=${data.url} target="_blank">${data.action}</a>` : ''}
     </div>
     `
+    
+    port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
     return el
+
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
+    }
+    async function get_theme () {
+        const name = 'content'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
+    }
 }
 
-function get_theme () {
-  return `
-.main {
-    text-align: center;
-}
-.subTitle {
-    font-family: var(--titleFont);
-    font-size: var(--subTitleSize);
-    margin-bottom: 2.5rem;
-}
-.subTitleColor {
-    color: var(--section2TitleColor);
-}
-.article {
-    font-size: var(--articleSize);
-    color: var(--articleColor);
-    line-height: 2.5rem;
-    padding-bottom: 4rem;
-}
-.button {
-    display: inline-block;
-    outline: none;
-    border: none;
-    font-family: var(--titleFont);
-    font-size: var(--sectionButtonSize);
-    color: var(--titleColor);
-    border-radius: 2rem;
-    padding: 1.2rem 3.8rem;
-    cursor: pointer;
-}
-a {
-    text-decoration: none;
-}
-.buttonBg {
-
-}
-@media screen and (min-width: 2561px) {
-    .subTitle {
-        font-size: calc(var(--subTitleSize) * 1.5);
-    }
-}
-}
-@media screen and (min-width: 4096px) {
-    .subTitle {
-        font-size: calc(var(--subTitleSize) * 2.25);
-    }
-}
-@media screen and (max-width: 414px) {
-    .subTitle {
-        font-size: var(--titlesSizeS);
-        margin-bottom: 1.5rem;
-    }
-}
-`}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/content.js")
 },{"_process":1}],5:[function(require,module,exports){
 (function (process,__filename){(function (){
@@ -915,7 +889,6 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -952,104 +925,32 @@ async function contributor(person, className, port) {
         ${lifeIsland.outerHTML}
       </div>
     `
+            
+    port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
     return el
-}
 
-function get_theme () {
-  return `
-.member {
-    position: absolute;
-    z-index: 1;
-    display: grid;
-    grid-template: 1fr / 40% 60%;
-    width: 70%;
-    top: 20%;
-}
-.avatar {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    height: auto;
-}
-.info {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-size: var(--contributorsTextSize);
-    text-align: center;
-    background-color: var(--contributorsBg);
-    padding: 0% 2% 4% 20%;
-    margin-left: -20%;
-}
-.name {
-    color: var(--section5TitleColor);
-    margin-top: 0;
-    margin-bottom: 3%;
-}
-.career {
-    display: block;
-    color: var(--contributorsCareerColor);
-}
-.lifeIsland {
-    width: 100%;
-}
-@media only screen and (max-width: 1550px) {
-    .member {
-        width: 280px;
-        top: 15%;
-        left: -2vw;
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
     }
-}
-@media only screen and (max-width: 1200px) {
-    .lifeIsland {
-        width: 115%;
-    }
-}
-@media only screen and (max-width: 1280px) {
-    .member {
-        top: 12%;
-        left: -4vw;
+    async function get_theme () {
+        const name = 'contributor'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
     }
 }
 
-@media only screen and (max-width: 1130px) {
-    .member {
-        top: 1vw;
-        left: -6vw;
-    }
-}
-@media only screen and (max-width: 1024px) {
-    .lifeIsland {
-        width: 100%;
-    }
-    .member {
-        width: 32vw;
-        top: 6vw;
-        left: -2vw;
-    }
-}
-@media only screen and (max-width: 768px) {
-    .member {
-        width: 85%;
-        top: 5vw;
-        left: -4vw;
-    }
-}
-@media only screen and (max-width: 640px) {
-    .member {
-        width: 75%;
-        top: 9vw;
-    }
-}
-@media only screen and (max-width: 414px) {
-    .member {
-        width: 90%;
-        top: 5vw;
-        left: -10vw;
-    }
-}
-`
-}
 
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/contributor.js")
@@ -1121,13 +1022,12 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = datdot
 
-async function datdot(data) {
+async function datdot(data, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1166,198 +1066,41 @@ async function datdot(data) {
     </section>
     `
     const main = shadow.querySelector('section')
-    main.append(content(data), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-
+    main.append(await content(data, await init_ch({ name: 'content'})), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+    
+    port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
     return el
-}
 
-function get_theme () {
-  return `
-.section {
-    position: relative;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-columns: 60% 40%;
-    background-image: linear-gradient(0deg, var(--section1BgGEnd), var(--section1BgGStart));
-    padding: 0 2vw;
-}
-.content {
-    position: relative;
-    z-index: 9;
-    grid-row-start: 1;
-    grid-column-start: 2;
-    grid-column-end: 3;
-    text-align: center;
-    padding: 0 5%; 
-}
-.subTitleColor {
-    color: var(--section1TitleColor);
-}
-.buttonBg {
-    background-image: linear-gradient(0deg, #ed6e87, #e9627e);
-}
-.blockchainIsland {
-    position: relative;
-    z-index: 2;
-    grid-row-start: 1; 
-    grid-row-end: 3;
-    grid-column-start: 1; 
-}
-.blossomIsland {
-    position: relative;
-    z-index: 2;
-    grid-column-start: 2;
-    grid-row-start: 2;
-    grid-row-end: 3;
-    padding-left: 2rem;
-    align-self: end;
-    width: 90%;
-}
-.cloud1 {
-    position: absolute;
-    z-index: 4;
-    width: 10vw;
-    bottom: 10vh;
-    left: 5vw;
-}
-.cloud2 {
-    position: absolute;
-    z-index: 4;
-    width: 14vw;
-    bottom: -8vh;
-    left: 42vw;
-}
-.cloud3 {
-    position: absolute;
-    z-index: 1;
-    width: 8vw;
-    bottom: 15vh;
-    left: 52vw;
-}
-.cloud4 {
-    position: absolute;
-    width: 6vw;
-    bottom: 60%;
-    right: 5vw;
-}
-.cloud5 {
-    position: absolute;
-    z-index: 1;
-    width: 18vw;
-    bottom: -10vh;
-    right: 2vw;
-}
-@media only screen and (max-width: 1560px) {
-    .content {
-        padding: 0;
+    async function init_ch({ name }) {
+        port.postMessage({type: 'req_ch', data: name})
+        return new Promise(resolve => 
+          port.onmessage = event => {
+              resolve(event.ports[0])
+              port.onmessage = event => inject(event.data)
+          }
+        )
+      }
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
     }
-    .blossomIsland {
-        margin-top: 30px;
-        width: 35vw;
+    async function get_theme () {
+        const name = 'datdot'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
     }
 }
-@media only screen and (max-width: 1024px) {
-    .section1 {
-        grid-template-columns: 55% 45%; 
-    }
-    .content {
-        grid-column-start: 1;
-        padding: 0 15vw;
-    }
-    .blockchainIsland {
-        grid-row-start: 2;
-    }
-    .blossomIsland {
-        width: 90%;
-        margin-left: 2vw;
-        align-self: center;
-    }
-    .cloud1 {
-        bottom: 0vh;
-    }
-    .cloud2 {
-        bottom: -5vh;
-    }
-    .cloud3 {
-        bottom: 10%;
-    }
-    .cloud4 {
-        bottom: 60%;
-        width: 12vw;
-    }
-    .cloud5 {
-        bottom: -4vh;
-    }
-}
-@media only screen and (max-width: 812px) { 
-    .cloud3 {
-        bottom: 10%;
-    }
-    .cloud4 {
-        bottom: 50%;
-    }
-}
-@media only screen and (max-width: 768px) { 
-    .cloud3 {
-        bottom: 12%;
-    }
-}
-@media only screen and (max-width: 640px) {
-    .section1 {
-        grid-template-rows: repeat(3, auto);
-        grid-template-columns: 100%;
-    }
-    .content {
-        padding-bottom: 10%;
-    }
-    .blockchainIsland {
-        grid-column-end: 3;
-    }
-    .blossomIsland {
-        grid-row-start: 3;
-        grid-column-start: 1;
-        width: 100%;
-        justify-self: end;
-    }
-    .cloud1 {
-        width: 15vw;
-    }
-    .cloud2 {
-        width: 30vw;
-        left: 50vw;
-        bottom: -50vw;
-    }
-    .cloud3 {
-        width: 20vw;
-        bottom: 5vw;
-    }
-    .cloud4 {
-        top: 30vw;
-    }
-}
-@media only screen and (max-width: 414px) {
-    .content {
-        padding: 0 5vw 5vh 5vw;
-    }
-    .article {
-        padding-bottom: 2rem;
-    }
-    .section {
-        margin-top: 0;
-    }
-    .blossomIsland {
-        width: 60vw;
-        margin-left: 35vw;
-    }
-    .cloud3 {
-        bottom: 5vh;
-    }
-    .cloud4 {
-        bottom: 35%;
-        width: 15vw;
-    }
-}
-`}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/datdot.js")
 },{"_process":1,"content":4,"graphic":11,"rellax":2}],8:[function(require,module,exports){
 (function (process,__filename){(function (){
@@ -1375,13 +1118,12 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = editor
 
-async function editor (data) {
+async function editor (data, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1436,163 +1178,42 @@ async function editor (data) {
     // ----------------------------------------
     const main = shadow.querySelector('section')
     main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-    main.prepend(Content(data))
+    main.prepend(await Content(data, await init_ch({ name: 'content'})))
+    
+    port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
     return el
-}
 
-function get_theme () {
-  return `
-.section {
-    position: relative;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-columns: 40% 60%;
-    background-image: linear-gradient(0deg, var(--section2BgGEnd), var(--section2BgGStart));
-    padding: 5vw 2vw;
-}
-.content {
-    position: relative;
-    z-index: 9;
-    grid-row-start: 1;
-    grid-column-start: 1;
-    grid-column-end: 2;
-    text-align: center;
-    padding: 0 5%;
-    margin-bottom: 86px;
-}
-.subTitleColor {
-    color: var(--section2TitleColor);
-}
-.buttonBg {
-    background-image: linear-gradient(0deg, #4dc7be, #35bdb9);
-}
-.scene {
-    position: relative;
-    grid-row-start: span 2;
-    grid-column-start: 2;
-}
-.objects {
-    position: relative;
-}
-.screenshot {
-    width: 80%;
-    margin-bottom: -5.5%;
-    margin-left: 10%;
-}
-.logo {
-    position: absolute;
-    left: 0%;
-    bottom: -20%;
-    width: 20%;
-}
-.deco {
-    position: absolute;
-    right: 0;
-    bottom: -18.5%;
-    width: 100%;
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-end;
-}
-.tree {
-    width: 13%;
-}
-.stone {
-    position: relative;
-    width: 10%;
-    right: -3%;
-}
-.island {
-}
-.energyIsland {
-    grid-row-start: 2;
-    grid-column-start: 1;
-    grid-column-end: 2;
-    width: 80%;
-    justify-self: center;
-}
-.cloud1 {
-    position: absolute;
-    width: 10vw;
-    left: 2vw;
-    bottom: 0;
-    z-index: 3;
-}
-.cloud2 {
-    position: absolute;
-    width: 15vw;
-    left: 38vw;
-    bottom: -35vw;
-    z-index: 2;
-}
-.cloud3 {
-    position: absolute;
-    width: 8vw;
-    right: 30vw;
-    bottom: -34vw;
-    z-index: 3;
-}
-.cloud4 {
-    position: absolute;
-    width: 14vw;
-    right: 6vw;
-    bottom: -40vw;
-    z-index: 3;
-}
-.cloud5 {
-    position: absolute;
-    width: 8vw;
-    right: 2vw;
-    bottom: -10vw;
-    z-index: 2;
-}
-@media only screen and (max-width: 1024px) {
-    .content {
-        grid-row-start: 1;
-        grid-column-end: 3;
+    async function init_ch({ name }) {
+        port.postMessage({type: 'req_ch', data: name})
+        return new Promise(resolve => 
+          port.onmessage = event => {
+              resolve(event.ports[0])
+              port.onmessage = event => inject(event.data)
+          }
+        )
+      }
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
     }
-    .scene {
-        grid-row-start: 2;
-    }
-    .energyIsland {
-        align-self: end;
+    async function get_theme () {
+        const name = 'editor'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
     }
 }
 
-@media only screen and (max-width: 640px) {
-    .scene {
-        grid-column-start: 1;
-        grid-column-end: 3;
-    }
-    .energyIsland {
-        grid-row-start: 3;
-        grid-column-start: 1;
-        grid-column-end: 3;
-        width: 60%;
-        justify-self: start;
-    }
-    .cloud1 {
-        width: 16vw;
-    }
-    .cloud2 {
-        width: 20vw;
-        left: 50vw;
-        bottom: 10vw;
-    }
-    .cloud3 {
-        width: 15vw;
-        bottom: 50vw;
-    }
-    .cloud4 {
-        width: 25vw;
-        bottom: -85vw;
-    }
-    .cloud5 {
-        width: 15vw;
-        bottom: 30vw;
-    }
-}
-`}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/editor.js")
 },{"_process":1,"content":4,"graphic":11,"rellax":2}],9:[function(require,module,exports){
 module.exports = fetch_data
@@ -1619,20 +1240,18 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = footer
 
-async function footer(opts) {
+async function footer(opts, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const cache = resources({})
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1662,125 +1281,32 @@ async function footer(opts) {
         <p class='copyright'>${new Date().getFullYear()+' '+opts.copyright}</p>
     </footer>
     `
+    
+    port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
     return el
+
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
+    }
+    async function get_theme () {
+        const name = 'footer'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
+    }
 }
 
-function get_theme () {
-  return `
-.footer {
-    display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: 1fr;
-    color: var(--footerTextColor);
-    padding-top: 4vw;
-    padding-bottom: 0.5%;
-    background-color: var(--footerBg);
-}
-.copyright {
-    text-align: center;
-    align-self: center;
-}
-.scene {
-    position: relative;
-    width: 60%;
-    max-width: 1200px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-rows: auto;
-    grid-template-columns: repeat(4, 25%);
-}
-.contacts {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    grid-row-start: 2;
-    grid-column-start: 2;
-    grid-column-end: 4;
-    margin-top: -2%;
-}
-.contacts a {
-    margin: 0 2rem;
-}
-.icon {
-    width: 6vw;
-}
-.island {
-    grid-row-start: 1;
-    grid-row-end: 6;
-    grid-column-start: 1;
-    grid-column-end: 5;
-}
-@media only screen and (min-width: 1440px) {
-    .icon {
-        max-width: 10rem;
-    }
-}
-@media only screen and (max-width: 1200px) {
-    .contacts a {
-        margin: 0 1.5vw;
-    }
-}
-@media only screen and (max-width: 1024px) {
-    .scene {
-        width: 80%;
-    }
-    .icon {
-        width: 8vw;
-    }
-}
-`
-}
-
-// ----------------------------------------------------------------------------
-function shadowfy (props = {}, sheets = []) {
-  return element => {
-    const el = Object.assign(document.createElement('div'), { ...props })
-    const sh = el.attachShadow(shopts)
-    sh.adoptedStyleSheets = sheets
-    sh.append(element)
-    return el
-  }
-}
-function use_protocol (petname) {
-  return ({ protocol, state, on = { } }) => {
-    if (petname in state.aka) throw new Error('petname already initialized')
-    const { id } = state
-    const invalid = on[''] || (message => console.error('invalid type', message))
-    if (protocol) return handshake(protocol(Object.assign(listen, { id })))
-    else return handshake
-    // ----------------------------------------
-    // @TODO: how to disconnect channel
-    // ----------------------------------------
-    function handshake (send) {
-      state.aka[petname] = send.id
-      const channel = state.net[send.id] = { petname, mid: 0, send, on }
-      return protocol ? channel : Object.assign(listen, { id })
-    }
-    function listen (message) {
-      const [from] = message.head
-      const by = state.aka[petname]
-      if (from !== by) return invalid(message) // @TODO: maybe forward
-      console.log(`[${id}]:${petname}>`, message)
-      const { on } = state.net[by]
-      const action = on[message.type] || invalid
-      action(message)
-    }
-  }
-}
-// ----------------------------------------------------------------------------
-function resources (pool) {
-  var num = 0
-  return factory => {
-    const prefix = num++
-    const get = name => {
-      const id = prefix + name
-      if (pool[id]) return pool[id]
-      const type = factory[name]
-      return pool[id] = type()
-    }
-    return Object.assign(get, factory)
-  }
-}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/footer.js")
 },{"_process":1,"graphic":11}],11:[function(require,module,exports){
 const loadSVG = require('loadSVG')
@@ -1814,13 +1340,12 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = header
 
-async function header(data) {
+async function header(data, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1874,189 +1399,32 @@ async function header(data) {
 		const sunCloud = shadow.querySelector('.sunCloud')
 		scene.append(cloud3, cloud4, cloud5, cloud6, cloud7, playIsland)
 		sunCloud.append(cloud1, sun, cloud2)
-		return el
+		
+		port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
+    return el
+
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
+    }
+    async function get_theme () {
+        const name = 'header'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
+    }
 }
 
-function get_theme () {
-  return `
-.header {
-		position: relative;
-		padding-top: 0vw;
-		background-image: linear-gradient(0deg, var(--playBgGEnd), var(--playBgGStart));
-		overflow: hidden;
-}
-.scene {
-		position: relative;
-		margin-top: 5vw;
-}
-.playIsland {
-		position: relative;
-		width: 90%;
-		margin-top: 0;
-		margin-left: 5vw;
-		z-index: 2;
-}
-.sunCloud {
-		position: absolute;
-		top: -4%;
-		width: 12%;
-		margin-left: 8vw;
-		z-index: 1;
-}
-.sun {
-		width: 100%;
-}
-[class^="cloud"] {
-		transition: left 0.6s, bottom 0.5s, top 0.5s linear;
-}
-.cloud1 {
-		position: absolute;
-		z-index: 2;
-		width: 7vw;
-		left: -3vw;
-		bottom: 0;
-}
-.cloud2 {
-		position: absolute;
-		z-index: 1;
-		width: 7vw;
-		left: 10vw;
-		top: 25%;
-}
-.cloud3 {
-		position: absolute;
-		z-index: 2;
-		width: 7vw;
-		height: auto;
-		top: -2.5%;
-		right: 14vw;
-}
-.cloud4 {
-		position: absolute;
-		z-index: 1;
-		width: 5vw;
-		height: auto;
-		top: 8%;
-		right: 6vw;
-}
-.cloud5 {
-		position: absolute;
-		z-index: 1;
-		width: 12vw;
-		height: auto;
-		top: 50%;
-		left: 2vw;
-}
-.cloud6 {
-		position: absolute;
-		z-index: 3;
-		width: 12vw;
-		height: auto;
-		bottom: 15%;
-		left: 15vw;
-}
-.cloud7 {
-		position: absolute;
-		z-index: 4;
-		width: 18vw;
-		height: auto;
-		bottom: 25%;
-		right: 5vw;
-}
-.title {
-		position: relative;
-		z-index: 4;
-		font-size: var(--titleSize);
-		font-family: var(--titleFont);
-		color: var(--titleColor);
-		text-align: center;
-		margin: 0;
-		padding: 2% 2%;
-}
-.sun {
-		will-change: transform;
-}
-.cloud1, .cloud2, .cloud3, .cloud4, .cloud5, .cloud6, .cloud7 {
-		will-change: transform;
-}
-@media only screen and (min-width: 1680px) {
-		.scrollUp .header {
-				padding-top: 2.5%;
-		}
-}
-@media only screen and (min-width: 2561px) {
-		.scene {
-				max-width: 90%;
-				margin-left: auto;
-				margin-right: auto;
-		}
-		.title {
-				font-size: calc(var(--titleSize) * 1.5);
-				margin-bottom: 6vh;
-		}
-}
-@media only screen and (min-width: 4096px) {
-		.title {
-				font-size: calc(var(--titleSize) * 2.25);
-		}
-}
-@media only screen and (max-width: 1680px) {
-		.header {
-				padding-top: 2vw;
-		}
-}
-@media only screen and (max-width: 1280px) {
-		.header {
-				padding-top: 3vw;
-		}
-		.scrollUp .header {
-				padding-top: 6.5vh;
-		}
-}
-@media only screen and (max-width: 1024px) {
-		.header {
-				padding-top: 0%;
-		}
-}
-@media only screen and (max-width: 812px) {
-		.header {
-				padding-top: 5vh;
-		}
-		.title { 
-				padding: 0 5%;
-				font-size: var(--titleSizeM);
-		}
-}
-@media only screen and (max-width: 414px) {
-		.header {
-				padding-top: 8vh;
-		}
-		.title {
-				font-size: var(--titlesSizeS);
-		}
-		.playIsland {
-				width: 150%;
-				margin-left: -26vw;
-		}
-		.sunCloud {
-				top: -2vh;
-				left: -3vw;
-		}
-		.cloud5 {
-				width: 12vw;
-				left: -4vw;
-				top: 64%;
-		}
-		.cloud6 {
-				width: 15vw;
-				left: 5vw;
-		}
-		.cloud7 {
-				width: 20vw;
-				right: -5vw;
-		}
-}
-`}
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/header.js")
 },{"_process":1,"graphic":11,"rellax":2}],13:[function(require,module,exports){
@@ -2121,7 +1489,7 @@ async function our_contributors (data, port) {
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
     const temp = []
     for (const person of data.contributors) {
-        temp.push(await Contributor( person, 'group', await init_ch(person)))
+        temp.push(await Contributor( person, 'group', await init_ch({ name: 'contributor' })))
     }
     const contributors = await Promise.all(temp)
 
@@ -2152,7 +1520,7 @@ async function our_contributors (data, port) {
     const groups = shadow.querySelector('.groups')
     const main = shadow.querySelector('section')
     groups.append(...contributors)
-    main.prepend(Content(data))
+    main.prepend(Content(data, await init_ch({ name: 'content' })))
     inner.append(island, cloud1, cloud2, cloud3)
 
     const css = await get_theme()
@@ -2176,16 +1544,17 @@ async function our_contributors (data, port) {
       shadow.adoptedStyleSheets = [sheet]
     }
     async function get_theme () {
-      const pref = JSON.parse(localStorage.pref)['our_contributors']
+      const name = 'our_contributors'
+      const pref = JSON.parse(localStorage.pref)[name]
       let theme
       if(pref){
         if(Object.keys(localStorage).includes(pref))
-          theme = JSON.parse(localStorage[pref]).css['our_contributors']
+          theme = JSON.parse(localStorage[pref]).css[name]
         else
-          theme = await (await fetch(`./src/node_modules/css/${pref}/our_contributors.css`)).text()
+          theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
       }
       else
-        theme = await (await fetch('./src/node_modules/css/default/our_contributors.css')).text()
+        theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
       return theme
     }
 }
@@ -2215,13 +1584,12 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = smartcontract_codes
 
-async function smartcontract_codes (data) {
+async function smartcontract_codes (data, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2279,147 +1647,42 @@ async function smartcontract_codes (data) {
   </section>
   `
   const main = shadow.querySelector('section')
-  main.prepend(Content(data))
+  main.prepend(await Content(data, await init_ch({ name: 'content'})))
+  
+  port.onmessage = event => inject(event.data)
+  const css = await get_theme()
+  inject({ data: css })
   return el
+
+  async function init_ch({ name }) {
+    port.postMessage({type: 'req_ch', data: name})
+    return new Promise(resolve => 
+      port.onmessage = event => {
+          resolve(event.ports[0])
+          port.onmessage = event => inject(event.data)
+      }
+    )
+  }
+  async function inject ({ data }) {
+      sheet.replaceSync(data)
+      shadow.adoptedStyleSheets = [sheet]
+  }
+  async function get_theme () {
+      const name = 'smartcontract_codes'
+      const pref = JSON.parse(localStorage.pref)[name]
+      let theme
+      if(pref){
+          if(Object.keys(localStorage).includes(pref))
+          theme = JSON.parse(localStorage[pref]).css[name]
+          else
+          theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+      }
+      else
+          theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+      return theme
+  }
 }
 
-function get_theme () {
-  return `
-.section {
-    position: relative;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-columns: 60% 40%;
-    background-image: linear-gradient(0deg, var(--section3BgGEnd), var(--section3BgGStart));
-    padding: 3vw 2vw 0 2vw;
-}
-.content {
-    position: relative;
-    z-index: 9;
-    grid-row-start: 1;
-    grid-column-start: 2;
-    grid-column-end: 3;
-    text-align: center;
-    padding: 0 5%;
-}
-.subTitleColor {
-    color: var(--section3TitleColor);
-    margin-top: 0;
-}
-.buttonBg {
-    background-image: linear-gradient(0deg, #900df8, #ac1cf6);
-}
-.scene {
-    grid-row-start: span 2;
-    grid-column-start: 1;
-}
-.deco {
-    position: relative;
-}
-.screenshot {
-    width: 65%;
-    margin-left: 15%;
-    margin-bottom: -6%;
-}
-.trees {
-    position: absolute;
-    right: 10%;
-    bottom: -20%;
-    width: 15%;
-}
-.logo {
-    position: absolute;
-    left:6%;
-    bottom: -20%;
-    width: 15%;
-}
-.island {
-}
-.sceneMedium {
-    grid-row-start: 2;
-    grid-column-start: 2;
-    display: grid;
-    grid-template: 1fr / 65% 35%;
-    align-items: center;
-}
-.container {
-    position: relative;
-}
-.sceneMedium .deco:nth-child(1) {
-    width: 80%;
-    justify-self: center;
-}
-.sceneMedium .deco:nth-child(2) {
-
-}
-.blossom {
-    width: 55%;
-    margin: 0  0 -10% 12%;
-}
-.islandMiddle {
-
-}
-.tree {
-    position: relative;
-    width: 50%;
-    margin: 0 auto;
-    margin-bottom: -11%;
-    z-index: 2;
-}
-.islandRight {
-    
-}
-.stone {
-    position: absolute;
-    right: 12%;
-    bottom: 3%;
-    width: 22%;
-}
-.smallStone {
-    position: absolute;
-    left: 7%;
-    bottom: 5%;
-    width: 14%;
-}
-@media screen and (min-width: 2561px) {
-    .tree {
-        margin-bottom: -10.5%;
-    }
-}
-@media screen and (min-width: 1025px) and (max-width: 1200px) {
-    .sceneMedium {
-        margin-top: 4.5rem;
-    }
-}
-@media screen and (max-width: 1024px) {
-    .content {
-        grid-column-start: 1;
-        margin-bottom: 60px;
-    }
-}
-@media screen and (max-width: 640px) {
-    .scene {
-        grid-row-start: 2;
-        grid-column-end: 3; 
-    }
-    .sceneMedium {
-        grid-row-start: 3;
-        grid-column-start: 1;
-        grid-column-end: 3;
-    }
-    .sceneMedium .deco:nth-child(1) {
-        width: 90%;
-    }
-    .sceneMedium .deco:nth-child(2) {
-        width: 80%;
-        justify-self: center;
-        align-self: center;
-    }
-    .tree {
-        bottom: -5.5%;
-    }
-}
-`}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract_codes.js")
 },{"_process":1,"content":4,"graphic":11}],16:[function(require,module,exports){
 (function (process,__filename){(function (){
@@ -2437,13 +1700,12 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = supporters
 
-async function supporters (data) {
+async function supporters (data, port) {
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2522,232 +1784,32 @@ async function supporters (data) {
     // ----------------------------------------
     const main = shadow.querySelector('section')
     main.append(...(await Promise.all(scenes)).map(v => v), cloud1, cloud2, cloud3, cloud4, cloud5, cloud6)
+    
+    port.onmessage = event => inject(event.data)
+    const css = await get_theme()
+    inject({ data: css })
     return el
-}
 
-function get_theme () {
-  return `
-.section {
-    position: relative;
-    background-image: linear-gradient(0deg, var(--section4BgGEnd), var(--section4BgGStart));
-    display: grid;
-    grid-template-rows: repeat(2, auto);
-    grid-template-columns: 33% 34% 33%;
-    padding-top: 10vw;
-    z-index: 1;
-}
-.cloud1 {
-    position: absolute;
-    width: 8vw;
-    top: 25vw;
-    left: 8vw;
-    z-index: 5;
-}
-.cloud2 {
-    position: absolute;
-    width: 15vw;
-    top: 10vw;
-    left: 50vw;
-    z-index: 6;
-}
-.cloud3 {
-    position: absolute;
-    width: 15vw;
-    top: 30vw;
-    right: 10vw;
-    z-index: 5;
-}
-.cloud4 {
-    position: absolute;
-    width: 8vw;
-    bottom: 28vw;
-    right: 5vw;
-    z-index: 4;
-}
-.cloud5 {
-    position: absolute;
-    width: 12vw;
-    bottom: -3vw;
-    right: 6vw;
-    z-index: 5;
-}
-.cloud6 {
-    position: absolute;
-    width: 8vw;
-    bottom: -10vw;
-    right: 2vw;
-    z-index: 6;
-}
-.deco {
-    position: relative;
-}
-.title {
-    position: absolute;
-    z-index: 5;
-    bottom: -18%;
-    right: 23%;
-    font-family: var(--titleFont);
-    font-size: var(--supportersHeadlline);
-    color: var(--section4TitleColor);
-}
-.content {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    bottom: 24%;
-    left: 19%;
-    z-index: 2;
-    width: 35%;
-}
-.content h3 {
-    font-family: var(--titleFont);
-    font-size: var(--supportersTitleSize);
-    text-align: center;
-    color: var(--supportersTitleColor);
-    margin-top: 0;
-}
-.content p {
-    font-size: var(--supportersTextSize);
-    text-align: center;
-    margin: 0;
-}
-.tree, .treeGold{
-    position: relative;
-    width: 36%;
-    margin: 0 0 -12% 64%;
-    z-index: 1;
-}
-.yellowCrystal, .blueCrystal, .purpleCrystal, .stone{
-    position: absolute;
-    width: 5vw;
-    bottom: 8px;
-    z-index: 2;
-}
-.purpleCrystal{
-    width: 7vw;
-}
-.stone{
-    width: 8vw;
-}
-.card{
-    position: absolute;
-    width: 64%;
-    left: 17px;
-    bottom: 15px;
-}
-.deco > .card:last-child {
-    position: relative;
-    margin-bottom: -9%;
-    bottom: 0;
-}
-.scene {
-    position: relative;
-    width: 30vw;
-    margin-top: 6em;
-}
-.scene:nth-child(3n) {
-    grid-column-start: 2;
-    transform: translateY(20px);
-}
-.scene:nth-child(3n + 1) {
-    grid-column-start: 3;
-}
-.scene:nth-child(3n + 2) {
-    grid-column-start: 1;
-    transform: translateY(-170px);
-}
-.scene:first-child {
-    width: 50vw;
-    grid-column-start: 2;
-    grid-column-end: 4;
-}
-.scene:first-child .tree{
-    width: 50%;
-    margin: 0 0 -11% -12%;
-}
-.scene:first-child .content{
-    left: 38%;
-}
-.scene:first-child .yellowCrystal{
-    width: 20%;
-    left: 14%;
-    bottom: 0px;
-}
-.scene:first-child .card{
-    left: 20%;
-    bottom: 12px;
-    width: 73%;
-}
-
-@media only screen and (min-width: 3840px) {
-    .info h3 {
-        margin-bottom: 6px;
-        font-size: calc( var(--supportersTitleSizeM) * 2);
-    }
-    .info p {
-        font-size: calc( var(--supportersTextSizeM) * 2);
+    async function inject ({ data }) {
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets = [sheet]
+    }    
+    async function get_theme () {
+        const name = 'supporters'
+        const pref = JSON.parse(localStorage.pref)[name]
+        let theme
+        if(pref){
+            if(Object.keys(localStorage).includes(pref))
+            theme = JSON.parse(localStorage[pref]).css[name]
+            else
+            theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+        }
+        else
+            theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+        return theme
     }
 }
 
-@media only screen and (max-width: 1024px) {
-    .section{
-        grid-template-columns: 50% 50%;
-    }
-    .scene{
-        width: 40vw;
-        margin-left: 14%;
-    }
-    .scene:nth-child(2n) {
-        grid-column-start: 1;
-        transform: translateY(0);
-    }
-    .scene:nth-child(2n + 1) {
-        grid-column-start: 2;
-        transform: translateY(-35%);
-    }
-    .scene:first-child {
-        width: 70vw;
-        grid-column-start: 1;
-        grid-column-end: 3;
-        transform: translateY(0);
-    }
-    .content {
-        width: 42%;
-    }
-    .content p {
-        font-size: 15px;
-    }
-}
-@media only screen and (max-width: 812px) {
-    .info h3 {
-        margin-bottom: 6px;
-        font-size: var(--supportersTitleSizeM);
-    }
-    .info p {
-        font-size: var(--supportersTextSizeM);
-    }
-}
-@media only screen and (max-width: 640px) {
-    .scene:nth-child(2n) {
-        grid-column-end: 2;
-    }
-    .scene:nth-child(2n + 1) {
-        transform: translateY(-60%);
-    }
-    .scene{
-        width: 50vw;
-        margin-left: 1%;
-        margin-top: 9em;
-    }   
-    .scene:first-child {
-        margin-left: 14%;
-        transform: translateY(0%);
-    }
-}
-
-`
-}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/supporters.js")
 },{"_process":1,"crystalIsland":6,"graphic":11,"rellax":2}],17:[function(require,module,exports){
 (function (process,__filename){(function (){
@@ -2777,10 +1839,19 @@ async function theme_widget(components, port) {
   const id = `${ID}:${count++}` // assigns their own name
   const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of component instance
+  status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
   status.themes = {
     local: ['default', 'dark'],
-    saved: Object.entries(localStorage).filter(entry => JSON.parse(entry[1]).theme && entry[0] ).map(entry => entry[0])
+    saved: Object.entries(localStorage).filter(entry => {
+      try{
+        return JSON.parse(entry[1]).theme
+      }
+      catch{
+        return false
+      }
+    }
+    ).map(entry => entry[0])
   }
   const on_rx = {
     refresh
@@ -2808,14 +1879,20 @@ async function theme_widget(components, port) {
         <h3></h3>
         <textarea></textarea>
         <select></select>
-        <button class="inject">
-          Inject
-        </button>
         <button class="load">
           Load
         </button>
+        <button class="inject">
+          Inject
+        </button>
         <button class="save">
           Save
+        </button>
+        <button class="drop">
+          Drop
+        </button>
+        <button class="reset">
+          Reset
         </button>
         <input placeholder='Enter theme' />
         <button class="add">
@@ -2834,6 +1911,8 @@ async function theme_widget(components, port) {
   const load_btn = editor.querySelector('.load')
   const save_btn = editor.querySelector('.save')
   const add_btn = editor.querySelector('.add')
+  const drop_btn = editor.querySelector('.drop')
+  const reset_btn = editor.querySelector('.reset')
   const textarea = editor.querySelector('textarea')
   const dropdown = editor.querySelector('select')
   const input = editor.querySelector('input')
@@ -2843,6 +1922,9 @@ async function theme_widget(components, port) {
   load_btn.onclick = load
   save_btn.onclick = save
   add_btn.onclick = add
+  drop_btn.onclick = drop
+  reset_btn.onclick = () => localStorage.clear()
+  textarea.oninput = unsave
   update_dropdown()
   return el
 
@@ -2851,7 +1933,22 @@ async function theme_widget(components, port) {
     status.themes.saved.push(input.value)
     update_dropdown()
   }
+  async function drop () {
+    console.log('ok')
+    localStorage.removeItem(dropdown.value)
+    status.themes.saved = status.themes.saved.filter(v => v != dropdown.value)
+    update_dropdown()
+    dropdown.value = 'default'
+    load()
+  }
+  async function forget_changes () {
+    status.active_el.classList.remove('dirty')
+    const dirt = JSON.parse(localStorage.dirt)
+    delete(dirt[title.innerHTML])
+    localStorage.dirt = JSON.stringify(dirt)
+  }
   async function save () {
+    forget_changes()
     const theme = localStorage[dropdown.value] && JSON.parse(localStorage[dropdown.value])
     if(theme){
       theme.css[title.innerHTML] = textarea.value
@@ -2860,6 +1957,39 @@ async function theme_widget(components, port) {
     const pref = JSON.parse(localStorage.pref)
     pref[title.innerHTML] = dropdown.value
     localStorage.pref = JSON.stringify(pref)
+  }
+  async function unsave () {
+    status.active_el.classList.add('dirty')
+    let theme = localStorage[dropdown.value] && JSON.parse(localStorage[dropdown.value])
+    if(theme){
+      theme.css[title.innerHTML] = textarea.value
+      localStorage[dropdown.value] = JSON.stringify(theme)
+      const dirt = JSON.parse(localStorage.dirt)
+      dirt[title.innerHTML] = dropdown.value
+      localStorage.dirt = JSON.stringify(dirt)
+    }
+    else{
+      const name = dropdown.value + '-v2'
+      theme = localStorage[name] && JSON.parse(localStorage[name])
+      if(theme){
+        theme.css[title.innerHTML] = textarea.value
+        localStorage[name] = JSON.stringify(theme)
+        const dirt = JSON.parse(localStorage.dirt)
+        dirt[title.innerHTML] = name
+        localStorage.dirt = JSON.stringify(dirt)
+      }
+      else{
+        theme = { theme: true, css: {} }
+        theme.css[title.innerHTML] = textarea.value
+        localStorage[name] = JSON.stringify(theme)
+        status.themes.saved.push(name)
+        const dirt = JSON.parse(localStorage.dirt)
+        dirt[title.innerHTML] = name
+        localStorage.dirt = JSON.stringify(dirt)
+        update_dropdown()
+        dropdown.value = name
+      }
+    }
   }
   async function inject () {
     port.postMessage({type: 'send', to_type: 'inject', to: status.active_id, data: textarea.value})
@@ -2875,6 +2005,7 @@ async function theme_widget(components, port) {
       theme = JSON.parse(localStorage[name]).css[title.innerHTML]
     }
     textarea.value = theme
+    forget_changes()
   }
   async function refresh ({ data }) {
     status.tree = data
@@ -2884,9 +2015,12 @@ async function theme_widget(components, port) {
   function make_node (component){
     const el = document.createElement('div')
     el.classList.add('item')
+    if(Object.keys(status.dirts).includes(component[1].name)){
+     el.classList.add('dirty') 
+    }
     el.innerHTML = `<main><span class='pre'>+</span> <span class='name'>${component[1].name}</span></main> <div class="sub"></div>`
     const pre_btn = el.querySelector('.pre')
-    const name = el.querySelector('.name')
+    const name_el = el.querySelector('.name')
     const sub = el.querySelector('.sub')
     pre_btn.onclick = () => {
       pre_btn.innerHTML = pre_btn.innerHTML === '+' ? '-' : '+'
@@ -2895,27 +2029,35 @@ async function theme_widget(components, port) {
       else
         sub.append(...Object.entries(status.tree).filter(entry => entry[1].hub == component[0]).map(make_node))
     }
-    name.onclick = async () => {
+    name_el.onclick = async () => {
       title.innerHTML = component[1].name
-      editor.classList.toggle('active')
+      if(status.active_id === component[0])
+        editor.classList.toggle('active')
+      else
+        editor.classList.add('active')
       textarea.value = await get_css(component[1].name)
       status.active_id = component[0]
+      status.active_el = el
     }
     return el
   }
   async function get_css (name) {
-    const temp = JSON.parse(localStorage.pref)
-    const pref = temp[name]
+    const dirts = JSON.parse(localStorage.dirt)
+    const dirt = dirts[name]
+    const prefs = JSON.parse(localStorage.pref)
+    const pref = prefs[name]
     let theme
-    if(pref){
-      if(Object.keys(localStorage).includes(pref))
+    if(dirt || pref){
+      if(Object.keys(localStorage).includes(dirt))
+        theme = JSON.parse(localStorage[dirt]).css[name]      
+      else if(Object.keys(localStorage).includes(pref))
         theme = JSON.parse(localStorage[pref]).css[name]
       else
         theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
     }
     else
       theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
-    dropdown.value = pref || 'default'
+    dropdown.value = dirt || pref || 'default'
     return theme
   }
   async function update_dropdown () {
@@ -2975,6 +2117,9 @@ function get_theme() {
   .popup .list .item > main:hover{
     background: #ada1c6;
   }
+  .popup .list .item.dirty > main > .name{
+    color: yellow;
+  }
   .popup .editor{
     display: none;
     background: #beb2d7;
@@ -3006,178 +2151,104 @@ const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = topnav
 
 async function topnav(data, port) {
-		// ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const id = `${ID}:${count++}` // assigns their own name
-    const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
+	port.onmessage = event => inject(event.data)
+	// ----------------------------------------
+	// ID + JSON STATE
+	// ----------------------------------------
+	const id = `${ID}:${count++}` // assigns their own name
+	const status = {}
+	const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+	// ----------------------------------------
+	// OPTS
+	// ----------------------------------------
 
-		const playLogo = await graphic('playLogo', './src/node_modules/assets/svg/logo.svg')
-		// ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.adoptedStyleSheets = [sheet]
-    shadow.innerHTML = `
-			<section class='topnav'>
-					<a href="#top">${playLogo.outerHTML}</a>
-					<nav class='menu'>
-					</nav>
-			</section>
-		`
-		// ----------------------------------------
-		const menu = shadow.querySelector('.menu')
-		const body = shadow.querySelector('section')
-		menu.append(...data.map(make_link))
-		const scrollUp = 'scrollUp'
-		const scrollDown = 'scrollDown'
-		let lastScroll = 0
-		
-		window.addEventListener('scroll', ()=> {
-				if (window.innerWidth >= 1024) {
-						let currentScroll = window.pageYOffset
-						if (currentScroll < 1) {
-								body.classList.remove(scrollUp)
-								body.classList.remove(scrollDown)
-								return
-						}
-						if (currentScroll > lastScroll && !body.classList.contains(scrollDown)) {
-								body.classList.add(scrollDown)
-								body.classList.remove(scrollUp)
-						} else if (currentScroll < lastScroll) {
-								body.classList.add(scrollUp)
-								body.classList.remove(scrollDown)
-						}
-						lastScroll = currentScroll
-				}
-		})
+	const playLogo = await graphic('playLogo', './src/node_modules/assets/svg/logo.svg')
+	// ----------------------------------------
+	// TEMPLATE
+	// ----------------------------------------
+	const el = document.createElement('div')
+	const shadow = el.attachShadow(shopts)
+	shadow.adoptedStyleSheets = [sheet]
+	shadow.innerHTML = `
+		<section class='topnav'>
+				<a href="#top">${playLogo.outerHTML}</a>
+				<nav class='menu'>
+				</nav>
+		</section>
+	`
+	// ----------------------------------------
+	const menu = shadow.querySelector('.menu')
+	const body = shadow.querySelector('section')
+	menu.append(...data.map(make_link))
+	const scrollUp = 'scrollUp'
+	const scrollDown = 'scrollDown'
+	let lastScroll = 0
+	
+	window.addEventListener('scroll', ()=> {
+		if (window.innerWidth >= 1024) {
+			let currentScroll = window.pageYOffset
+			if (currentScroll < 1) {
+					body.classList.remove(scrollUp)
+					body.classList.remove(scrollDown)
+					return
+			}
+			if (currentScroll > lastScroll && !body.classList.contains(scrollDown)) {
+					body.classList.add(scrollDown)
+					body.classList.remove(scrollUp)
+			} else if (currentScroll < lastScroll) {
+					body.classList.add(scrollUp)
+					body.classList.remove(scrollDown)
+			}
+			lastScroll = currentScroll
+		}
+	})
 
-		window.addEventListener('resize', ()=> {
-				if (window.innerWidth <= 1024) {
-						body.classList.remove(scrollUp)
-						body.classList.remove(scrollDown)
-				}
-		})
-		return el
-		function click(url) {
-			port.postMessage({ type: 'jump', data: url })
+	window.addEventListener('resize', ()=> {
+		if (window.innerWidth <= 1024) {
+			body.classList.remove(scrollUp)
+			body.classList.remove(scrollDown)
 		}
-		function make_link(link){
-			const a = document.createElement('a')
-			a.href = `#${link.url}`
-			a.textContent = link.text
-			a.onclick = () => click(link.url)
-			return a
-		}
+	})
 
+	const css = await get_theme()
+	inject({ data: css })
+	return el
+	function click(url) {
+		port.postMessage({ type: 'jump', data: url })
+	}
+	async function inject ({ data }) {
+		sheet.replaceSync(data)
+		shadow.adoptedStyleSheets = [sheet]
+	}
+	function make_link(link){
+		const a = document.createElement('a')
+		a.href = `#${link.url}`
+		a.textContent = link.text
+		a.onclick = () => click(link.url)
+		return a
+	}
+	async function get_theme () {
+		const name = 'topnav'
+		const pref = JSON.parse(localStorage.pref)[name]
+		let theme
+		if(pref){
+			if(Object.keys(localStorage).includes(pref))
+				theme = JSON.parse(localStorage[pref]).css[name]
+			else
+				theme = await (await fetch(`./src/node_modules/css/${pref}/${name}.css`)).text()
+		}
+		else
+			theme = await (await fetch(`./src/node_modules/css/default/${name}.css`)).text()
+		return theme
+	}
 }
 
-function get_theme () {
-  return `
-.topnav {
-		position: relative;
-		width: 100%;
-		z-index: 20;
-		display: grid;
-		grid-template: 1fr / auto;
-		background-color: var(--playBgGStart);
-		-webkit-transform: translate3d(0, 0, 0);
-		transform: translate3d(0, 0, 0);
-		opacity: 1;
-		transition: background-color .6s, -webkit-transform .4s, transform .4s, opacity .3s linear;
-}
-.playLogo {
-		position: absolute;
-		top: 10px;
-		left: 0;
-		width: 15rem;
-		z-index: 99;
-		transition: width .6s ease-in-out;
-}
-.menu {
-		padding: 2.5rem;
-		text-align: right;
-}
-.menu a {
-		font-size: var(--menuSize);
-		margin-left: 1.75%;
-		color: #575551;
-		text-transform: uppercase;
-		transition: color .6s linear;
-		text-decoration: none;
-}
-.menu a:hover {
-		color: #00acff;
-}
-.topnav.scrollUp {
-		position: fixed;
-		background-color: white;
-		-webkit-transform: none;
-		transform: none;
-}
-.topnav.scrollDown {
-		position: fixed;
-		-webkit-transform: translate3d(0, -100%, 0);
-		transform: translate3d(0, -100%, 0);
-		opacity: 0;
-}
-.scrollUp .playLogo {
-		width: 10rem;
-}
- .scrollDown .playLogo {
-		width: 10rem;
-		top: 0;
-}
-@media only screen and (min-width: 4096px) {
-		.menu a {
-				font-size: calc(var(--menuSize) * 1.5);
-		}
-}
-@media only screen and (max-width: 1024px) {
-		.playLogo  {
-				width: 9vw;
-				min-width: 100px;
-		}
-}
-@media only screen and (max-width: 960px) {
-		.topnav {
-				position: relative;
-		}
-		.menu {
-				padding-top: 3%;
-				padding-right: 2.5vw;
-		}
-		.menu a {
-				margin-left: 1.5%;
-		}
-}
-@media only screen and (max-width: 812px) {
-		.menu {
-				display: none;
-		}
-		.playLogo  {
-				top: 20px;
-				min-width: 12vw;
-		}
-}
-@media only screen and (max-width: 414px) {
-		.playLogo  {
-				min-width: 20vw;
-		}
-}
-`}
 }).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
 },{"_process":1,"graphic":11}],19:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
