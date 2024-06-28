@@ -33,7 +33,7 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { tree: { } }
+  const status = { tree: { '': { id: '' } }, id: 0 }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: {}} // all state of component instance
   const on_rx = {
     init_ch,
@@ -41,8 +41,6 @@ async function make_page(opts, lang) {
     send,
     jump
   }
-  status.id = 0
-  status.hubs = {}
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -56,8 +54,7 @@ async function make_page(opts, lang) {
     default:
       var path = `./src/node_modules/lang/en-us.json`
   }
-  const text = await fetch_data(path)
-  const data = text.pages
+  const data = await fetch_data(path)
   const {theme} = opts
   
   // ----------------------------------------
@@ -70,33 +67,34 @@ async function make_page(opts, lang) {
   <div id="top" class='wrap'>
   </div>`
   const main = shadow.querySelector('div')
+
   main.append(...await Promise.all(Object.entries(data).map(async entry => {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]](entry[1], init_ch({name: entry[0]})))
+    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], pref: entry[1].pref }})))
     return el
   })))
   update_theme_widget()
   return el
   
-  function init_ch({ name, hub = '' }) {
+  function init_ch({ data, hub = '' }) {
+    if(data.name)
+      var {name, uniq} = data
+    else
+      var name = data
     const ch = new MessageChannel()
-    const id = status.id++
+    const id = data.id ? data.id : status.id++
     state.ports[id] = ch.port1
-    if(!status.hubs[hub])
-      status.hubs[hub] = []
-    if(!status.hubs[hub].includes(name) && name !== 'theme_widget'){
-      status.tree[id] = { name, hub }
-      status.hubs[hub].push(name)
-    }
+    if( name !== 'theme_widget')
+      status.tree[id] = { name, hub, path:status.tree[hub].id + '/' + name, uniq }
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
     return ch.port2
   }
   function req_ch ({ by, data }) {
-    const port = init_ch({ name: data, hub: by })
+    const port = init_ch({ data, hub: by })
     state.ports[by].postMessage({ data: 'hi' }, [port])
   }
   function send ({ data, to, to_type, by }) {
