@@ -769,14 +769,14 @@ async function make_page(opts, lang) {
   
   function init_ch({ data, hub = '' }) {
     if(data.name)
-      var {name, uniq} = data
+      var {name, uniq, shared} = data
     else
       var name = data
     const ch = new MessageChannel()
     const id = data.id ? data.id : status.id++
     state.ports[id] = ch.port1
     if( name !== 'theme_widget')
-      status.tree[id] = { name, hub, path:status.tree[hub].id + '/' + name, uniq }
+      status.tree[id] = { name, hub, path:status.tree[hub].id + '/' + name, uniq, shared }
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
@@ -894,7 +894,6 @@ const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').hr
 const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
-const sheet = new CSSStyleSheet
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -911,14 +910,14 @@ async function contributor(person, port, css_id) {
     const lifeIsland = await Graphic('lifeIsland','./src/node_modules/assets/svg/life-island.svg')
     const on_rx = {
       inject,
-      inject_all
+      inject_all,
+      scroll
     }
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
     const el = document.createElement('div')
     const shadow = el.attachShadow(shopts)
-    shadow.adoptedStyleSheets = [sheet]
     shadow.innerHTML = `
       <div>
         <div class='member'>
@@ -941,29 +940,36 @@ async function contributor(person, port, css_id) {
 
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name]
-      const pref_uniq = pref[css_id]
-      inject_all({ data: await get_theme(pref_shared ? pref_shared : {file: name}) })
-      if(pref_uniq)
-        pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
-      else
-        person.uniq.forEach(async no => inject({ data: await get_theme({file: name + no})}))
+      const pref_shared = pref[name] || person.shared
+      const pref_uniq = pref[css_id] || person.uniq
+      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+    }
+    async function scroll () {
+      el.scrollIntoView({behavior: 'smooth'})
+      el.tabIndex = '0'
+      el.focus()
+      el.onblur = () => {
+        el.tabIndex = '-1'
+        el.onblur = null
+      }
     }
     async function inject_all ({ data }) {
+      const sheet = new CSSStyleSheet
       sheet.replaceSync(data)
-      shadow.adoptedStyleSheets = [sheet]
+      shadow.adoptedStyleSheets.push(sheet)
     }
     async function inject ({ data }){
       const style = document.createElement('style')
       style.innerHTML = data
       shadow.append(style)
     }
-    async function get_theme ({local = true, theme = 'default', file}) {
+    async function get_theme ({local = true, theme = 'default', id}) {
       let theme_css
       if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${file}.css`)).text()
+        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${name}/${id}.css`)).text()
       else
-        theme_css = JSON.parse(localStorage[theme]).css[file]
+        theme_css = JSON.parse(localStorage[theme])[name][id]
       return theme_css
     }
 }
@@ -1507,7 +1513,7 @@ async function our_contributors (data, port, paths) {
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
     const temp = []
     for (const [index, person] of data.contributors.entries()){
-        temp.push(await Contributor( person, await init_ch({ name: 'contributor', uniq: person.uniq, id: 'contributor' + index }), 'contributor' + index))
+        temp.push(await Contributor( person, await init_ch({ name: 'contributor', uniq: person.uniq, shared: person.shared, id: 'contributor_' + index }), 'contributor_' + index))
     }
     const contributors = await Promise.all(temp)
 
@@ -1860,16 +1866,8 @@ async function theme_widget(instances, port, data) {
   localStorage.pref || (localStorage.pref = '{}')
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
   status.themes = {
-    local: Object.keys(paths),
-    saved: Object.entries(localStorage).filter(entry => {
-      try{
-        return JSON.parse(entry[1]).theme
-      }
-      catch{
-        return false
-      }
-    }
-    ).map(entry => entry[0])
+    builtin: Object.keys(paths),
+    saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
   }
   const on_rx = {
     refresh
@@ -1888,12 +1886,15 @@ async function theme_widget(instances, port, data) {
     <div class="popup">
       <div class="box">
         <div class="stats">
-          Active instances: 
+          Instances: 
         </div>
+        <button class="select">Select</button>
         <div class="list">
         </div>
       </div>
       <div class="editor">
+        <h3>
+        </h3>
         <div class="btns">
           <div class="box"></div>
           <span class="plus">+</span>
@@ -1923,7 +1924,14 @@ async function theme_widget(instances, port, data) {
         <button class="reset">
           Reset
         </button>
-        <input placeholder='Enter theme' />
+        <button class="export">
+          Export
+        </button>
+        <button class="import">
+          Import
+        </button>
+        <input style="display: none;" class="upload" type='file' />
+        <input class="theme" placeholder='Enter theme' />
         <button class="add">
           Add
         </button>
@@ -1935,6 +1943,7 @@ async function theme_widget(instances, port, data) {
   const list = popup.querySelector('.list')
   const stats = popup.querySelector('.stats')
   const editor = popup.querySelector('.editor')
+  const select = popup.querySelector('.select')
   const inject_btn = editor.querySelector('.inject')
   const load_btn = editor.querySelector('.load')
   const save_file_btn = editor.querySelector('.save_file')
@@ -1942,29 +1951,63 @@ async function theme_widget(instances, port, data) {
   const add_btn = editor.querySelector('.add')
   const drop_btn = editor.querySelector('.drop')
   const reset_btn = editor.querySelector('.reset')
+  const upload = editor.querySelector('.upload')
+  const import_btn = editor.querySelector('.import')
+  const export_btn = editor.querySelector('.export')
+  const title = editor.querySelector('h3')
   const tabs = editor.querySelector('.tabs')
   const btns = editor.querySelector('.btns > .box')
   const plus = editor.querySelector('.plus')
   const select_theme = editor.querySelector('select.theme')
   const select_type = editor.querySelector('select.type')
-  const input = editor.querySelector('input')
+  const input = editor.querySelector('input.theme')
 
   btn.onclick = () => popup.classList.toggle('active')
   inject_btn.onclick = inject
-  load_btn.onclick = load
+  load_btn.onclick = () => load(select_theme.value)
   save_file_btn.onclick = save_file
   save_pref_btn.onclick = save_pref
-  add_btn.onclick = add
+  add_btn.onclick = () => add(input.value)
   drop_btn.onclick = drop
+  export_btn.onclick = export_fn
+  import_btn.onclick = () => upload.click()
+  upload.onchange = import_fn
+  select.onclick = () => list.classList.toggle('active')
   reset_btn.onclick = () => localStorage.clear()
-  plus.onclick = () => add_tab('New', 'default', 'uniq', '')
+  plus.onclick = () => add_tab('New', '', 'uniq')
   // textarea.oninput = unsave
   update_select_theme()
   return el
 
-  async function add () {
-    localStorage[input.value] = '{"theme":"true","css":{}}'
-    status.themes.saved.push(input.value)
+  async function export_fn () {
+    const theme = localStorage[select_theme.value]
+    const blob = new Blob([JSON.stringify(JSON.parse(theme), null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = select_theme.value;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  async function import_fn () {
+    const file = upload.files[0]
+    const name = file.name.split('.')[0]
+    await add(name)
+    const reader = new FileReader();
+    reader.onload = e => {
+      localStorage[name] = e.target.result
+      load(name)
+    }
+    reader.readAsText(file);
+  }
+  async function add (theme) {
+    localStorage[theme] = '{}'
+    status.themes.saved.push(theme)
+    const index = JSON.parse(localStorage.index)
+    index[theme] = {}
+    localStorage.index = JSON.stringify(index)
     update_select_theme()
   }
   async function drop () {
@@ -1984,19 +2027,23 @@ async function theme_widget(instances, port, data) {
     // forget_changes()
     const theme = localStorage[select_theme.value] && JSON.parse(localStorage[select_theme.value])
     if(theme){
-      theme.css[status.active_tab.id] = status.textarea.value
+      const index = JSON.parse(localStorage.index)
+      theme[status.title] || (theme[status.title] = [], index[select_theme.value][status.title] = [])
+      theme[status.title].push(status.textarea.value)
+      index[select_theme.value][status.title].push(status.active_tab.dataset.name)
       localStorage[select_theme.value] = JSON.stringify(theme)
+      localStorage.index = JSON.stringify(index)
     }
   }
   async function save_pref () {
     const pref = JSON.parse(localStorage.pref)
     if(select_type.value === "uniq"){
-      pref[status.active_id].length || (pref[status.active_id] = [])
-      pref[status.active_id].push({theme: select_theme.value, file:status.active_tab.id, local: status.themes.local.includes(select_theme.value) })
+      pref[status.instance_id] || (pref[status.instance_id] = [])
+      pref[status.instance_id].push({theme: select_theme.value, id:status.active_tab.dataset.id.split('_')[1], local: status.themes.builtin.includes(select_theme.value) })
     }
     else{
-      pref[status.title].length || (pref[status.title] = [])
-      pref[status.title].push({theme: select_theme.value, file:status.active_tab.id, local: status.themes.local.includes(select_theme.value) })
+      pref[status.title] || (pref[status.title] = [])
+      pref[status.title].push({theme: select_theme.value, id:status.active_tab.dataset.id.split('_')[1], local: status.themes.builtin.includes(select_theme.value) })
     }
     localStorage.pref = JSON.stringify(pref)
   }
@@ -2034,25 +2081,27 @@ async function theme_widget(instances, port, data) {
     }
   }
   async function inject () {
-    port.postMessage({type: 'send', to_type: select_type.value === 'uniq' ? 'inject' : 'inject_all', to: status.active_id, data: status.textarea.value})
+    port.postMessage({type: 'send', to_type: select_type.value === 'uniq' ? 'inject' : 'inject_all', to: status.instance_id, data: status.textarea.value})
   }
-  async function load () {
+  async function load (theme) {
     tabs.innerHTML = ''
     btns.innerHTML = ''
-    const theme = select_theme.value
     let css
-    if(status.themes.local.includes(theme)){
-      const temp = await fetch(`./src/node_modules/css/${theme}/${status.title}.css`)
-      css = await temp.text()
+    if(status.themes.builtin.includes(theme)){
+      const index = paths[theme][status.title].length
+      for(let i = 0; i < index; i++){
+        const temp = await fetch(`./src/node_modules/css/${theme}/${status.title}/${i}.css`)
+        add_tab(`${status.title}_${i}`, await temp.text(), '', theme)
+      }
+
     }
     else{
-      const temp = JSON.parse(localStorage[theme]).css
-      Object.entries(temp).forEach(entry => {
-        if(entry[0].includes(status.title))
-          add_tab(entry[0], entry[1])
+      const temp = JSON.parse(localStorage[theme])[status.title]
+      temp.forEach((file, i) => {
+          add_tab(`${status.title}_${i}`, file, '', theme)
       })
     }
-    forget_changes()
+    // forget_changes()
   }
   async function refresh ({ data }) {
     status.tree = data
@@ -2065,56 +2114,77 @@ async function theme_widget(instances, port, data) {
     if(Object.keys(status.dirts).includes(instance[1].name)){
      el.classList.add('dirty') 
     }
-    el.innerHTML = `<main><span class='pre'>+</span> <span class='name'>${instance[1].name}</span></main> <div class="sub"></div>`
+    el.innerHTML = `<main><input type='checkbox' /><span class='pre'>➕</span> <span class='name'>${instance[0]}</span> <span class='post'>➡️</span></main> <div class="sub"></div>`
     const pre_btn = el.querySelector('.pre')
+    const post_btn = el.querySelector('.post')
     const name_el = el.querySelector('.name')
     const sub = el.querySelector('.sub')
     pre_btn.onclick = () => {
-      pre_btn.innerHTML = pre_btn.innerHTML === '+' ? '-' : '+'
+      pre_btn.innerHTML = pre_btn.innerHTML === '➕' ? '➖' : '➕'
       if(sub.children.length)
         sub.classList.toggle('hide')
       else
         sub.append(...Object.entries(status.tree).filter(entry => entry[1].hub == instance[0]).map(make_node))
     }
+    post_btn.onclick = () => {
+      port.postMessage({type: 'send', to_type: 'scroll', to: instance[0]})
+    }
     name_el.onclick = async () => {
       tabs.innerHTML = ''
       btns.innerHTML = ''
       status.title = instance[1].name
-      if(status.active_id === instance[0])
+      title.innerHTML = instance[0]
+      if(status.instance_id === instance[0])
         editor.classList.toggle('active')
       else
         editor.classList.add('active')
       // textarea.value = await get_css(instance[1].name)
-      status.active_id = instance[0]
+      status.instance_id = instance[0]
       status.active_el = el
       status.active_path = instance[1].path
       init_css({...instance[1], id:instance[0]})
     }
     return el
   }
-  async function init_css ({id, name, uniq, hub}) {
+  async function init_css ({id, name, uniq, shared, hub}) {
     const pref = JSON.parse(localStorage.pref)
-    const pref_shared = pref[name] || {file: name, theme: 'default'}
-    const pref_uniq = pref[id]
-    add_tab(pref_shared.file, pref_shared.theme, 'shared', await get_css(pref_shared))
-    if(pref_uniq)
-      pref_uniq.forEach(async v => add_tab(v.file, v.theme, 'uniq', await get_css(v)))
-    else
-      uniq && uniq.forEach(async no => add_tab(name + no, 'default', 'uniq', await get_css({file: name + no})))
+    const pref_shared = pref[name] || shared
+    const pref_uniq = pref[id] || uniq
+    await Promise.all(pref_shared.map(async v => await add_tab(`${name}_${v.id}`, await get_css(v, name), 'shared', v.theme)))
+    await Promise.all(pref_uniq.map(async v => await add_tab(`${name}_${v.id}`, await get_css(v, name), 'uniq', v.theme)))
   }
-  async function add_tab (file, theme, type, css) {
+  async function add_tab (id, css, type, theme = 'default') {
     const btn = document.createElement('span')
-    btn.id = file
-    btn.innerHTML = file
+    const tab_id = 'a' + status.tab_id++
+    btn.id = tab_id
+    const split = id.split('_')
+    const index = paths[theme] || JSON.parse(localStorage.index)[theme]
+    btn.innerHTML = index[split[0]] ? index[split[0]][split[1]] : id
+    btn.dataset.id = id
+    btn.dataset.name = btn.innerHTML
     btn.dataset.theme = theme
     btn.dataset.type = type
     btns.append(btn)
-    btn.onclick = () => switch_tab(file)
+    btn.onclick = () => switch_tab(btn.id)
+    btn.ondblclick = () => {
+      if(btn.children.length)
+        return
+      const input = document.createElement('input')
+      input.value = btn.innerHTML
+      btn.innerHTML = ''
+      btn.append(input)
+      input.onkeydown = rename
+      input.onblur = e => {
+        if(e.relatedTarget)
+          btn.innerHTML = btn.dataset.name
+      }
+      input.focus()
+    }
     const textarea = document.createElement('textarea')
     textarea.value = css
-    textarea.id = file
+    textarea.id = tab_id
     tabs.append(textarea)
-    switch_tab(file)
+    switch_tab(tab_id)
   }
   async function switch_tab (tab_id) {
     status.textarea && status.textarea.classList.remove('active')
@@ -2126,17 +2196,25 @@ async function theme_widget(instances, port, data) {
     select_type.value = status.active_tab.dataset.type
     select_theme.value = status.active_tab.dataset.theme
   }
-  async function get_css ({local = true, theme = 'default', file}) {
+  async function get_css ({ local = true, theme = 'default', id }, name) {
     let theme_css
     if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${file}.css`)).text()
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${name}/${id}.css`)).text()
     else
-      theme_css = JSON.parse(localStorage[theme]).css[file]
-    select_theme.value = theme
+      theme_css = JSON.parse(localStorage[theme])[name][id]
     return theme_css
   }
+  async function rename (e) {
+    if(e.key === 'Enter'){
+      status.active_tab.innerHTML = e.target.value
+      const index = JSON.parse(localStorage.index)
+      const split = status.active_tab.dataset.id.split('_')
+      index[status.active_tab.dataset.theme][split[0]][split[1]] = e.target.value
+      localStorage.index = JSON.stringify(index)
+    }
+  }
   async function update_select_theme () {
-    select_theme.innerHTML = `<optgroup label='local'>${status.themes.local.map(theme => `<option>${theme}</option>`)}</optgroup>` +
+    select_theme.innerHTML = `<optgroup label='builtin'>${status.themes.builtin.map(theme => `<option>${theme}</option>`)}</optgroup>` +
     `<optgroup label='saved'> ${status.themes.saved.map(theme => `<option>${theme}</option>`)}</optgroup>`
   }
 }
@@ -2192,6 +2270,12 @@ function get_theme() {
   .popup .list .item > main:hover{
     background: #ada1c6;
   }
+  .popup .list .item > main > input{
+    display: none;
+  }
+  .popup .list.active .item > main > input{
+    display: inline;
+  }
   .popup .list .item.dirty > main > .name{
     color: yellow;
   }
@@ -2204,6 +2288,9 @@ function get_theme() {
   }
   .popup .editor.active{
     display: block;
+  }
+  .popup .editor h3{
+    margin-top: 0;
   }
   .popup .editor .tabs textarea{
     display: none;
