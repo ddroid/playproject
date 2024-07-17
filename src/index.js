@@ -80,14 +80,13 @@ async function make_page(opts, lang) {
   
   function init_ch({ data, hub = '' }) {
     if(data.name)
-      var {name, uniq, shared} = data
+      var {name, uniq, shared, type} = data
     else
       var name = data
     const ch = new MessageChannel()
     const id = data.id ? data.id : status.id++
     state.ports[id] = ch.port1
-    if( name !== 'theme_widget')
-      status.tree[id] = { name, hub, path:status.tree[hub].id + '/' + name, uniq, shared }
+    status.tree[id] = { name, type, hub, uniq, shared }
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
