@@ -769,14 +769,13 @@ async function make_page(opts, lang) {
   
   function init_ch({ data, hub = '' }) {
     if(data.name)
-      var {name, uniq, shared} = data
+      var {name, uniq, shared, type} = data
     else
       var name = data
     const ch = new MessageChannel()
     const id = data.id ? data.id : status.id++
     state.ports[id] = ch.port1
-    if( name !== 'theme_widget')
-      status.tree[id] = { name, hub, path:status.tree[hub].id + '/' + name, uniq, shared }
+    status.tree[id] = { name, type, hub, uniq, shared }
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
@@ -807,7 +806,7 @@ function get_theme() {
 }`}
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":12,"our_contributors":14,"smartcontract_codes":15,"supporters":16,"theme_widget":17,"topnav":18}],4:[function(require,module,exports){
+},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":12,"our_contributors":14,"smartcontract_codes":15,"supporters":16,"theme_widget":18,"topnav":19}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
   CONTENT COMPONENT
@@ -1513,7 +1512,7 @@ async function our_contributors (data, port, paths) {
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
     const temp = []
     for (const [index, person] of data.contributors.entries()){
-        temp.push(await Contributor( person, await init_ch({ name: 'contributor', uniq: person.uniq, shared: person.shared, id: 'contributor_' + index }), 'contributor_' + index))
+        temp.push(await Contributor( person, await init_ch({ name: person.name, type: 'contributor', uniq: person.uniq, shared: person.shared, id: 'contributor_' + index }), 'contributor_' + index))
     }
     const contributors = await Promise.all(temp)
 
@@ -1837,7 +1836,7 @@ async function supporters (data, port) {
 },{"_process":1,"crystalIsland":6,"graphic":11,"rellax":2}],17:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
-  THEME_WIDGET COMPONENT
+  THEME_EDITOR COMPONENT
 ******************************************************************************/
 // ----------------------------------------
 // MODULE STATE & ID
@@ -1852,9 +1851,8 @@ const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 
-module.exports = theme_widget
-
-async function theme_widget(instances, port, data) {
+module.exports = theme_editor
+async function theme_editor (port) {
   port.onmessage = event => on_rx[event.data.type](event.data)
   // ----------------------------------------
   // ID + JSON STATE
@@ -1862,15 +1860,13 @@ async function theme_widget(instances, port, data) {
   const id = `${ID}:${count++}` // assigns their own name
   const status = { tab_id: 0 }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
-  status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
-  localStorage.pref || (localStorage.pref = '{}')
+  const on_rx = {
+    init
+  }
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
   status.themes = {
     builtin: Object.keys(paths),
     saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
-  }
-  const on_rx = {
-    refresh
   }
   // ----------------------------------------
   // TEMPLATE
@@ -1879,90 +1875,69 @@ async function theme_widget(instances, port, data) {
   const shadow = el.attachShadow(shopts)
   shadow.adoptedStyleSheets = [sheet]
   shadow.innerHTML = `
-  <section>
-    <div class="btn">
-      ⚙️
+  <main>
+    <h3>
+    </h3>
+    <div class="btns">
+      <div class="box"></div>
+      <span class="plus">+</span>
     </div>
-    <div class="popup">
-      <div class="box">
-        <div class="stats">
-          Instances: 
-        </div>
-        <button class="select">Select</button>
-        <div class="list">
-        </div>
-      </div>
-      <div class="editor">
-        <h3>
-        </h3>
-        <div class="btns">
-          <div class="box"></div>
-          <span class="plus">+</span>
-        </div>
-        <div class="tabs">
-        </div>
-        <select class="theme"></select>
-        <select class="type">
-          <option>shared</option>
-          <option>uniq</option>
-        </select>
-        <button class="load">
-          Load
-        </button>
-        <button class="inject">
-          Inject
-        </button>
-        <button class="save_file">
-          Save file
-        </button>
-        <button class="save_pref">
-          Save pref
-        </button>
-        <button class="drop">
-          Drop
-        </button>
-        <button class="reset">
-          Reset
-        </button>
-        <button class="export">
-          Export
-        </button>
-        <button class="import">
-          Import
-        </button>
-        <input style="display: none;" class="upload" type='file' />
-        <input class="theme" placeholder='Enter theme' />
-        <button class="add">
-          Add
-        </button>
-      </div>
+    <div class="tabs">
     </div>
-  </section>`
-  const btn = shadow.querySelector('.btn')
-  const popup = shadow.querySelector('.popup')
-  const list = popup.querySelector('.list')
-  const stats = popup.querySelector('.stats')
-  const editor = popup.querySelector('.editor')
-  const select = popup.querySelector('.select')
-  const inject_btn = editor.querySelector('.inject')
-  const load_btn = editor.querySelector('.load')
-  const save_file_btn = editor.querySelector('.save_file')
-  const save_pref_btn = editor.querySelector('.save_pref')
-  const add_btn = editor.querySelector('.add')
-  const drop_btn = editor.querySelector('.drop')
-  const reset_btn = editor.querySelector('.reset')
-  const upload = editor.querySelector('.upload')
-  const import_btn = editor.querySelector('.import')
-  const export_btn = editor.querySelector('.export')
-  const title = editor.querySelector('h3')
-  const tabs = editor.querySelector('.tabs')
-  const btns = editor.querySelector('.btns > .box')
-  const plus = editor.querySelector('.plus')
-  const select_theme = editor.querySelector('select.theme')
-  const select_type = editor.querySelector('select.type')
-  const input = editor.querySelector('input.theme')
+    <select class="theme"></select>
+    <select class="type">
+      <option>shared</option>
+      <option>uniq</option>
+    </select>
+    <button class="load">
+      Load
+    </button>
+    <button class="inject">
+      Inject
+    </button>
+    <button class="save_file">
+      Save file
+    </button>
+    <button class="save_pref">
+      Save pref
+    </button>
+    <button class="drop">
+      Drop
+    </button>
+    <button class="reset">
+      Reset
+    </button>
+    <button class="export">
+      Export
+    </button>
+    <button class="import">
+      Import
+    </button>
+    <input style="display: none;" class="upload" type='file' />
+    <input class="theme" placeholder='Enter theme' />
+    <button class="add">
+      Add
+    </button>
+  </main>
+  `
+  const inject_btn = shadow.querySelector('.inject')
+  const load_btn = shadow.querySelector('.load')
+  const save_file_btn = shadow.querySelector('.save_file')
+  const save_pref_btn = shadow.querySelector('.save_pref')
+  const add_btn = shadow.querySelector('.add')
+  const drop_btn = shadow.querySelector('.drop')
+  const reset_btn = shadow.querySelector('.reset')
+  const upload = shadow.querySelector('.upload')
+  const import_btn = shadow.querySelector('.import')
+  const export_btn = shadow.querySelector('.export')
+  const title = shadow.querySelector('h3')
+  const tabs = shadow.querySelector('.tabs')
+  const btns = shadow.querySelector('.btns > .box')
+  const plus = shadow.querySelector('.plus')
+  const select_theme = shadow.querySelector('select.theme')
+  const select_type = shadow.querySelector('select.type')
+  const input = shadow.querySelector('input.theme')
 
-  btn.onclick = () => popup.classList.toggle('active')
   inject_btn.onclick = inject
   load_btn.onclick = () => load(select_theme.value)
   save_file_btn.onclick = save_file
@@ -1972,35 +1947,48 @@ async function theme_widget(instances, port, data) {
   export_btn.onclick = export_fn
   import_btn.onclick = () => upload.click()
   upload.onchange = import_fn
-  select.onclick = () => list.classList.toggle('active')
   reset_btn.onclick = () => localStorage.clear()
-  plus.onclick = () => add_tab('New', '', 'uniq')
-  // textarea.oninput = unsave
+  plus.onclick = () => add_tab('New')
+  port.onmessage = event => on_rx[event.data.type](event.data)
   update_select_theme()
+
   return el
 
+  async function init ({ data }) {
+    tabs.innerHTML = ''
+    btns.innerHTML = ''
+    title.innerHTML = data.id
+    status.title = data.type
+    status.instance_id = data.id
+    init_css(data)
+  }
   async function export_fn () {
-    const theme = localStorage[select_theme.value]
-    const blob = new Blob([JSON.stringify(JSON.parse(theme), null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = select_theme.value;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const theme = JSON.parse(localStorage[select_theme.value])
+    const index = JSON.parse(localStorage.index)[select_theme.value]
+    const blob = new Blob([JSON.stringify({theme, index}, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = select_theme.value
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
   async function import_fn () {
     const file = upload.files[0]
     const name = file.name.split('.')[0]
     await add(name)
-    const reader = new FileReader();
+    const reader = new FileReader()
     reader.onload = e => {
-      localStorage[name] = e.target.result
+      const blob = JSON.parse(e.target.result)
+      localStorage[name] = JSON.stringify(blob.theme)
+      const index = JSON.parse(localStorage.index)
+      index[name] = blob.index
+      localStorage.index = JSON.stringify(index)
       load(name)
     }
-    reader.readAsText(file);
+    reader.readAsText(file)
   }
   async function add (theme) {
     localStorage[theme] = '{}'
@@ -2086,14 +2074,12 @@ async function theme_widget(instances, port, data) {
   async function load (theme) {
     tabs.innerHTML = ''
     btns.innerHTML = ''
-    let css
     if(status.themes.builtin.includes(theme)){
       const index = paths[theme][status.title].length
       for(let i = 0; i < index; i++){
         const temp = await fetch(`./src/node_modules/css/${theme}/${status.title}/${i}.css`)
         add_tab(`${status.title}_${i}`, await temp.text(), '', theme)
       }
-
     }
     else{
       const temp = JSON.parse(localStorage[theme])[status.title]
@@ -2103,57 +2089,18 @@ async function theme_widget(instances, port, data) {
     }
     // forget_changes()
   }
-  async function refresh ({ data }) {
-    status.tree = data
-    stats.innerHTML = `Active instances: ${Object.keys(data).length}`
-    list.append(...Object.entries(data).filter(entry => entry[1].hub === '').map(make_node))
-  }
-  function make_node (instance){
-    const el = document.createElement('div')
-    el.classList.add('item')
-    if(Object.keys(status.dirts).includes(instance[1].name)){
-     el.classList.add('dirty') 
-    }
-    el.innerHTML = `<main><input type='checkbox' /><span class='pre'>➕</span> <span class='name'>${instance[0]}</span> <span class='post'>➡️</span></main> <div class="sub"></div>`
-    const pre_btn = el.querySelector('.pre')
-    const post_btn = el.querySelector('.post')
-    const name_el = el.querySelector('.name')
-    const sub = el.querySelector('.sub')
-    pre_btn.onclick = () => {
-      pre_btn.innerHTML = pre_btn.innerHTML === '➕' ? '➖' : '➕'
-      if(sub.children.length)
-        sub.classList.toggle('hide')
-      else
-        sub.append(...Object.entries(status.tree).filter(entry => entry[1].hub == instance[0]).map(make_node))
-    }
-    post_btn.onclick = () => {
-      port.postMessage({type: 'send', to_type: 'scroll', to: instance[0]})
-    }
-    name_el.onclick = async () => {
-      tabs.innerHTML = ''
-      btns.innerHTML = ''
-      status.title = instance[1].name
-      title.innerHTML = instance[0]
-      if(status.instance_id === instance[0])
-        editor.classList.toggle('active')
-      else
-        editor.classList.add('active')
-      // textarea.value = await get_css(instance[1].name)
-      status.instance_id = instance[0]
-      status.active_el = el
-      status.active_path = instance[1].path
-      init_css({...instance[1], id:instance[0]})
-    }
-    return el
-  }
-  async function init_css ({id, name, uniq, shared, hub}) {
+  async function init_css ({id, type, uniq, shared, hub}) {
     const pref = JSON.parse(localStorage.pref)
-    const pref_shared = pref[name] || shared
+    const pref_shared = pref[type] || shared
     const pref_uniq = pref[id] || uniq
-    await Promise.all(pref_shared.map(async v => await add_tab(`${name}_${v.id}`, await get_css(v, name), 'shared', v.theme)))
-    await Promise.all(pref_uniq.map(async v => await add_tab(`${name}_${v.id}`, await get_css(v, name), 'uniq', v.theme)))
+    await Promise.all(pref_shared.map(async v => await add_tab(`${type}_${v.id}`, await get_css(v, type), 'shared', v.theme)))
+    await Promise.all(pref_uniq.map(async v => await add_tab(`${type}_${v.id}`, await get_css(v, type), 'uniq', v.theme)))
   }
-  async function add_tab (id, css, type, theme = 'default') {
+  async function add_tab (id, css = '', type = 'uniq', theme = 'default') {
+    if(id === 'New' && status.themes.builtin.includes(theme)){
+      theme += '*'
+      add(theme)
+    }
     const btn = document.createElement('span')
     const tab_id = 'a' + status.tab_id++
     btn.id = tab_id
@@ -2166,20 +2113,7 @@ async function theme_widget(instances, port, data) {
     btn.dataset.type = type
     btns.append(btn)
     btn.onclick = () => switch_tab(btn.id)
-    btn.ondblclick = () => {
-      if(btn.children.length)
-        return
-      const input = document.createElement('input')
-      input.value = btn.innerHTML
-      btn.innerHTML = ''
-      btn.append(input)
-      input.onkeydown = rename
-      input.onblur = e => {
-        if(e.relatedTarget)
-          btn.innerHTML = btn.dataset.name
-      }
-      input.focus()
-    }
+    btn.ondblclick = rename
     const textarea = document.createElement('textarea')
     textarea.value = css
     textarea.id = tab_id
@@ -2205,17 +2139,190 @@ async function theme_widget(instances, port, data) {
     return theme_css
   }
   async function rename (e) {
-    if(e.key === 'Enter'){
-      status.active_tab.innerHTML = e.target.value
-      const index = JSON.parse(localStorage.index)
-      const split = status.active_tab.dataset.id.split('_')
-      index[status.active_tab.dataset.theme][split[0]][split[1]] = e.target.value
-      localStorage.index = JSON.stringify(index)
+    const btn = e.target
+    if(btn.children.length)
+      return
+    const input = document.createElement('input')
+    input.value = btn.innerHTML
+    btn.innerHTML = ''
+    btn.append(input)
+    input.onkeydown = e => {
+      if(e.key === 'Enter'){
+        btn.innerHTML = input.value
+        const index = JSON.parse(localStorage.index)
+        const split = btn.dataset.id.split('_')
+        index[btn.dataset.theme][split[0]][split[1]] = input.value
+        localStorage.index = JSON.stringify(index)
+      }
     }
+    input.onblur = e => {
+      if(e.relatedTarget)
+        btn.innerHTML = btn.dataset.name
+    }
+    input.focus()
   }
   async function update_select_theme () {
     select_theme.innerHTML = `<optgroup label='builtin'>${status.themes.builtin.map(theme => `<option>${theme}</option>`)}</optgroup>` +
     `<optgroup label='saved'> ${status.themes.saved.map(theme => `<option>${theme}</option>`)}</optgroup>`
+  }
+}
+
+function get_theme () {
+  return `
+  main{
+    background: #beb2d7;
+    position: relative;
+    border-radius: 5px;
+    padding: 10px;
+  }
+  h3{
+    margin-top: 0;
+  }
+  .tabs textarea{
+    display: none;
+    min-height: 44vh;
+    min-width: 100%;
+  }
+  .tabs textarea.active{
+    display: block;
+  }
+  .btns{
+    display: flex;
+  }
+  .btns span{
+    padding: 0 5px;
+    margin: 0 5px;
+    cursor: pointer;
+  }
+  .btns span.active{
+    background: #ada1c6;
+  }
+  .btns span:hover{
+    background: #ae9cd4;
+  }
+  `
+}
+}).call(this)}).call(this,require('_process'),"/src/node_modules/theme_editor.js")
+},{"_process":1}],18:[function(require,module,exports){
+(function (process,__filename){(function (){
+const theme_editor = require('theme_editor')
+/******************************************************************************
+  THEME_WIDGET COMPONENT
+******************************************************************************/
+// ----------------------------------------
+// MODULE STATE & ID
+var count = 0
+const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
+const ID = dir.slice(cwd.length)
+const STATE = { ids: {}, net: {} } // all state of component module
+// ----------------------------------------
+const sheet = new CSSStyleSheet
+sheet.replaceSync(get_theme())
+const default_opts = { }
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+
+module.exports = theme_widget
+
+async function theme_widget(instances, port) {
+  port.onmessage = onmessage
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const id = `${ID}:${count++}` // assigns their own name
+  const status = { tab_id: 0 }
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
+  const on_rx = {
+    refresh
+  }
+  status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
+  localStorage.pref || (localStorage.pref = '{}')
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.adoptedStyleSheets = [sheet]
+  shadow.innerHTML = `
+  <section>
+    <div class="btn">
+      ⚙️
+    </div>
+    <div class="popup">
+      <div class="box">
+        <div class="stats">
+          Instances: 
+        </div>
+        <button class="select">Select</button>
+        <div class="list">
+        </div>
+      </div>
+      <div class="editor">
+      </div>
+    </div>
+  </section>`
+  const btn = shadow.querySelector('.btn')
+  const popup = shadow.querySelector('.popup')
+  const list = popup.querySelector('.list')
+  const stats = popup.querySelector('.stats')
+  const editor = popup.querySelector('.editor')
+  const select = popup.querySelector('.select')
+
+  editor.append(await theme_editor(await init_ch({id: 'theme_editor', type: 'theme_editor'})))
+  btn.onclick = () => popup.classList.toggle('active')
+  select.onclick = () => list.classList.toggle('active')
+  // textarea.oninput = unsave
+  return el
+
+  async function init_ch (data) {
+    port.postMessage({type: 'req_ch', data })
+    return new Promise(resolve => 
+      port.onmessage = event => {
+          resolve(event.ports[0])
+          port.onmessage = onmessage
+      }
+    )
+  }
+  async function refresh ({ data }) {
+    status.tree = data
+    stats.innerHTML = `Instances: ${Object.keys(data).length}`
+    list.append(...Object.entries(data).filter(entry => entry[1].hub === '').map(make_node))
+  }
+  function make_node (instance){
+    const el = document.createElement('div')
+    el.classList.add('item')
+    if(Object.keys(status.dirts).includes(instance[1].name)){
+     el.classList.add('dirty')
+    }
+    el.innerHTML = `<main><input type='checkbox' /><span class='pre'>➕</span> <span class='name'>${instance[1].name || instance[0]}</span> <span class='post'>➡️</span></main> <div class="sub"></div>`
+    const pre_btn = el.querySelector('.pre')
+    const post_btn = el.querySelector('.post')
+    const name_el = el.querySelector('.name')
+    const sub = el.querySelector('.sub')
+    pre_btn.onclick = () => {
+      pre_btn.innerHTML = pre_btn.innerHTML === '➕' ? '➖' : '➕'
+      if(sub.children.length)
+        sub.classList.toggle('hide')
+      else
+        sub.append(...Object.entries(status.tree).filter(entry => entry[1].hub == instance[0]).map(make_node))
+    }
+    post_btn.onclick = () => {
+      port.postMessage({type: 'send', to_type: 'scroll', to: instance[0]})
+    }
+    name_el.onclick = async () => {
+      if(status.instance_id === instance[0])
+        editor.classList.toggle('active')
+      else
+        editor.classList.add('active')
+      // textarea.value = await get_css(instance[1].name)
+      status.instance_id = instance[0]
+      status.active_el = el
+      port.postMessage({type: 'send', to_type: 'init', to: 'theme_editor', data: {...instance[1], id:instance[0]}})
+    }
+    return el
+  }
+  async function onmessage (event) {
+    on_rx[event.data.type](event.data)
   }
 }
 
@@ -2281,43 +2388,14 @@ function get_theme() {
   }
   .popup .editor{
     display: none;
-    background: #beb2d7;
-    position: relative;
-    border-radius: 5px;
-    padding: 10px;
   }
   .popup .editor.active{
     display: block;
   }
-  .popup .editor h3{
-    margin-top: 0;
-  }
-  .popup .editor .tabs textarea{
-    display: none;
-    min-height: 44vh;
-    min-width: 100%;
-  }
-  .popup .editor .tabs textarea.active{
-    display: block;
-  }
-  .popup .editor .btns{
-    display: flex;
-  }
-  .popup .editor .btns span{
-    padding: 0 5px;
-    margin: 0 5px;
-    cursor: pointer;
-  }
-  .popup .editor .btns span.active{
-    background: #ada1c6;
-  }
-  .popup .editor .btns span:hover{
-    background: #ae9cd4;
-  }
   `
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_widget.js")
-},{"_process":1}],18:[function(require,module,exports){
+},{"_process":1,"theme_editor":17}],19:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 /******************************************************************************
@@ -2430,7 +2508,7 @@ async function topnav(data, port) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
-},{"_process":1,"graphic":11}],19:[function(require,module,exports){
+},{"_process":1,"graphic":11}],20:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
 const make_page = require('../') 
 const theme = require('theme')
@@ -2626,7 +2704,7 @@ function resources (pool) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
-},{"../":3,"_process":1,"theme":20}],20:[function(require,module,exports){
+},{"../":3,"_process":1,"theme":21}],21:[function(require,module,exports){
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 document.head.innerHTML += loadFont
@@ -2717,4 +2795,4 @@ const theme = {
 
 module.exports = theme
 
-},{}]},{},[19]);
+},{}]},{},[20]);
