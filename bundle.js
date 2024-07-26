@@ -1885,8 +1885,10 @@ async function theme_editor (port) {
     </div>
     <div class="content">
     </div>
-    <input list="themes" class="theme" placeholder='Enter theme' />
-    <div id="themes" class="theme"></div>
+    <div class="relative">
+      <input list="themes" class="theme" placeholder='Enter theme' />
+      <div id="themes" class="theme"></div>
+    </div>
     <select class="access">
       <option>shared</option>
       <option>uniq</option>
@@ -1903,8 +1905,11 @@ async function theme_editor (port) {
     <button class="save_pref">
       Save pref
     </button>
-    <button class="drop single">
-      Drop
+    <button class="drop_theme single">
+      Drop theme
+    </button>
+    <button class="drop_file single">
+      Drop file
     </button>
     <button class="reset single">
       Reset
@@ -1927,7 +1932,8 @@ async function theme_editor (port) {
   const save_file_btn = shadow.querySelector('.save_file')
   const save_pref_btn = shadow.querySelector('.save_pref')
   const add_btn = shadow.querySelector('.add')
-  const drop_btn = shadow.querySelector('.drop')
+  const drop_theme_btn = shadow.querySelector('.drop_theme')
+  const drop_file_btn = shadow.querySelector('.drop_file')
   const reset_btn = shadow.querySelector('.reset')
   const upload = shadow.querySelector('.upload')
   const import_btn = shadow.querySelector('.import')
@@ -1941,13 +1947,15 @@ async function theme_editor (port) {
   const input = shadow.querySelector('input.theme')
 
   input.onfocus = () => select_theme.classList.add('active')
-  input.onblur = () => select_theme.classList.remove('active')
+  input.onblur = () => setTimeout(() => select_theme.classList.remove('active'), 200)
+  input.oninput = update_select_theme
   inject_btn.onclick = inject
-  load_btn.onclick = () => load(select_theme.value, false)
+  load_btn.onclick = () => load(input.value, false)
   save_file_btn.onclick = save_file
   save_pref_btn.onclick = save_pref
   add_btn.onclick = () => add(input.value)
-  drop_btn.onclick = drop
+  drop_theme_btn.onclick = drop_theme
+  drop_file_btn.onclick = drop_file
   export_btn.onclick = export_fn
   import_btn.onclick = () => upload.click()
   upload.onchange = import_fn
@@ -1966,13 +1974,13 @@ async function theme_editor (port) {
     status.select = !status.select
   }
   async function export_fn () {
-    const theme = JSON.parse(localStorage[select_theme.value])
-    const index = JSON.parse(localStorage.index)[select_theme.value]
+    const theme = JSON.parse(localStorage[input.value])
+    const index = JSON.parse(localStorage.index)[input.value]
     const blob = new Blob([JSON.stringify({theme, index}, null, 2)], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = select_theme.value
+    a.download = input.value
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -2001,12 +2009,18 @@ async function theme_editor (port) {
     localStorage.index = JSON.stringify(index)
     update_select_theme()
   }
-  async function drop () {
-    localStorage.removeItem(select_theme.value)
-    status.themes.saved = status.themes.saved.filter(v => v != select_theme.value)
+  async function drop_theme () {
+    localStorage.removeItem(input.value)
+    status.themes.saved = status.themes.saved.filter(v => v != input.value)
     update_select_theme()
-    select_theme.value = 'default'
+    input.value = 'default'
     load('default')
+  }
+  async function drop_file () {
+    const theme = JSON.parse(localStorage[status.active_tab.dataset.theme])
+    theme[status.active_tab.dataset.comp].splice(status.active_tab.dataset.id, 1)
+    localStorage[status.active_tab.dataset.theme] = JSON.stringify(theme)
+    close_tab(status.active_tab)
   }
   async function forget_changes () {
     status.active_el.classList.remove('dirty')
@@ -2016,13 +2030,13 @@ async function theme_editor (port) {
   }
   async function save_file () {
     // forget_changes()
-    const theme = localStorage[select_theme.value] && JSON.parse(localStorage[select_theme.value])
+    const theme = localStorage[input.value] && JSON.parse(localStorage[input.value])
     if(theme){
       const index = JSON.parse(localStorage.index)
-      theme[status.title] || (theme[status.title] = [], index[select_theme.value][status.title] = [])
+      theme[status.title] || (theme[status.title] = [], index[input.value][status.title] = [])
       theme[status.title].push(status.textarea.value)
-      index[select_theme.value][status.title].push(status.active_tab.dataset.name)
-      localStorage[select_theme.value] = JSON.stringify(theme)
+      index[input.value][status.title].push(status.active_tab.dataset.name)
+      localStorage[input.value] = JSON.stringify(theme)
       localStorage.index = JSON.stringify(index)
     }
   }
@@ -2042,16 +2056,16 @@ async function theme_editor (port) {
   }
   async function unsave () {
     status.active_el.classList.add('dirty')
-    let theme = localStorage[select_theme.value] && JSON.parse(localStorage[select_theme.value])
+    let theme = localStorage[input.value] && JSON.parse(localStorage[input.value])
     if(theme){
       theme.css[status.title] = textarea.value
-      localStorage[select_theme.value] = JSON.stringify(theme)
+      localStorage[input.value] = JSON.stringify(theme)
       const dirt = JSON.parse(localStorage.dirt)
-      dirt[status.title] = select_theme.value
+      dirt[status.title] = input.value
       localStorage.dirt = JSON.stringify(dirt)
     }
     else{
-      const name = select_theme.value + '*'
+      const name = input.value + '*'
       theme = localStorage[name] && JSON.parse(localStorage[name])
       if(theme){
         theme.css[status.title] = textarea.value
@@ -2069,7 +2083,7 @@ async function theme_editor (port) {
         dirt[status.title] = name
         localStorage.dirt = JSON.stringify(dirt)
         update_select_theme()
-        select_theme.value = name
+        input.value = name
       }
     }
   }
@@ -2143,6 +2157,7 @@ async function theme_editor (port) {
     tab.dataset.name = btn.innerHTML
     tab.dataset.theme = theme
     tab.dataset.access = access
+    tab.dataset.comp = comp
     btn.onclick = () => switch_tab(tab.id)
     btn.ondblclick = rename
     const btn_x = document.createElement('span')
@@ -2160,15 +2175,16 @@ async function theme_editor (port) {
     textarea.value = css
     textarea.id = tab_id
     content.append(textarea)
-    btn_x.onclick = () => {
-      tab.remove()
-      textarea.remove()
-      if(tabs.children.length)
-        switch_tab(tabs.children[tabs.children.length - 1].id)
-      else
-        add_tab('New')
-    }
+    btn_x.onclick = () => close_tab(tab)
     switch_tab(tab_id)
+  }
+  async function close_tab (tab) {
+    content.querySelector('#' + tab.id).remove()
+    tab.remove()
+    if(tabs.children.length)
+      switch_tab(tabs.children[tabs.children.length - 1].id)
+    else
+      add_tab('New')
   }
   async function switch_tab (tab_id) {
     status.textarea && status.textarea.classList.remove('active')
@@ -2179,7 +2195,7 @@ async function theme_editor (port) {
     status.active_tab.classList.add('active')
     status.active_tab.focus()
     select_access.value = status.active_tab.dataset.access
-    select_theme.value = status.active_tab.dataset.theme
+    input.value = status.active_tab.dataset.theme
   }
   async function get_css ({ local = true, theme = 'default', id }, name) {
     let theme_css
@@ -2211,8 +2227,26 @@ async function theme_editor (port) {
     input.focus()
   }
   async function update_select_theme () {
-    select_theme.innerHTML = `<div class="cat"0><b>builtin</b>${status.themes.builtin.map(theme => `<div>${theme}</div>`).join('')}</div>` +
-    `<div class="cat"><b>saved</b>${status.themes.saved.map(theme => `<div>${theme}</div>`).join('')}</div>`
+    const builtin = document.createElement('div')
+    builtin.classList.add('cat')
+    status.themes.builtin.forEach(theme => {
+      const el = document.createElement('div')
+      el.innerHTML = theme
+      el.onclick = () => input.value = theme
+      theme.includes(input.value) && builtin.append(el)
+    })
+    builtin.innerHTML && builtin.insertAdjacentHTML('afterbegin', '<b>builtin</b>')
+    const saved = document.createElement('div')
+    saved.classList.add('cat')
+    status.themes.saved.forEach(theme => {
+      const el = document.createElement('div')
+      el.innerHTML = theme
+      el.onclick = () => input.value = theme
+      theme.includes(input.value) && saved.append(el)
+    })
+    saved.innerHTML && saved.insertAdjacentHTML('afterbegin', '<b>saved</b>')
+    select_theme.innerHTML = ''
+    select_theme.append(builtin, saved)
   }
   async function onmessage (event) {
     on_rx[event.data.type](event.data)
@@ -2264,6 +2298,9 @@ function get_theme () {
     position: absolute;
     background: white;
     display: none;
+    bottom: 21px;
+    border: 1px solid black;
+    cursor: pointer;
   }
   div.theme.active {
     display: block;
@@ -2273,9 +2310,14 @@ function get_theme () {
   }
   div.theme > .cat > div{
     font-size: 16px;
+    padding: 2px 7px;
   }
   div.theme > .cat > div:hover{
     background: grey;
+  }
+  .relative{
+    position: relative;
+    display: inline;
   }
   `
 }
@@ -2399,12 +2441,14 @@ async function theme_widget(instances, port) {
       port.postMessage({type: 'send', to_type: 'scroll', to: instance[0]})
     }
     name_el.onclick = async () => {
+      status.active_el && status.active_el.classList.remove('active')
       if(status.instance_id === instance[0])
         editor.classList.toggle('active')
-      else
+      else{
         editor.classList.add('active')
-      // textarea.value = await get_css(instance[1].name)
-      status.instance_id = instance[0]
+        el.classList.add('active')
+      }
+      status.instance_id = instance[0]      
       status.active_el = el
       port.postMessage({type: 'send', to_type: 'init', to: 'theme_editor', data: {...instance[1], id:instance[0]}})
     }
@@ -2463,7 +2507,8 @@ function get_theme() {
   .popup .list .item > .sub.hide{
     display: none;
   }
-  .popup .list .item > main:hover{
+  .popup .list .item > main:hover,
+  .popup .list .item.active > main{
     background: #ada1c6;
   }
   .popup .list .item > main > input{
