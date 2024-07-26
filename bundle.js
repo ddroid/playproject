@@ -2041,12 +2041,21 @@ async function theme_editor (port) {
     }
   }
   async function save_pref () {
+    if(status.select)
+      var ids = await get_select()
     const pref = JSON.parse(localStorage.pref)
-    pref[status.instance_id] = []
     pref[status.title] = []
     Array.from(tabs.children).forEach(tab => {
       if(tab.dataset.access === "uniq"){
-        pref[status.instance_id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme) })
+        if(ids)
+          ids.forEach(id => {
+          pref[id] = []
+          pref[id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme)})
+        })
+        else{
+          pref[status.instance_id] = []
+          pref[status.instance_id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme)})
+        }
       }
       else{
         pref[status.title].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme) })
