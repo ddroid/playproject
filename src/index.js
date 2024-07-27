@@ -72,19 +72,15 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], pref: entry[1].pref }})))
+    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], id: '_' + entry[0], type: entry[0], ...entry[1]}}), '_' + entry[0]))
     return el
   })))
   update_theme_widget()
   return el
   
   function init_ch({ data, hub = '' }) {
-    if(data.name)
-      var {name, uniq, shared, type} = data
-    else
-      var name = data
+    const {name, uniq, shared, type, id} = data
     const ch = new MessageChannel()
-    const id = data.id ? data.id : status.id++
     state.ports[id] = ch.port1
     status.tree[id] = { name, type, hub, uniq, shared }
     ch.port1.onmessage = event => {
@@ -100,7 +96,7 @@ async function make_page(opts, lang) {
     state.ports[to].postMessage({ data, type: to_type, by })
   }
   async function update_theme_widget () {
-    state.ports[0].postMessage({ data: status.tree, type: 'refresh'})
+    state.ports['_theme_widget'].postMessage({ data: status.tree, type: 'refresh'})
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
