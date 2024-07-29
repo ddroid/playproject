@@ -802,7 +802,7 @@ function get_theme() {
 }`}
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":12,"our_contributors":14,"smartcontract_codes":15,"supporters":16,"theme_widget":18,"topnav":19}],4:[function(require,module,exports){
+},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":12,"our_contributors":15,"smartcontract_codes":16,"supporters":17,"theme_widget":19,"topnav":20}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
   CONTENT COMPONENT
@@ -1565,6 +1565,59 @@ async function loadSVG (url, done) {
 
 module.exports = loadSVG
 },{}],14:[function(require,module,exports){
+module.exports = localdb
+
+async function localdb () {
+  return { add, read, drop, push }
+
+  function add (keys, value) {
+    let data
+    if(keys.length > 1) {
+      data = JSON.parse(localStorage[keys[0]])
+      let temp = data
+      keys.slice(1, -1).forEach(key => {
+        temp = temp[key]
+      })
+      temp[keys.slice(-1)[0]] = value
+    }
+    else
+      data = value
+    localStorage[keys[0]] = JSON.stringify(data)
+  }
+  function push (keys, value) {
+    const data = JSON.parse(localStorage[keys[0]])
+    let temp = data
+    keys.slice(1).forEach(key => {
+      temp = temp[key]
+    })
+    temp.push(value)
+    localStorage[keys[0]] = JSON.stringify(data)
+  }
+  function read (keys) {
+    let data = JSON.parse(localStorage[keys[0]])
+    keys.slice(1).forEach(key => {
+      data = data[key]
+    })
+    return data
+  }
+  function drop (keys) {
+    if(keys.length > 1){
+      const data = JSON.parse(localStorage[keys[0]])
+      let temp = data
+      keys.slice(1, -1).forEach(key => {
+        temp = temp[key]
+      })
+      if(Array.isArray(temp))
+        temp.splice(keys[keys.length - 1], 1)
+      else
+        delete(temp[keys[keys.length - 1]])
+      localStorage[keys[0]] = JSON.stringify(data)
+    }
+    else
+      delete(localStorage[keys[0]])
+  }
+}
+},{}],15:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
@@ -1699,7 +1752,7 @@ async function our_contributors (data, port, css_id) {
     }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/our_contributors.js")
-},{"_process":1,"content":4,"contributor":5,"graphic":11,"rellax":2}],15:[function(require,module,exports){
+},{"_process":1,"content":4,"contributor":5,"graphic":11,"rellax":2}],16:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Content = require('content')
@@ -1835,7 +1888,7 @@ async function smartcontract_codes (data, port, css_id) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract_codes.js")
-},{"_process":1,"content":4,"graphic":11}],16:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":11}],17:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
@@ -1985,8 +2038,9 @@ async function supporters (data, port, css_id) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/supporters.js")
-},{"_process":1,"crystalIsland":6,"graphic":11,"rellax":2}],17:[function(require,module,exports){
+},{"_process":1,"crystalIsland":6,"graphic":11,"rellax":2}],18:[function(require,module,exports){
 (function (process,__filename){(function (){
+const DB = require('localdb')
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
@@ -2008,7 +2062,9 @@ async function theme_editor (data, port, css_id) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
+  const name = 'theme_editor'
   const status = { tab_id: 0 }
+  const db = await DB()
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on_rx = {
     init,
@@ -2123,8 +2179,8 @@ async function theme_editor (data, port, css_id) {
     status.select = !status.select
   }
   async function export_fn () {
-    const theme = JSON.parse(localStorage[input.value])
-    const index = JSON.parse(localStorage.index)[input.value]
+    const theme = db.read([ input.value ])
+    const index = db.read([ 'index', input.value ])
     const blob = new Blob([JSON.stringify({theme, index}, null, 2)], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -2142,33 +2198,29 @@ async function theme_editor (data, port, css_id) {
     const reader = new FileReader()
     reader.onload = e => {
       const blob = JSON.parse(e.target.result)
-      localStorage[name] = JSON.stringify(blob.theme)
-      const index = JSON.parse(localStorage.index)
-      index[name] = blob.index
-      localStorage.index = JSON.stringify(index)
+      db.add([name], blob.theme)
+      db.add(['index', name], blob.index)
       load(name)
     }
     reader.readAsText(file)
   }
   async function add (theme) {
-    localStorage[theme] = '[]'
+    db.add([theme], [])
     status.themes.saved.push(theme)
-    const index = JSON.parse(localStorage.index)
-    index[theme] = []
-    localStorage.index = JSON.stringify(index)
+    db.add(['index', theme], [])
     update_select_theme()
   }
   async function drop_theme () {
-    localStorage.removeItem(input.value)
+    db.drop([input.value])
+    db.drop(['index', input.value])
     status.themes.saved = status.themes.saved.filter(v => v != input.value)
     update_select_theme()
     input.value = 'default'
     load('default')
   }
   async function drop_file () {
-    const theme = JSON.parse(localStorage[status.active_tab.dataset.theme])
-    theme[status.active_tab.dataset.comp].splice(status.active_tab.dataset.id, 1)
-    localStorage[status.active_tab.dataset.theme] = JSON.stringify(theme)
+    db.drop([status.active_tab.dataset.theme, status.active_tab.dataset.id])
+    db.drop(['index', status.active_tab.dataset.theme, status.active_tab.dataset.id])
     close_tab(status.active_tab)
   }
   async function forget_changes () {
@@ -2179,19 +2231,15 @@ async function theme_editor (data, port, css_id) {
   }
   async function save_file () {
     // forget_changes()
-    const theme = localStorage[input.value] && JSON.parse(localStorage[input.value])
-    if(theme){
-      const index = JSON.parse(localStorage.index)
-      theme.push(status.textarea.value)
-      index[input.value].push(status.active_tab.dataset.name)
-      localStorage[input.value] = JSON.stringify(theme)
-      localStorage.index = JSON.stringify(index)
+    if(db.read([input.value])){
+      db.push(['index', input.value], status.active_tab.dataset.name)
+      db.push([input.value], status.textarea.value)
     }
   }
   async function save_pref () {
     if(status.select)
       var ids = await get_select()
-    const pref = JSON.parse(localStorage.pref)
+    const pref = db.read(['pref'])
     Array.from(tabs.children).forEach(tab => {
       if(tab.dataset.access === "uniq"){
         if(ids)
@@ -2209,7 +2257,7 @@ async function theme_editor (data, port, css_id) {
         pref[status.title].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme) })
       }
     })
-    localStorage.pref = JSON.stringify(pref)
+    db.add(['pref'], pref)
   }
   async function unsave () {
     status.active_el.classList.add('dirty')
@@ -2276,7 +2324,7 @@ async function theme_editor (data, port, css_id) {
       }
     }
     else{
-      const temp = JSON.parse(localStorage[theme])
+      const temp = db.read([theme])
       temp.forEach((file, i) => {
           add_tab(i, file, '', theme, status.title)
       })
@@ -2292,7 +2340,7 @@ async function theme_editor (data, port, css_id) {
     init_css_tab(data)
   }
   async function init_css_tab ({id, type, uniq, shared}) {
-    const pref = JSON.parse(localStorage.pref)
+    const pref = db.read(['pref'])
     const pref_shared = pref[type] || shared || []
     const pref_uniq = pref[id] || uniq || []
     await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v, type), 'shared', v.theme, type)))
@@ -2306,7 +2354,7 @@ async function theme_editor (data, port, css_id) {
     const tab = document.createElement('span')
     const tab_id = '_' + status.tab_id++
     tab.id = tab_id
-    const index = paths[theme] || JSON.parse(localStorage.index)[theme]
+    const index = paths[theme] || db.read(['index', theme])
     tabs.append(tab)
     const btn = document.createElement('span')
     btn.innerHTML = index[id] || 'sheet_' + id
@@ -2359,7 +2407,7 @@ async function theme_editor (data, port, css_id) {
     if(local)
       theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
     else
-      theme_css = JSON.parse(localStorage[theme])[name][id]
+      theme_css = db.read([theme, name, id])
     return theme_css
   }
   async function rename (e) {
@@ -2372,9 +2420,7 @@ async function theme_editor (data, port, css_id) {
     input.onkeydown = e => {
       if(e.key === 'Enter'){
         btn.innerHTML = input.value
-        const index = JSON.parse(localStorage.index)
-        index[hub.dataset.theme][status.title][hub.dataset.id] = input.value
-        localStorage.index = JSON.stringify(index)
+        db.add([hub.dataset.theme, hub.dataset.id], input.value)
       }
     }
     input.onblur = e => {
@@ -2409,7 +2455,7 @@ async function theme_editor (data, port, css_id) {
     on_rx[event.data.type](event.data)
   }
   async function init_css () {
-    const pref = JSON.parse(localStorage.pref)
+    const pref = db.read(['pref'])
     const pref_shared = pref[name] || data.shared || []
     const pref_uniq = pref[css_id] || data.uniq || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
@@ -2430,13 +2476,13 @@ async function theme_editor (data, port, css_id) {
     if(local)
       theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
     else
-      theme_css = JSON.parse(localStorage[theme])[name][id]
+      theme_css = db.read([theme, name, id])
     return theme_css
   }
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_editor.js")
-},{"_process":1}],18:[function(require,module,exports){
+},{"_process":1,"localdb":14}],19:[function(require,module,exports){
 (function (process,__filename){(function (){
 const theme_editor = require('theme_editor')
 /******************************************************************************
@@ -2608,7 +2654,7 @@ async function theme_widget(data, port, css_id) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_widget.js")
-},{"_process":1,"theme_editor":17}],19:[function(require,module,exports){
+},{"_process":1,"theme_editor":18}],20:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 /******************************************************************************
@@ -2746,7 +2792,7 @@ async function topnav(data, port, css_id) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
-},{"_process":1,"graphic":11}],20:[function(require,module,exports){
+},{"_process":1,"graphic":11}],21:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
 const make_page = require('../') 
 const theme = require('theme')
@@ -2942,7 +2988,7 @@ function resources (pool) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
-},{"../":3,"_process":1,"theme":21}],21:[function(require,module,exports){
+},{"../":3,"_process":1,"theme":22}],22:[function(require,module,exports){
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 document.head.innerHTML += loadFont
@@ -3033,4 +3079,4 @@ const theme = {
 
 module.exports = theme
 
-},{}]},{},[20]);
+},{}]},{},[21]);
