@@ -33,8 +33,8 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { tree: { '': { id: '' } }, id: 0 }
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: {}} // all state of component instance
+  const status = { tree: [], id: 0 }
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: []} // all state of component instance
   const on_rx = {
     init_ch,
     req_ch,
@@ -72,31 +72,34 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], id: '_' + entry[0], type: entry[0], ...entry[1]}}), '_' + entry[0]))
+    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], type: entry[0], ...entry[1]}})))
     return el
   })))
   update_theme_widget()
+
   return el
   
-  function init_ch({ data, hub = '' }) {
-    const {name, uniq, shared, type, id} = data
+  function init_ch({ data, hub }) {
+    const {name, uniq, shared, type} = data
+    const id = status.id++
     const ch = new MessageChannel()
-    state.ports[id] = ch.port1
-    status.tree[id] = { name, type, hub, uniq, shared }
+    state.ports.push(ch.port1)
+    status.tree.push({ id, name, type, hub, uniq, shared, sub: [] })
+    hub && status.tree[hub[0]].sub.push(id)
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
-    return ch.port2
+    return {port: ch.port2, css_id: id}
   }
   function req_ch ({ by, data }) {
-    const port = init_ch({ data, hub: by })
-    state.ports[by].postMessage({ data: 'hi' }, [port])
+    const {port, css_id} = init_ch({ data, hub: [by] })
+    state.ports[by].postMessage({ data: css_id }, [port])
   }
   function send ({ data, to, to_type, by }) {
     state.ports[to].postMessage({ data, type: to_type, by })
   }
   async function update_theme_widget () {
-    state.ports['_theme_widget'].postMessage({ data: status.tree, type: 'refresh'})
+    state.ports[0].postMessage({ data: status.tree, type: 'refresh'})
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
