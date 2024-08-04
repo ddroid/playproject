@@ -722,7 +722,7 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { tree: [
+  const status = { graph: [
     {
       id: 0,
       name: 'playproject',
@@ -744,7 +744,7 @@ async function make_page(opts, lang) {
       hub: [0]
     }
   ] }
-  status.id = status.tree.length
+  status.id = status.graph.length
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
   const on_rx = {
     init_ch,
@@ -795,8 +795,8 @@ async function make_page(opts, lang) {
     const id = status.id++
     const ch = new MessageChannel()
     state.ports.push(ch.port1)
-    status.tree.push({ id, name, type, hub, uniq, shared, sub: [] })
-    hub && status.tree[hub[0]].sub.push(id)
+    status.graph.push({ id, name, type, hub, uniq, shared, sub: [] })
+    hub && status.graph[hub[0]].sub.push(id)
     ch.port1.onmessage = event => {
       on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
     }
@@ -806,11 +806,12 @@ async function make_page(opts, lang) {
     const {port, css_id} = init_ch({ data, hub: [by] })
     state.ports[by].postMessage({ data: css_id }, [port])
   }
-  function send ({ data, to, to_type, by }) {
-    state.ports[to].postMessage({ data, type: to_type, by })
+  function send ({ data, to, by }) {
+    console.log(to, by)
+    state.ports[to].postMessage({ ...data, by })
   }
   async function update_theme_widget () {
-    state.ports[3].postMessage({ data: status.tree, type: 'refresh'})
+    state.ports[3].postMessage({ data: status.graph, type: 'refresh'})
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
@@ -1543,7 +1544,7 @@ async function graph_explorer (data, { port, css_id }) {
     let is_on
     sub_emo.onclick = sub_click
     details.onclick = () => {
-      port.postMessage({type: 'send', to_type: 'open_editor', to: 1, data})
+      port.postMessage({ type: 'send', to: 1, data:{ type: 'open_editor', data }})
     }
     // element.onfocus = handle_focus
     return element
@@ -1585,7 +1586,7 @@ async function graph_explorer (data, { port, css_id }) {
     inp.onclick = inp_click
     out.onclick = out_click
     details.onclick = () => {
-      port.postMessage({type: 'send', to_type: 'open_editor', to: 1, data})
+      port.postMessage({ type: 'send', to: 1, data:{ type: 'open_editor', data }})
     }
     return element
     function hub_click () {
@@ -2805,14 +2806,14 @@ async function theme_editor (data, { port, css_id }) {
     if(status.select){
       const ids = await get_select()
       ids.forEach(id => {
-        port.postMessage({type: 'send', to_type: select_access.value === 'uniq' ? 'inject' : 'inject_all', to: id, data: status.textarea.value})
+        port.postMessage({type: 'send', to: id, data:{ type: select_access.value === 'uniq' ? 'inject' : 'inject_all', data: status.textarea.value }})
       })
     }
     else
-      port.postMessage({type: 'send', to_type: select_access.value === 'uniq' ? 'inject' : 'inject_all', to: status.instance_id, data: status.textarea.value})
+      port.postMessage({type: 'send', to: status.instance_id, data:{ type: select_access.value === 'uniq' ? 'inject' : 'inject_all', data: status.textarea.value }})
   }
   async function get_select () {
-    port.postMessage({type: 'send', to_type: 'get_select', to: '_theme_widget'})
+    port.postMessage({type: 'send', to: '_theme_widget', data: {type: 'get_select'}})
     return new Promise(resolve => 
       port.onmessage = event => {
           resolve(event.data.data)
@@ -3074,7 +3075,7 @@ async function theme_widget (data, { port, css_id }) {
   }
   async function on_select () {
     list.classList.toggle('active')
-    port.postMessage({type: 'send', to_type: 'hide', to: 10})
+    port.postMessage({type: 'send', to: 10, data:{ type: 'hide' }})
   }
   async function get_select () {
     const inputs = list.querySelectorAll('input')
@@ -3104,7 +3105,7 @@ async function theme_widget (data, { port, css_id }) {
     status.tree = data
     console.log(status.tree)
     stats.innerHTML = `Instances: ${Object.keys(data).length}`
-    port.postMessage({type: 'send', to_type: 'init', to: await find_id('graph_explorer'), data})
+    port.postMessage({type: 'send', to: await find_id('graph_explorer'), data: { type: 'init', data }})
   }
   async function find_id (name){
     return status.tree.filter(node => node.name === name)[0].id
@@ -3119,7 +3120,7 @@ async function theme_widget (data, { port, css_id }) {
     }
     status.instance_id = data.id      
     status.active_el = el
-    port.postMessage({type: 'send', to_type: 'init', to: 10, data})
+    port.postMessage({type: 'send', to: 10, data:{ type: 'init', data }})
   }
   function make_node (instance){
     const el = document.createElement('div')
@@ -3141,7 +3142,7 @@ async function theme_widget (data, { port, css_id }) {
         sub.append(...status.tree.filter(node => node.hub == instance.id).map(make_node))
     }
     post_btn.onclick = () => {
-      port.postMessage({type: 'send', to_type: 'scroll', to: instance.id})
+      port.postMessage({type: 'send', to: instance.id, data:{ type: 'scroll' }})
     }
     name_el.onclick = async () => {
       status.active_el && status.active_el.classList.remove('active')
@@ -3153,7 +3154,7 @@ async function theme_widget (data, { port, css_id }) {
       }
       status.instance_id = instance.id      
       status.active_el = el
-      port.postMessage({type: 'send', to_type: 'init', to: 10, data: instance})
+      port.postMessage({type: 'send', to: 10, data:{ type: 'init', data: instance }})
     }
     return el
   }
