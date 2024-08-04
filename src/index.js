@@ -33,8 +33,30 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { tree: [], id: 0 }
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: []} // all state of component instance
+  const status = { tree: [
+    {
+      id: 0,
+      name: 'playproject',
+      type: 'playproject',
+      sub: [1, 2]
+    },
+    {
+      id: 1,
+      name: 'themes',
+      type: 'themes',
+      sub: [],
+      hub: [0]
+    },
+    {
+      id: 2,
+      name: 'page',
+      type: 'page',
+      sub: [],
+      hub: [0]
+    }
+  ] }
+  status.id = status.tree.length
+  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
   const on_rx = {
     init_ch,
     req_ch,
@@ -72,7 +94,7 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], type: entry[0], ...entry[1]}})))
+    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], type: entry[0], ...entry[1]}, hub: [2]})))
     return el
   })))
   update_theme_widget()
@@ -99,7 +121,7 @@ async function make_page(opts, lang) {
     state.ports[to].postMessage({ data, type: to_type, by })
   }
   async function update_theme_widget () {
-    state.ports[0].postMessage({ data: status.tree, type: 'refresh'})
+    state.ports[3].postMessage({ data: status.tree, type: 'refresh'})
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
