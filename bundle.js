@@ -688,6 +688,7 @@ process.umask = function() { return 0; };
 },{}],3:[function(require,module,exports){
 (function (process,__filename){(function (){
 const fetch_data = require('fetch-data')
+const IO = require('io')
 const modules = {
  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
@@ -709,8 +710,6 @@ const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').hr
 const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
-const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -721,6 +720,7 @@ async function make_page(opts, lang) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
+  const name = 'index'
   const id = `${ID}:${count++}` // assigns their own name
   const status = { graph: [
     {
@@ -746,12 +746,12 @@ async function make_page(opts, lang) {
   ] }
   status.id = status.graph.length
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
-  const on_rx = {
-    init_ch,
-    req_ch,
-    send,
-    jump
+  const on = {
+    jump,
+    inject,
+    inject_all,
   }
+  const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -773,7 +773,6 @@ async function make_page(opts, lang) {
   // ----------------------------------------
   const el = document.createElement('div')
   const shadow = el.attachShadow(shopts)
-  shadow.adoptedStyleSheets = [sheet]
   shadow.innerHTML = `
   <div id="top" class='wrap'>
   </div>`
@@ -783,53 +782,51 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], type: entry[0], ...entry[1]}, hub: [2]})))
+    shadow.append(await modules[entry[0]]({ ...entry[1], hub: [css_id] }))
     return el
   })))
   update_theme_widget()
 
   return el
   
-  function init_ch({ data, hub }) {
-    const {name, uniq, shared, type} = data
-    const id = status.id++
-    const ch = new MessageChannel()
-    state.ports.push(ch.port1)
-    status.graph.push({ id, name, type, hub, uniq, shared, sub: [] })
-    hub && status.graph[hub[0]].sub.push(id)
-    ch.port1.onmessage = event => {
-      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
-    }
-    return {port: ch.port2, css_id: id}
-  }
-  function req_ch ({ by, data }) {
-    const {port, css_id} = init_ch({ data, hub: [by] })
-    state.ports[by].postMessage({ data: css_id }, [port])
-  }
-  function send ({ data, to, by }) {
-    console.log(to, by)
-    state.ports[to].postMessage({ ...data, by })
-  }
   async function update_theme_widget () {
-    state.ports[3].postMessage({ data: status.graph, type: 'refresh'})
+    send({ type: 'init', by: name })
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
-function get_theme() {
-  return `
-.wrap {
-    background: var(--bodyBg);
-}
-[class^="cloud"] {
-    transition: left 0.6s, bottom 0.5s, top 0.5s linear;
-}`}
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":13,"our_contributors":16,"smartcontract_codes":17,"supporters":18,"theme_widget":20,"topnav":21}],4:[function(require,module,exports){
+},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":13,"io":14,"our_contributors":17,"smartcontract_codes":18,"supporters":19,"theme_widget":21,"topnav":22}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
+const IO = require('io')
 /******************************************************************************
   CONTENT COMPONENT
 ******************************************************************************/
@@ -846,7 +843,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = content
 
-async function content (data, { port, css_id }) {
+async function content (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -854,11 +851,12 @@ async function content (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
       inject,
       inject_all,
       scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -876,13 +874,9 @@ async function content (data, { port, css_id }) {
     `
     shadow.append(style)
     
-    port.onmessage = onmessage
     init_css()
     return el
 
-    async function onmessage ({ data }){
-        on_rx[data.type](data)
-    }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
       const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -920,9 +914,10 @@ async function content (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/content.js")
-},{"_process":1}],5:[function(require,module,exports){
+},{"_process":1,"io":14}],5:[function(require,module,exports){
 (function (process,__filename){(function (){
 const Graphic = require('graphic')
+const IO = require('io')
 /******************************************************************************
   CONTRIBUTOR COMPONENT
 ******************************************************************************/
@@ -938,7 +933,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = contributor
 
-async function contributor (data, { port, css_id }) {
+async function contributor (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -947,11 +942,12 @@ async function contributor (data, { port, css_id }) {
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const lifeIsland = await Graphic('lifeIsland','./src/node_modules/assets/svg/life-island.svg')
-    const on_rx = {
+    const on = {
       inject,
       inject_all,
       scroll
     }
+    const {send, css_id} = await IO({name: data.name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -973,7 +969,6 @@ async function contributor (data, { port, css_id }) {
         ${lifeIsland.outerHTML}
       </div>
     `
-    port.onmessage = event => on_rx[event.data.type](event.data)
     init_css()
     return el
 
@@ -1016,7 +1011,7 @@ async function contributor (data, { port, css_id }) {
 
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/contributor.js")
-},{"_process":1,"graphic":12}],6:[function(require,module,exports){
+},{"_process":1,"graphic":12,"io":14}],6:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
   SUPPORTERS COMPONENT
@@ -1073,6 +1068,7 @@ module.exports = crystalIsland
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
+const IO = require('io')
 /******************************************************************************
   DATDOT COMPONENT
 ******************************************************************************/
@@ -1088,7 +1084,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = datdot
 
-async function datdot (data, { port, css_id }) {
+async function datdot (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1096,11 +1092,12 @@ async function datdot (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
       inject,
       inject_all,
       scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1132,24 +1129,11 @@ async function datdot (data, { port, css_id }) {
     </section>
     `
     const main = shadow.querySelector('section')
-    main.append(await content(data.content, await init_ch({ name: 'content', type: 'content', shared: data.content.shared })), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+    main.append(await content({ ...data.content, name: 'content', type: 'content', hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
     
-    port.onmessage =  onmessage
     init_css()
     return el
 
-    async function onmessage ({ data }){
-      on_rx[data.type](data)
-  }
-    async function init_ch(data) {
-        port.postMessage({type: 'req_ch', data})
-        return new Promise(resolve => 
-          port.onmessage = event => {
-            resolve({css_id: event.data, port: event.ports[0]})
-            port.onmessage = onmessage
-          }
-        )
-      }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
       const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -1186,11 +1170,12 @@ async function datdot (data, { port, css_id }) {
     }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/datdot.js")
-},{"_process":1,"content":4,"graphic":12,"rellax":2}],8:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":12,"io":14,"rellax":2}],8:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
+const IO = require('io')
 /******************************************************************************
   EDITOR COMPONENT
 ******************************************************************************/
@@ -1206,7 +1191,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = editor
 
-async function editor (data, { port, css_id }) {
+async function editor (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1214,11 +1199,12 @@ async function editor (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
         inject,
         inject_all,
         scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1266,24 +1252,11 @@ async function editor (data, { port, css_id }) {
     // ----------------------------------------
     const main = shadow.querySelector('section')
     main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-    main.prepend(await Content(data.content, await init_ch({ name: 'content', type: 'content', shared: data.content.shared })))
+    main.prepend(await Content({ ...data.content, name: 'content', type: 'content', hub: [css_id] }))
     
-    port.onmessage = onmessage
     init_css()
     return el
 
-    async function onmessage ({ data }){
-      on_rx[data.type](data)
-  }
-  async function init_ch(data) {
-    port.postMessage({type: 'req_ch', data})
-    return new Promise(resolve => 
-      port.onmessage = event => {
-        resolve({css_id: event.data, port: event.ports[0]})
-        port.onmessage = onmessage
-      }
-    )
-  }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
     const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -1321,7 +1294,7 @@ async function editor (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/editor.js")
-},{"_process":1,"content":4,"graphic":12,"rellax":2}],9:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":12,"io":14,"rellax":2}],9:[function(require,module,exports){
 module.exports = fetch_data
 
 async function fetch_data(path) {
@@ -1335,6 +1308,7 @@ async function fetch_data(path) {
 },{}],10:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
+const IO = require('io')
 /******************************************************************************
   APP FOOTER COMPONENT
 ******************************************************************************/
@@ -1350,7 +1324,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = footer
 
-async function footer (data, { port, css_id }) {
+async function footer (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1358,11 +1332,12 @@ async function footer (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
         inject,
         inject_all,
         scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1392,14 +1367,9 @@ async function footer (data, { port, css_id }) {
     </footer>
     `
     
-    // port.onmessage = onmessage
     init_css()
     return el
 
-    async function onmessage ({ data }){
-      console.log(data)
-      on_rx[data.type](data)
-    }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
       const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -1437,8 +1407,9 @@ async function footer (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/footer.js")
-},{"_process":1,"graphic":12}],11:[function(require,module,exports){
+},{"_process":1,"graphic":12,"io":14}],11:[function(require,module,exports){
 (function (process,__filename){(function (){
+const IO = require('io')
 /******************************************************************************
   GRAPH COMPONENT
 ******************************************************************************/
@@ -1455,7 +1426,7 @@ const shopts = { mode: 'closed' }
 
 module.exports = graph_explorer
 
-async function graph_explorer (data, { port, css_id }) {
+async function graph_explorer (data) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -1463,12 +1434,13 @@ async function graph_explorer (data, { port, css_id }) {
   const id = `${ID}:${count++}` // assigns their own name
   const status = { tab_id: 0 }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
-  const on_rx = {
+  const on = {
     init,
     inject,
     inject_all,
     scroll
   }
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
   const on_add = {
     'io': add_node_io,
     'link': add_node_link,
@@ -1485,7 +1457,6 @@ async function graph_explorer (data, { port, css_id }) {
   </main>
   `
   const main = shadow.querySelector('main')
-  port.onmessage = e => on_rx[e.data.type](e.data)
   init_css()
   return el
 
@@ -1544,7 +1515,7 @@ async function graph_explorer (data, { port, css_id }) {
     let is_on
     sub_emo.onclick = sub_click
     details.onclick = () => {
-      port.postMessage({ type: 'send', to: 1, data:{ type: 'open_editor', data }})
+      send({ type: 'open_editor', to: 'theme_widget', data })
     }
     // element.onfocus = handle_focus
     return element
@@ -1586,7 +1557,7 @@ async function graph_explorer (data, { port, css_id }) {
     inp.onclick = inp_click
     out.onclick = out_click
     details.onclick = () => {
-      port.postMessage({ type: 'send', to: 1, data:{ type: 'open_editor', data }})
+      send({ type: 'open_editor', to: 'theme_widget', data })
     }
     return element
     function hub_click () {
@@ -1623,11 +1594,11 @@ async function graph_explorer (data, { port, css_id }) {
       } else{
         inp_on ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
       }
-      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_open, pos: false })
+      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_on, pos: false })
     }
   }
   function add_node_io ({ data, first, last, space }) {
-    const element = create_node(data.type, data.id)
+    const element = create_node('io', data.id)
     const grand_space = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
     space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
     element.innerHTML = `
@@ -1865,7 +1836,7 @@ async function graph_explorer (data, { port, css_id }) {
     tree_el.prepend(add_node_sub({ name, id, type }))
     status.graph.push(data)
   }
-  async function send ({ data }) {
+  async function sx ({ data }) {
     const {to, route} = data
     if(to === state.name){
       const {type, data: shuttle_data} = data
@@ -1916,7 +1887,7 @@ async function graph_explorer (data, { port, css_id }) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/graph_explorer.js")
-},{"_process":1}],12:[function(require,module,exports){
+},{"_process":1,"io":14}],12:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -1933,10 +1904,11 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":14}],13:[function(require,module,exports){
+},{"loadSVG":15}],13:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
+const IO = require('io')
 /******************************************************************************
   HEADER COMPONENT
 ******************************************************************************/
@@ -1952,7 +1924,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = header
 
-async function header (data, { port, css_id }) {
+async function header (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1960,11 +1932,12 @@ async function header (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
       inject,
       inject_all,
       scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2012,14 +1985,9 @@ async function header (data, { port, css_id }) {
 		scene.append(cloud3, cloud4, cloud5, cloud6, cloud7, playIsland)
 		sunCloud.append(cloud1, sun, cloud2)
 		
-		port.onmessage = onmessage
     init_css()
-
     return el
 
-    async function onmessage (data){
-      on_rx[data.type](data)
-    }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
       const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2058,7 +2026,33 @@ async function header (data, { port, css_id }) {
 
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/header.js")
-},{"_process":1,"graphic":12,"rellax":2}],14:[function(require,module,exports){
+},{"_process":1,"graphic":12,"io":14,"rellax":2}],14:[function(require,module,exports){
+const ports = []
+const graph = []
+
+module.exports = io
+async function io(data, on) {
+  const on_rx = {
+    on: {init}
+  }
+  const id = ports.length
+  ports.push({id, name: data.name, on})
+  data.hub && graph[data.hub[0]].sub.push(id)
+  graph.push({id, ...data, sub: [] })
+  return {send, css_id: id}
+
+  async function send(data) {
+    const port = ports[data.to] || ports[await find_id(data.to)] || on_rx
+    return port.on[data.type](data)
+  }
+  async function find_id (name){
+    return (ports.filter(node => node.name === name)[0] || {id: undefined}).id
+  }
+  async function init() {
+    ports[await find_id('theme_widget')].on['refresh']({ data: graph})
+  }
+}
+},{}],15:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -2071,7 +2065,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -2127,12 +2121,13 @@ async function localdb () {
       delete(localStorage[keys[0]])
   }
 }
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
 const Contributor = require('contributor')
+const IO = require('io')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
@@ -2148,7 +2143,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = our_contributors
 
-async function our_contributors (data, { port, css_id }) {
+async function our_contributors (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2156,11 +2151,12 @@ async function our_contributors (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
         inject,
         inject_all,
         scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2178,7 +2174,7 @@ async function our_contributors (data, { port, css_id }) {
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
     const temp = []
     for (const person of data.contributors){
-        temp.push(await Contributor( person, await init_ch({ name: person.name, type: 'contributor', uniq: person.uniq, shared: person.shared })))
+        temp.push(await Contributor({...person, hub: [css_id]}))
     }
     const contributors = await Promise.all(temp)
 
@@ -2209,23 +2205,11 @@ async function our_contributors (data, { port, css_id }) {
     const groups = shadow.querySelector('.groups')
     const main = shadow.querySelector('section')
     groups.append(...contributors.map(el => el.classList.add('group') || el))
-    main.prepend(await Content(data.content, await init_ch({ name: 'content', type: 'content', shared: data.content.shared })))
+    main.prepend(await Content({ ...data.content, hub: [css_id] }))
     inner.append(island, cloud1, cloud2, cloud3)
     init_css()
     return el
 
-    async function init_ch (data) {
-      port.postMessage({type: 'req_ch', data })
-      return new Promise(resolve => 
-        port.onmessage = event => {
-          resolve({css_id: event.data, port: event.ports[0]})
-          port.onmessage = onmessage
-        }
-      )
-    }
-    async function onmessage ({ data }){
-      on_rx[data.type](data)
-    }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
       const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2262,10 +2246,11 @@ async function our_contributors (data, { port, css_id }) {
     }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/our_contributors.js")
-},{"_process":1,"content":4,"contributor":5,"graphic":12,"rellax":2}],17:[function(require,module,exports){
+},{"_process":1,"content":4,"contributor":5,"graphic":12,"io":14,"rellax":2}],18:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Content = require('content')
+const IO = require('io')
 /******************************************************************************
   SMARTCONTRACT-CODES COMPONENT
 ******************************************************************************/
@@ -2281,7 +2266,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = smartcontract_codes
 
-async function smartcontract_codes (data, { port, css_id }) {
+async function smartcontract_codes (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2289,11 +2274,12 @@ async function smartcontract_codes (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
       inject,
       inject_all,
       scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2344,23 +2330,11 @@ async function smartcontract_codes (data, { port, css_id }) {
   </section>
   `
   const main = shadow.querySelector('section')
-  main.prepend(await Content(data.content, await init_ch({ name: 'content', type: 'content', shared: data.content.shared })))
+  main.prepend(await Content({ ...data.content, hub: [css_id] }))
   
   init_css()
   return el
 
-  async function onmessage ({ data }){
-    on_rx[data.type](data)
-  }
-  async function init_ch(data) {
-    port.postMessage({type: 'req_ch', data})
-    return new Promise(resolve => 
-      port.onmessage = event => {
-        resolve({css_id: event.data, port: event.ports[0]})
-        port.onmessage = onmessage
-      }
-    )
-  }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
     const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2398,11 +2372,12 @@ async function smartcontract_codes (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract_codes.js")
-},{"_process":1,"content":4,"graphic":12}],18:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":12,"io":14}],19:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const crystalIsland = require('crystalIsland')
+const IO = require('io')
 /******************************************************************************
   SUPPORTERS COMPONENT
 ******************************************************************************/
@@ -2419,7 +2394,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = supporters
 
-async function supporters (data, { port, css_id }) {
+async function supporters (data) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2427,11 +2402,12 @@ async function supporters (data, { port, css_id }) {
     const id = `${ID}:${count++}` // assigns their own name
     const status = {}
     const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-    const on_rx = {
+    const on = {
         inject,
         inject_all,
         scroll
     }
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2509,9 +2485,6 @@ async function supporters (data, { port, css_id }) {
     init_css()
     return el
 
-    async function onmessage ({ data }){
-      on_rx[data.type](data)
-    }
     async function init_css () {
         const pref = JSON.parse(localStorage.pref)
         const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2549,9 +2522,10 @@ async function supporters (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/supporters.js")
-},{"_process":1,"crystalIsland":6,"graphic":12,"rellax":2}],19:[function(require,module,exports){
+},{"_process":1,"crystalIsland":6,"graphic":12,"io":14,"rellax":2}],20:[function(require,module,exports){
 (function (process,__filename){(function (){
 const DB = require('localdb')
+const IO = require('io')
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
@@ -2567,8 +2541,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 
 module.exports = theme_editor
-async function theme_editor (data, { port, css_id }) {
-  port.onmessage = onmessage
+async function theme_editor (data) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -2577,10 +2550,11 @@ async function theme_editor (data, { port, css_id }) {
   const status = { tab_id: 0 }
   const db = await DB()
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
-  const on_rx = {
+  const on = {
     init,
     hide
   }
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
   status.themes = {
     builtin: Object.keys(data.paths),
     saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
@@ -2676,7 +2650,6 @@ async function theme_editor (data, { port, css_id }) {
   upload.onchange = import_fn
   reset_btn.onclick = () => {localStorage.clear(), location.reload()}
   plus.onclick = () => add_tab('New')
-  port.onmessage = event => on_rx[event.data.type](event.data)
   select_access.onchange = e => {
     status.active_tab.dataset.access = e.target.value
   }
@@ -2747,25 +2720,24 @@ async function theme_editor (data, { port, css_id }) {
     }
   }
   async function save_pref () {
-    if(status.select)
-      var ids = await get_select()
     const pref = db.read(['pref'])
+    if(status.select){
+      var ids = await get_select()
+      ids.forEach(id => pref[id] = [])
+    }
+    pref[status.instance_id] = []
+    pref[status.title] = []
     Array.from(tabs.children).forEach(tab => {
       if(tab.dataset.access === "uniq"){
         if(ids)
-          ids.forEach(id => {
-          pref[id] = []
+          ids.forEach(id => 
           pref[id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme)})
-        })
-        else{
-          pref[status.instance_id] = []
+        )
+        else
           pref[status.instance_id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme)})
-        }
       }
-      else{
-        pref[status.title] = []
+      else
         pref[status.title].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme) })
-      }
     })
     db.add(['pref'], pref)
   }
@@ -2803,23 +2775,18 @@ async function theme_editor (data, { port, css_id }) {
     }
   }
   async function on_inject () {
+    const type = select_access.value === 'uniq' ? 'inject' : 'inject_all'
     if(status.select){
       const ids = await get_select()
       ids.forEach(id => {
-        port.postMessage({type: 'send', to: id, data:{ type: select_access.value === 'uniq' ? 'inject' : 'inject_all', data: status.textarea.value }})
+        send({ type, to: id, data: status.textarea.value })
       })
     }
     else
-      port.postMessage({type: 'send', to: status.instance_id, data:{ type: select_access.value === 'uniq' ? 'inject' : 'inject_all', data: status.textarea.value }})
+      send({ type, to: status.instance_id, data: status.textarea.value })
   }
   async function get_select () {
-    port.postMessage({type: 'send', to: '_theme_widget', data: {type: 'get_select'}})
-    return new Promise(resolve => 
-      port.onmessage = event => {
-          resolve(event.data.data)
-          port.onmessage = onmessage
-      }
-    )
+    return await send({ type: 'get_select', to: 'theme_widget'})
   }
   async function load (theme, clear = true) {
     if(clear){
@@ -2849,12 +2816,12 @@ async function theme_editor (data, { port, css_id }) {
     status.instance_id = data.id
     init_css_tab(data)
   }
-  async function init_css_tab ({id, type, uniq, shared}) {
+  async function init_css_tab ({id, comp, uniq, shared}) {
     const pref = db.read(['pref'])
-    const pref_shared = pref[type] || shared || [{ id: type }]
+    const pref_shared = pref[comp] || shared || [{ id: comp }]
     const pref_uniq = pref[id] || uniq || []
-    await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v, type), 'shared', v.theme, type)))
-    await Promise.all(pref_uniq.map(async v => await add_tab(v.id, await get_css(v, type), 'uniq', v.theme, type)))
+    await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v, comp), 'shared', v.theme, comp)))
+    await Promise.all(pref_uniq.map(async v => await add_tab(v.id, await get_css(v, comp), 'uniq', v.theme, comp)))
   }
   async function add_tab (id, css = '', access = 'uniq', theme = 'default', comp = '') {
     if(id === 'New' && status.themes.builtin.includes(theme)){
@@ -2992,10 +2959,11 @@ async function theme_editor (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_editor.js")
-},{"_process":1,"localdb":15}],20:[function(require,module,exports){
+},{"_process":1,"io":14,"localdb":16}],21:[function(require,module,exports){
 (function (process,__filename){(function (){
 const theme_editor = require('theme_editor')
 const graph_explorer = require('graph_explorer')
+const IO = require('io')
 /******************************************************************************
   THEME_WIDGET COMPONENT
 ******************************************************************************/
@@ -3012,7 +2980,7 @@ const shopts = { mode: 'closed' }
 
 module.exports = theme_widget
 
-async function theme_widget (data, { port, css_id }) {
+async function theme_widget (data) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -3020,7 +2988,7 @@ async function theme_widget (data, { port, css_id }) {
   const id = `${ID}:${count++}` // assigns their own name
   const status = { tab_id: 0 }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
-  const on_rx = {
+  const on = {
     refresh,
     get_select,
     inject,
@@ -3028,6 +2996,7 @@ async function theme_widget (data, { port, css_id }) {
     scroll,
     open_editor
   }
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
@@ -3044,7 +3013,7 @@ async function theme_widget (data, { port, css_id }) {
     <div class="popup">
       <div class="box">
         <span class="stats">
-          Instances: 
+          Entries: 
         </span>
         <button class="select">Select</button>
         <input min="0" max="100" value="95" type="range"/>
@@ -3062,8 +3031,8 @@ async function theme_widget (data, { port, css_id }) {
   const select = box.querySelector('.select')
   const slider = box.querySelector('input')
 
-  editor.append(await theme_editor({...data.theme_editor, paths}, await init_ch({name: 'theme_editor', shared: data.theme_editor.shared, type: 'theme_editor'})))
-  box.prepend(await graph_explorer(data.graph_explorer, await init_ch({name: 'graph_explorer', type: 'graph_explorer', shared: data.graph_explorer.shared})))
+  editor.append(await theme_editor({ ...data.theme_editor, hub: [css_id], paths }))
+  box.prepend(await graph_explorer({ ...data.graph_explorer, hub: [css_id] }))
   btn.onclick = () => popup.classList.toggle('active')
   select.onclick = on_select
   slider.oninput = blur
@@ -3075,40 +3044,53 @@ async function theme_widget (data, { port, css_id }) {
   }
   async function on_select () {
     list.classList.toggle('active')
-    port.postMessage({type: 'send', to: 10, data:{ type: 'hide' }})
+    send({to: 'theme_editor', type: 'hide'})
   }
   async function get_select () {
     const inputs = list.querySelectorAll('input')
     const output = []
     inputs.forEach(el => el.checked && output.push(el.nextElementSibling.id))
-    port.postMessage({type: 'send', to: 10, data: output})
-  }
-  async function init_ch (data) {
-    port.postMessage({type: 'req_ch', data })
-    return new Promise(resolve => 
-      port.onmessage = event => {
-        resolve({css_id: event.data, port: event.ports[0]})
-        port.onmessage = onmessage
-      }
-    )
+    send({type: 'send', to: 'theme_editor', data: output})
   }
   async function refresh ({ data }) {
     let id = data.length
+    const themes_id = id++
+    data.push({id: themes_id, name: 'themes', type: 'themes', sub: []})
     Object.entries(paths).forEach(entry => {
-      data.push({id, name: entry[0], hub: [1], type: entry[0]})
-      data[1].sub.push(id++)
+      const theme_id = id
+      data.push({id, name: entry[0], hub: [themes_id], type: entry[0], sub: []})
+      data[themes_id].sub.push(id++)
+      entry[1].forEach(name => {
+        data.push({id, name, type: 'file', hub: [theme_id]})
+        data[theme_id].sub.push(id++)
+      })
     })
     Object.entries(JSON.parse(localStorage.index)).forEach(entry => {
-      data.push({id, name: entry[0], hub: [1], type: entry[0]})
-      data[1].sub.push(id++)
+      const theme_id = id
+      data.push({id, name: entry[0], hub: [themes_id], type: entry[0], sub: []})
+      data[themes_id].sub.push(id++)
+      entry[1].forEach(name => {
+        data.push({id, name, type: 'file', hub: [theme_id]})
+        data[theme_id].sub.push(id++)
+      })
     })
     status.tree = data
-    console.log(status.tree)
-    stats.innerHTML = `Instances: ${Object.keys(data).length}`
-    port.postMessage({type: 'send', to: await find_id('graph_explorer'), data: { type: 'init', data }})
-  }
-  async function find_id (name){
-    return status.tree.filter(node => node.name === name)[0].id
+    data.forEach(node => {
+      if(node.type === 'comp'){
+        node.inputs = []
+        const shared = node.shared || [{id: node.comp}]
+        shared.forEach(async file => {
+          node.inputs.push(await find_id(file.id, 'file'))
+        })
+        node.uniq && node.uniq.forEach(async file => {
+          node.inputs.push(await find_id(file.id, 'file'))
+        })
+      }
+    })
+    console.log(data)
+    status.tree = data
+    stats.innerHTML = `Entries: ${Object.keys(data).length}`
+    send({type: 'init', to: 'graph_explorer' , data})
   }
   async function open_editor ({ data }) {
     status.active_el && status.active_el.classList.remove('active')
@@ -3120,7 +3102,11 @@ async function theme_widget (data, { port, css_id }) {
     }
     status.instance_id = data.id      
     status.active_el = el
-    port.postMessage({type: 'send', to: 10, data:{ type: 'init', data }})
+    send({ to: 'theme_editor', type: 'init', data })
+  }
+  async function find_id(name, type) {
+    const node = status.tree.filter(node => node.name === name && node.type === type)[0]
+    return node && node.id
   }
   function make_node (instance){
     const el = document.createElement('div')
@@ -3142,7 +3128,7 @@ async function theme_widget (data, { port, css_id }) {
         sub.append(...status.tree.filter(node => node.hub == instance.id).map(make_node))
     }
     post_btn.onclick = () => {
-      port.postMessage({type: 'send', to: instance.id, data:{ type: 'scroll' }})
+      port.postMessage({ type: 'scroll', to: instance.id })
     }
     name_el.onclick = async () => {
       status.active_el && status.active_el.classList.remove('active')
@@ -3154,12 +3140,9 @@ async function theme_widget (data, { port, css_id }) {
       }
       status.instance_id = instance.id      
       status.active_el = el
-      port.postMessage({type: 'send', to: 10, data:{ type: 'init', data: instance }})
+      send({to: 'theme_editor', type: 'init', data: instance })
     }
     return el
-  }
-  async function onmessage (event) {
-    on_rx[event.data.type](event.data)
   }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
@@ -3198,9 +3181,10 @@ async function theme_widget (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_widget.js")
-},{"_process":1,"graph_explorer":11,"theme_editor":19}],21:[function(require,module,exports){
+},{"_process":1,"graph_explorer":11,"io":14,"theme_editor":20}],22:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
+const IO = require('io')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
@@ -3216,7 +3200,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = topnav
 
-async function topnav (data, { port, css_id }) {
+async function topnav (data) {
 	// ----------------------------------------
 	// ID + JSON STATE
 	// ----------------------------------------
@@ -3224,11 +3208,12 @@ async function topnav (data, { port, css_id }) {
 	const id = `${ID}:${count++}` // assigns their own name
 	const status = {}
 	const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-	const on_rx = {
+	const on = {
 		inject,
 		inject_all,
 		scroll
 	}
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
 	// ----------------------------------------
 	// OPTS
 	// ----------------------------------------
@@ -3279,15 +3264,11 @@ async function topnav (data, { port, css_id }) {
 			body.classList.remove(scrollDown)
 		}
 	})
-	// port.onmessage = onmessage
 	init_css()
 	return el
 
-	async function onmessage ({ data }){
-		on_rx[data.type](data)
-	}
 	function click(url) {
-		port.postMessage({ type: 'jump', data: url })
+		send({to:'index', type: 'jump', data: url })
 	}
 	async function inject ({ data }) {
 		sheet.replaceSync(data)
@@ -3337,7 +3318,7 @@ async function topnav (data, { port, css_id }) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
-},{"_process":1,"graphic":12}],22:[function(require,module,exports){
+},{"_process":1,"graphic":12,"io":14}],23:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
 const make_page = require('../') 
 const theme = require('theme')
@@ -3533,7 +3514,7 @@ function resources (pool) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
-},{"../":3,"_process":1,"theme":23}],23:[function(require,module,exports){
+},{"../":3,"_process":1,"theme":24}],24:[function(require,module,exports){
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 document.head.innerHTML += loadFont
@@ -3624,4 +3605,4 @@ const theme = {
 
 module.exports = theme
 
-},{}]},{},[22]);
+},{}]},{},[23]);

@@ -1,4 +1,5 @@
 const fetch_data = require('fetch-data')
+const IO = require('io')
 const modules = {
  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
@@ -20,8 +21,6 @@ const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').hr
 const ID = dir.slice(cwd.length)
 const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
-const sheet = new CSSStyleSheet
-sheet.replaceSync(get_theme())
 const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -32,6 +31,7 @@ async function make_page(opts, lang) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
+  const name = 'index'
   const id = `${ID}:${count++}` // assigns their own name
   const status = { graph: [
     {
@@ -57,12 +57,12 @@ async function make_page(opts, lang) {
   ] }
   status.id = status.graph.length
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
-  const on_rx = {
-    init_ch,
-    req_ch,
-    send,
-    jump
+  const on = {
+    jump,
+    inject,
+    inject_all,
   }
+  const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -84,7 +84,6 @@ async function make_page(opts, lang) {
   // ----------------------------------------
   const el = document.createElement('div')
   const shadow = el.attachShadow(shopts)
-  shadow.adoptedStyleSheets = [sheet]
   shadow.innerHTML = `
   <div id="top" class='wrap'>
   </div>`
@@ -94,46 +93,43 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]](entry[1], init_ch({data: {name: entry[0], type: entry[0], ...entry[1]}, hub: [2]})))
+    shadow.append(await modules[entry[0]]({ ...entry[1], hub: [css_id] }))
     return el
   })))
   update_theme_widget()
 
   return el
   
-  function init_ch({ data, hub }) {
-    const {name, uniq, shared, type} = data
-    const id = status.id++
-    const ch = new MessageChannel()
-    state.ports.push(ch.port1)
-    status.graph.push({ id, name, type, hub, uniq, shared, sub: [] })
-    hub && status.graph[hub[0]].sub.push(id)
-    ch.port1.onmessage = event => {
-      on_rx[event.data.type] && on_rx[event.data.type]({...event.data, by: id})
-    }
-    return {port: ch.port2, css_id: id}
-  }
-  function req_ch ({ by, data }) {
-    const {port, css_id} = init_ch({ data, hub: [by] })
-    state.ports[by].postMessage({ data: css_id }, [port])
-  }
-  function send ({ data, to, by }) {
-    console.log(to, by)
-    state.ports[to].postMessage({ ...data, by })
-  }
   async function update_theme_widget () {
-    state.ports[3].postMessage({ data: status.graph, type: 'refresh'})
+    send({ type: 'init', by: name })
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
-function get_theme() {
-  return `
-.wrap {
-    background: var(--bodyBg);
-}
-[class^="cloud"] {
-    transition: left 0.6s, bottom 0.5s, top 0.5s linear;
-}`}
