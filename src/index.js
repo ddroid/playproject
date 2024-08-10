@@ -41,7 +41,6 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const data = await statedb('index')
-  console.log(await statedb('index'))
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS

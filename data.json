@@ -73,7 +73,7 @@
       "article": "Experimental peer-to peer search engine for smart contract source codes. The project aims to make smart contracts verifiable and more transparent.",
       "action": "Learn more",
       "url": "https://smartcontract.codes/"
-    },
+  },
   "supporters": {
     "title": "Supporters",
     "supporters": [
@@ -142,8 +142,7 @@
         "url": "https://gitter.im/playproject-io/community"
       }
     ]
-  }
-  ,
+  },
   "contributor_nina":{
     "name": "Nina",
     "careers": ["Decentralized tech"],

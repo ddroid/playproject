@@ -730,7 +730,6 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const data = await statedb('index')
-  console.log(await statedb('index'))
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
@@ -2368,7 +2367,7 @@ async function statedb(sid) {
   if(records.includes(sid))
     return null
   records.push(sid)
-  const data = await(await (fetch('/data.json'))).json()
+  const data = await(await (fetch('./data.json'))).json()
   return data[sid]
 }
 },{}],19:[function(require,module,exports){
