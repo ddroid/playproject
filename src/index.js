@@ -1,4 +1,3 @@
-const fetch_data = require('fetch-data')
 const IO = require('io')
 const modules = {
  theme_widget : require('theme_widget'),
@@ -11,6 +10,7 @@ const modules = {
  our_contributors : require('our_contributors'),
  footer : require('footer'),
 }
+const statedb = require('statedb')
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -33,35 +33,15 @@ async function make_page(opts, lang) {
   // ----------------------------------------
   const name = 'index'
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { graph: [
-    {
-      id: 0,
-      name: 'playproject',
-      type: 'playproject',
-      sub: [1, 2]
-    },
-    {
-      id: 1,
-      name: 'themes',
-      type: 'themes',
-      sub: [],
-      hub: [0]
-    },
-    {
-      id: 2,
-      name: 'page',
-      type: 'page',
-      sub: [],
-      hub: [0]
-    }
-  ] }
-  status.id = status.graph.length
+  const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
   const on = {
     jump,
     inject,
     inject_all,
   }
+  const data = await statedb('index')
+  console.log(await statedb('index'))
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
@@ -76,7 +56,6 @@ async function make_page(opts, lang) {
     default:
       var path = `./src/node_modules/lang/en-us.json`
   }
-  const data = await fetch_data(path)
   const {theme} = opts
   
   // ----------------------------------------
@@ -89,15 +68,15 @@ async function make_page(opts, lang) {
   </div>`
   const main = shadow.querySelector('div')
 
-  main.append(...await Promise.all(Object.entries(data).map(async entry => {
+  main.append(...await Promise.all(Object.entries(modules).map(async entry => {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]]({ ...entry[1], hub: [css_id] }))
+    shadow.append(await entry[1]({ sid: entry[0], hub: [css_id] }))
     return el
   })))
   update_theme_widget()
-
+  init_css()
   return el
   
   async function update_theme_widget () {

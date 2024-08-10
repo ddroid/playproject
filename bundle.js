@@ -687,7 +687,6 @@ process.umask = function() { return 0; };
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
 (function (process,__filename){(function (){
-const fetch_data = require('fetch-data')
 const IO = require('io')
 const modules = {
  theme_widget : require('theme_widget'),
@@ -700,6 +699,7 @@ const modules = {
  our_contributors : require('our_contributors'),
  footer : require('footer'),
 }
+const statedb = require('statedb')
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -722,35 +722,15 @@ async function make_page(opts, lang) {
   // ----------------------------------------
   const name = 'index'
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { graph: [
-    {
-      id: 0,
-      name: 'playproject',
-      type: 'playproject',
-      sub: [1, 2]
-    },
-    {
-      id: 1,
-      name: 'themes',
-      type: 'themes',
-      sub: [],
-      hub: [0]
-    },
-    {
-      id: 2,
-      name: 'page',
-      type: 'page',
-      sub: [],
-      hub: [0]
-    }
-  ] }
-  status.id = status.graph.length
+  const status = {}
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
   const on = {
     jump,
     inject,
     inject_all,
   }
+  const data = await statedb('index')
+  console.log(await statedb('index'))
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
@@ -765,7 +745,6 @@ async function make_page(opts, lang) {
     default:
       var path = `./src/node_modules/lang/en-us.json`
   }
-  const data = await fetch_data(path)
   const {theme} = opts
   
   // ----------------------------------------
@@ -778,15 +757,15 @@ async function make_page(opts, lang) {
   </div>`
   const main = shadow.querySelector('div')
 
-  main.append(...await Promise.all(Object.entries(data).map(async entry => {
+  main.append(...await Promise.all(Object.entries(modules).map(async entry => {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await modules[entry[0]]({ ...entry[1], hub: [css_id] }))
+    shadow.append(await entry[1]({ sid: entry[0], hub: [css_id] }))
     return el
   })))
   update_theme_widget()
-
+  init_css()
   return el
   
   async function update_theme_widget () {
@@ -824,9 +803,10 @@ async function make_page(opts, lang) {
 
 
 }).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"_process":1,"datdot":7,"editor":8,"fetch-data":9,"footer":10,"header":13,"io":14,"our_contributors":17,"smartcontract_codes":18,"supporters":19,"theme_widget":21,"topnav":22}],4:[function(require,module,exports){
+},{"_process":1,"datdot":7,"editor":8,"footer":9,"header":12,"io":13,"our_contributors":16,"smartcontract_codes":17,"statedb":18,"supporters":19,"theme_widget":21,"topnav":22}],4:[function(require,module,exports){
 (function (process,__filename){(function (){
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   CONTENT COMPONENT
 ******************************************************************************/
@@ -843,7 +823,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = content
 
-async function content (data) {
+async function content (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -856,7 +836,8 @@ async function content (data) {
       inject_all,
       scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -914,10 +895,11 @@ async function content (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/content.js")
-},{"_process":1,"io":14}],5:[function(require,module,exports){
+},{"_process":1,"io":13,"statedb":18}],5:[function(require,module,exports){
 (function (process,__filename){(function (){
 const Graphic = require('graphic')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   CONTRIBUTOR COMPONENT
 ******************************************************************************/
@@ -933,7 +915,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = contributor
 
-async function contributor (data) {
+async function contributor (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -947,7 +929,8 @@ async function contributor (data) {
       inject_all,
       scroll
     }
-    const {send, css_id} = await IO({name: data.name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name: data.name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -1011,7 +994,7 @@ async function contributor (data) {
 
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/contributor.js")
-},{"_process":1,"graphic":12,"io":14}],6:[function(require,module,exports){
+},{"_process":1,"graphic":11,"io":13,"statedb":18}],6:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
   SUPPORTERS COMPONENT
@@ -1069,6 +1052,7 @@ const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   DATDOT COMPONENT
 ******************************************************************************/
@@ -1084,7 +1068,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = datdot
 
-async function datdot (data) {
+async function datdot (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1097,7 +1081,8 @@ async function datdot (data) {
       inject_all,
       scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1129,7 +1114,7 @@ async function datdot (data) {
     </section>
     `
     const main = shadow.querySelector('section')
-    main.append(await content({ ...data.content, name: 'content', type: 'content', hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+    main.append(await content({ sid: data.content, hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
     
     init_css()
     return el
@@ -1170,12 +1155,13 @@ async function datdot (data) {
     }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/datdot.js")
-},{"_process":1,"content":4,"graphic":12,"io":14,"rellax":2}],8:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":11,"io":13,"rellax":2,"statedb":18}],8:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   EDITOR COMPONENT
 ******************************************************************************/
@@ -1191,7 +1177,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = editor
 
-async function editor (data) {
+async function editor (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1204,7 +1190,8 @@ async function editor (data) {
         inject_all,
         scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1252,7 +1239,7 @@ async function editor (data) {
     // ----------------------------------------
     const main = shadow.querySelector('section')
     main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-    main.prepend(await Content({ ...data.content, name: 'content', type: 'content', hub: [css_id] }))
+    main.prepend(await Content({ sid: data.content, hub: [css_id] }))
     
     init_css()
     return el
@@ -1294,21 +1281,11 @@ async function editor (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/editor.js")
-},{"_process":1,"content":4,"graphic":12,"io":14,"rellax":2}],9:[function(require,module,exports){
-module.exports = fetch_data
-
-async function fetch_data(path) {
-    let response = await fetch(path)
-    if (response.status == 200) {
-        let texts = await response.json()
-        return texts
-    }
-    throw new Error(response.status)
-}
-},{}],10:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":11,"io":13,"rellax":2,"statedb":18}],9:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   APP FOOTER COMPONENT
 ******************************************************************************/
@@ -1324,7 +1301,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = footer
 
-async function footer (data) {
+async function footer (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1337,7 +1314,8 @@ async function footer (data) {
         inject_all,
         scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1407,9 +1385,10 @@ async function footer (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/footer.js")
-},{"_process":1,"graphic":12,"io":14}],11:[function(require,module,exports){
+},{"_process":1,"graphic":11,"io":13,"statedb":18}],10:[function(require,module,exports){
 (function (process,__filename){(function (){
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   GRAPH COMPONENT
 ******************************************************************************/
@@ -1426,12 +1405,13 @@ const shopts = { mode: 'closed' }
 
 module.exports = graph_explorer
 
-async function graph_explorer (data) {
+async function graph_explorer (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
   const name = 'graph_explorer'
   const id = `${ID}:${count++}` // assigns their own name
+  const hub_id = opts.hub[0]
   const status = { tab_id: 0 }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on = {
@@ -1440,7 +1420,8 @@ async function graph_explorer (data) {
     inject_all,
     scroll
   }
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+  const data = await statedb(opts.sid)
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
   const on_add = {
     'io': add_node_io,
     'link': add_node_link,
@@ -1497,7 +1478,6 @@ async function graph_explorer (data) {
       parent.append(on_add[type]({ data, space, grand_last, first: is_single}))
     else
       parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
-
   }
   function add_node_root ({ data, last }) {
     [ element, last, space ] = html_template(data, last)
@@ -1515,7 +1495,7 @@ async function graph_explorer (data) {
     let is_on
     sub_emo.onclick = sub_click
     details.onclick = () => {
-      send({ type: 'open_editor', to: 'theme_widget', data })
+      send({ type: 'click', to: hub_id, data })
     }
     // element.onfocus = handle_focus
     return element
@@ -1557,7 +1537,7 @@ async function graph_explorer (data) {
     inp.onclick = inp_click
     out.onclick = out_click
     details.onclick = () => {
-      send({ type: 'open_editor', to: 'theme_widget', data })
+      send({ type: 'click', to: hub_id, data })
     }
     return element
     function hub_click () {
@@ -1603,14 +1583,16 @@ async function graph_explorer (data) {
     space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
     element.innerHTML = `
     <div class="details">
-      <span class="space">${space}</span><span class="grand_space">${grand_space}</span>${first ? '┌' : last ? '└' : '├'}</span><span class="btn">📥─</span>${data.name}<span class="after">🔗</span>
+      <span class="space">${space}</span><span class="grand_space">${grand_space}</span>${first ? '┌' : last ? '└' : '├'}</span><span class="btn">📥─</span><span class="name">${data.name}</span><span class="after">🔗</span>
     </div>
     <div class="tasks nodes">
     </div>
     `
     const btn = element.querySelector('.details > .btn')
+    const name = element.querySelector('.details > .name')
     const tasks = element.querySelector('.tasks')
     btn.onclick = () => handle_click({ el: tasks, type: 'link', data: data.sub, space, pos: false })
+    name.onclick = () => send({ type: 'click', to: hub_id, data })
     return element
   }
   function add_node_link ({ data, first, last, space }) {
@@ -1887,7 +1869,7 @@ async function graph_explorer (data) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/graph_explorer.js")
-},{"_process":1,"io":14}],12:[function(require,module,exports){
+},{"_process":1,"io":13,"statedb":18}],11:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -1904,11 +1886,12 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":15}],13:[function(require,module,exports){
+},{"loadSVG":14}],12:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   HEADER COMPONENT
 ******************************************************************************/
@@ -1924,7 +1907,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = header
 
-async function header (data) {
+async function header (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -1937,7 +1920,8 @@ async function header (data) {
       inject_all,
       scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2026,7 +2010,7 @@ async function header (data) {
 
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/header.js")
-},{"_process":1,"graphic":12,"io":14,"rellax":2}],14:[function(require,module,exports){
+},{"_process":1,"graphic":11,"io":13,"rellax":2,"statedb":18}],13:[function(require,module,exports){
 const ports = []
 const graph = []
 
@@ -2052,7 +2036,7 @@ async function io(data, on) {
     ports[await find_id('theme_widget')].on['refresh']({ data: graph})
   }
 }
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -2065,7 +2049,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -2121,13 +2105,14 @@ async function localdb () {
       delete(localStorage[keys[0]])
   }
 }
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
 const Contributor = require('contributor')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
@@ -2143,7 +2128,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = our_contributors
 
-async function our_contributors (data) {
+async function our_contributors (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2156,7 +2141,8 @@ async function our_contributors (data) {
         inject_all,
         scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2173,8 +2159,8 @@ async function our_contributors (data) {
 
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
     const temp = []
-    for (const person of data.contributors){
-        temp.push(await Contributor({...person, hub: [css_id]}))
+    for (const sid of data.contributor){
+        temp.push(await Contributor({sid, hub: [css_id]}))
     }
     const contributors = await Promise.all(temp)
 
@@ -2205,7 +2191,7 @@ async function our_contributors (data) {
     const groups = shadow.querySelector('.groups')
     const main = shadow.querySelector('section')
     groups.append(...contributors.map(el => el.classList.add('group') || el))
-    main.prepend(await Content({ ...data.content, hub: [css_id] }))
+    main.prepend(await Content({ sid: data.content, hub: [css_id] }))
     inner.append(island, cloud1, cloud2, cloud3)
     init_css()
     return el
@@ -2246,11 +2232,12 @@ async function our_contributors (data) {
     }
 }
 }).call(this)}).call(this,require('_process'),"/src/node_modules/our_contributors.js")
-},{"_process":1,"content":4,"contributor":5,"graphic":12,"io":14,"rellax":2}],18:[function(require,module,exports){
+},{"_process":1,"content":4,"contributor":5,"graphic":11,"io":13,"rellax":2,"statedb":18}],17:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Content = require('content')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   SMARTCONTRACT-CODES COMPONENT
 ******************************************************************************/
@@ -2266,7 +2253,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = smartcontract_codes
 
-async function smartcontract_codes (data) {
+async function smartcontract_codes (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2279,7 +2266,8 @@ async function smartcontract_codes (data) {
       inject_all,
       scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2330,7 +2318,7 @@ async function smartcontract_codes (data) {
   </section>
   `
   const main = shadow.querySelector('section')
-  main.prepend(await Content({ ...data.content, hub: [css_id] }))
+  main.prepend(await Content({ sid: data.content, hub: [css_id] }))
   
   init_css()
   return el
@@ -2372,12 +2360,24 @@ async function smartcontract_codes (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract_codes.js")
-},{"_process":1,"content":4,"graphic":12,"io":14}],19:[function(require,module,exports){
+},{"_process":1,"content":4,"graphic":11,"io":13,"statedb":18}],18:[function(require,module,exports){
+const records = []
+module.exports = statedb
+
+async function statedb(sid) {
+  if(records.includes(sid))
+    return null
+  records.push(sid)
+  const data = await(await (fetch('/data.json'))).json()
+  return data[sid]
+}
+},{}],19:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const crystalIsland = require('crystalIsland')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   SUPPORTERS COMPONENT
 ******************************************************************************/
@@ -2394,7 +2394,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = supporters
 
-async function supporters (data) {
+async function supporters (opts) {
   // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
@@ -2407,7 +2407,8 @@ async function supporters (data) {
         inject_all,
         scroll
     }
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+    const data = await statedb(opts.sid)
+    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2522,10 +2523,11 @@ async function supporters (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/supporters.js")
-},{"_process":1,"crystalIsland":6,"graphic":12,"io":14,"rellax":2}],20:[function(require,module,exports){
+},{"_process":1,"crystalIsland":6,"graphic":11,"io":13,"rellax":2,"statedb":18}],20:[function(require,module,exports){
 (function (process,__filename){(function (){
 const DB = require('localdb')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
@@ -2541,7 +2543,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 
 module.exports = theme_editor
-async function theme_editor (data) {
+async function theme_editor (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -2552,13 +2554,16 @@ async function theme_editor (data) {
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on = {
     init,
+    init_tab,
     hide
   }
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+  const data = await statedb(opts.sid)
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
   status.themes = {
-    builtin: Object.keys(data.paths),
+    builtin: Object.keys(opts.paths),
     saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
   }
+  const defaults = await(await (fetch('/data.json'))).json()
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -2794,7 +2799,7 @@ async function theme_editor (data) {
       tabs.innerHTML = ''
     }
     if(status.themes.builtin.includes(theme)){
-      const index = data.paths[theme].length
+      const index = opts.paths[theme].length
       for(let i = 0; i < index; i++){
         const temp = await fetch(`./src/node_modules/css/${theme}/${i}.css`)
         add_tab(i, await temp.text(), '', theme, status.title)
@@ -2814,16 +2819,19 @@ async function theme_editor (data) {
     title.innerHTML = data.id
     status.title = data.type
     status.instance_id = data.id
-    init_css_tab(data)
+    init_json(data)
+  }
+  async function init_json({sid}){
+    add_tab(data.sid, JSON.stringify(defaults[sid], null, 2))
   }
   async function init_css_tab ({id, comp, uniq, shared}) {
     const pref = db.read(['pref'])
     const pref_shared = pref[comp] || shared || [{ id: comp }]
     const pref_uniq = pref[id] || uniq || []
-    await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v, comp), 'shared', v.theme, comp)))
-    await Promise.all(pref_uniq.map(async v => await add_tab(v.id, await get_css(v, comp), 'uniq', v.theme, comp)))
+    await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v), 'shared', v.theme)))
+    await Promise.all(pref_uniq.map(async v => await add_tab(v.id, await get_css(v), 'uniq', v.theme)))
   }
-  async function add_tab (id, css = '', access = 'uniq', theme = 'default', comp = '') {
+  async function add_tab (id, css = '', access = 'uniq', theme = 'default') {
     if(id === 'New' && status.themes.builtin.includes(theme)){
       theme += '*'
       add(theme)
@@ -2831,7 +2839,7 @@ async function theme_editor (data) {
     const tab = document.createElement('span')
     const tab_id = '_' + status.tab_id++
     tab.id = tab_id
-    const index = data.paths[theme] || db.read(['index', theme])
+    const index = opts.paths[theme] || db.read(['index', theme])
     tabs.append(tab)
     const btn = document.createElement('span')
     btn.innerHTML = index[id] || id
@@ -2839,7 +2847,6 @@ async function theme_editor (data) {
     tab.dataset.name = btn.innerHTML
     tab.dataset.theme = theme
     tab.dataset.access = access
-    tab.dataset.comp = comp
     btn.onclick = () => switch_tab(tab.id)
     btn.ondblclick = rename
     const btn_x = document.createElement('span')
@@ -2879,12 +2886,15 @@ async function theme_editor (data) {
     select_access.value = status.active_tab.dataset.access
     input.value = status.active_tab.dataset.theme
   }
-  async function get_css ({ local = true, theme = 'default', id }, name) {
+  async function init_tab({ data }) {
+    add_tab(data.id, await get_css(data), '', data.theme)
+  }
+  async function get_css ({ local = true, theme = 'default', id }) {
     let theme_css
     if(local)
       theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
     else
-      theme_css = db.read([theme, name, id])
+      theme_css = db.read([theme, id])
     return theme_css
   }
   async function rename (e) {
@@ -2928,9 +2938,6 @@ async function theme_editor (data) {
     select_theme.innerHTML = ''
     select_theme.append(builtin, saved)
   }
-  async function onmessage (event) {
-    on_rx[event.data.type](event.data)
-  }
   async function init_css () {
     const pref = db.read(['pref'])
     const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2959,11 +2966,12 @@ async function theme_editor (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_editor.js")
-},{"_process":1,"io":14,"localdb":16}],21:[function(require,module,exports){
+},{"_process":1,"io":13,"localdb":15,"statedb":18}],21:[function(require,module,exports){
 (function (process,__filename){(function (){
 const theme_editor = require('theme_editor')
 const graph_explorer = require('graph_explorer')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   THEME_WIDGET COMPONENT
 ******************************************************************************/
@@ -2980,7 +2988,7 @@ const shopts = { mode: 'closed' }
 
 module.exports = theme_widget
 
-async function theme_widget (data) {
+async function theme_widget (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -2994,9 +3002,11 @@ async function theme_widget (data) {
     inject,
     inject_all,
     scroll,
-    open_editor
+    click
   }
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+  const data = await statedb(opts.sid)
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+  
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
@@ -3031,8 +3041,8 @@ async function theme_widget (data) {
   const select = box.querySelector('.select')
   const slider = box.querySelector('input')
 
-  editor.append(await theme_editor({ ...data.theme_editor, hub: [css_id], paths }))
-  box.prepend(await graph_explorer({ ...data.graph_explorer, hub: [css_id] }))
+  editor.append(await theme_editor({ sid: data.theme_editor, hub: [css_id], paths }))
+  box.prepend(await graph_explorer({ sid: data.graph_explorer, hub: [css_id] }))
   btn.onclick = () => popup.classList.toggle('active')
   select.onclick = on_select
   slider.oninput = blur
@@ -3058,16 +3068,16 @@ async function theme_widget (data) {
     data.push({id: themes_id, name: 'themes', type: 'themes', sub: []})
     Object.entries(paths).forEach(entry => {
       const theme_id = id
-      data.push({id, name: entry[0], hub: [themes_id], type: entry[0], sub: []})
+      data.push({id, name: entry[0], hub: [themes_id], type: 'theme', sub: []})
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data.push({id, name, type: 'file', hub: [theme_id]})
+        data.push({id, name, type: 'file', local: true, hub: [theme_id]})
         data[theme_id].sub.push(id++)
       })
     })
     Object.entries(JSON.parse(localStorage.index)).forEach(entry => {
       const theme_id = id
-      data.push({id, name: entry[0], hub: [themes_id], type: entry[0], sub: []})
+      data.push({id, name: entry[0], hub: [themes_id], type: 'theme', sub: []})
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
         data.push({id, name, type: 'file', hub: [theme_id]})
@@ -3092,7 +3102,7 @@ async function theme_widget (data) {
     stats.innerHTML = `Entries: ${Object.keys(data).length}`
     send({type: 'init', to: 'graph_explorer' , data})
   }
-  async function open_editor ({ data }) {
+  async function click ({ data }) {
     status.active_el && status.active_el.classList.remove('active')
     if(status.instance_id === data.id)
       editor.classList.toggle('active')
@@ -3100,9 +3110,12 @@ async function theme_widget (data) {
       editor.classList.add('active')
       el.classList.add('active')
     }
-    status.instance_id = data.id      
+    status.instance_id = data.id
     status.active_el = el
-    send({ to: 'theme_editor', type: 'init', data })
+    if(data.type === 'file')
+      send({to: 'theme_editor', type: 'init_tab', data: {id: data.name, local: data.local, theme: status.tree[data.hub[0]].name}})
+    else
+      send({ to: 'theme_editor', type: 'init', data })
   }
   async function find_id(name, type) {
     const node = status.tree.filter(node => node.name === name && node.type === type)[0]
@@ -3181,10 +3194,11 @@ async function theme_widget (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/theme_widget.js")
-},{"_process":1,"graph_explorer":11,"io":14,"theme_editor":20}],22:[function(require,module,exports){
+},{"_process":1,"graph_explorer":10,"io":13,"statedb":18,"theme_editor":20}],22:[function(require,module,exports){
 (function (process,__filename){(function (){
 const graphic = require('graphic')
 const IO = require('io')
+const statedb = require('statedb')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
@@ -3200,7 +3214,7 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = topnav
 
-async function topnav (data) {
+async function topnav (opts) {
 	// ----------------------------------------
 	// ID + JSON STATE
 	// ----------------------------------------
@@ -3213,7 +3227,9 @@ async function topnav (data) {
 		inject_all,
 		scroll
 	}
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: data.hub, uniq: data.uniq, shared: data.shared}, on)
+
+	const data = await statedb(opts.sid)
+  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
 	// ----------------------------------------
 	// OPTS
 	// ----------------------------------------
@@ -3318,7 +3334,7 @@ async function topnav (data) {
 }
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
-},{"_process":1,"graphic":12,"io":14}],23:[function(require,module,exports){
+},{"_process":1,"graphic":11,"io":13,"statedb":18}],23:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
 const make_page = require('../') 
 const theme = require('theme')
