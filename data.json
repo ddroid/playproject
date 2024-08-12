@@ -1,13 +1,26 @@
 {
   "index": {
+    "sub": {
+      "theme_widget": "theme_widget",
+      "topnav": "topnav",
+      "header": "header",
+      "datdot": "datdot",
+      "editor": "editor",
+      "smartcontract_codes": "smartcontract_codes",
+      "supporters": "supporters",
+      "our_contributors": "our_contributors",
+      "footer": "footer"
+    }
   },
   "theme_editor": {
   },
   "graph_explorer": {
   },
   "theme_widget": {
-    "graph_explorer": "graph_explorer",
-    "theme_editor": "theme_editor"
+    "sub": {
+      "graph_explorer": "graph_explorer",
+      "theme_editor": "theme_editor"
+    }
   },
   "topnav": {
     "links": [
@@ -42,7 +55,9 @@
     "title": "Infrastructure for the next-generation Internet"
   },
   "datdot": {
-    "content": "content_datdot",
+    "sub": {
+      "content": "content_datdot"
+    },
     "logo": "",
     "image": ""
   },
@@ -53,7 +68,9 @@
     "url": "https://datdot.org/"
   },
   "editor": {
-    "content": "content_editor",
+    "sub": {
+      "content": "content_editor"
+    },
     "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
     "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"
   },
@@ -64,7 +81,9 @@
     "url": "https://smartcontract-codes.github.io/play-ed/"
   },
   "smartcontract_codes": {
-    "content": "content_smartcontract",
+    "sub": {
+      "content": "content_smartcontract"
+    },
     "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
     "image": "./src/node_modules/assets/images/smart-contract-codes.jpg"
   },
@@ -105,10 +124,12 @@
     ]
   },
   "our_contributors": {
-    "content": "content_contributor",
-    "contributor": [
-      "contributor_nina", "contributor_serapath", "contributor_jam", "contributor_mauve", "contributor_fiona", "contributor_toshi", "contributor_ailin", "contributor_kayla", "contributor_tommings", "contributor_santies", "contributor_jannis", "contributor_nora", "contributor_mimi", "contributor_helen", "contributor_ali", "contributor_ibrar", "contributor_cypher"
-    ]
+    "sub": {
+      "content": "content_contributor",
+      "contributor": [
+        "contributor_nina", "contributor_serapath", "contributor_jam", "contributor_mauve", "contributor_fiona", "contributor_toshi", "contributor_ailin", "contributor_kayla", "contributor_tommings", "contributor_santies", "contributor_jannis", "contributor_nora", "contributor_mimi", "contributor_helen", "contributor_ali", "contributor_ibrar", "contributor_cypher"
+      ]
+    }
   },
   "content_contributor": {
     "title": "Contributors",

@@ -10,7 +10,7 @@ const modules = {
  our_contributors : require('our_contributors'),
  footer : require('footer'),
 }
-const statedb = require('statedb')
+const statedb = require('STATE')
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -40,7 +40,9 @@ async function make_page(opts, lang) {
     inject,
     inject_all,
   }
-  const data = await statedb('index')
+  const sid = await statedb.init('./data.json')
+  const sdb = statedb()
+  const data = sdb.get(sid)
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
@@ -71,7 +73,7 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await entry[1]({ sid: entry[0], hub: [css_id] }))
+    shadow.append(await entry[1]({ sid: data.sub[entry[0]], hub: [css_id] }))
     return el
   })))
   update_theme_widget()
