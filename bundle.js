@@ -729,8 +729,8 @@ async function make_page(opts, lang) {
     inject,
     inject_all,
   }
-  const sid = await statedb.init('./data.json')
   const sdb = statedb()
+  const sid = await sdb.init('./data.json')
   const data = sdb.get(sid)
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
@@ -765,13 +765,9 @@ async function make_page(opts, lang) {
     shadow.append(await entry[1]({ sid: data.sub[entry[0]], hub: [css_id] }))
     return el
   })))
-  update_theme_widget()
   init_css()
   return el
   
-  async function update_theme_widget () {
-    send({ type: 'init', by: name })
-  }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
@@ -809,18 +805,50 @@ async function make_page(opts, lang) {
 var data, xdata
 const s2i = {}
 const i2s ={}
-Object.assign(STATE, { init, reset })
 
 module.exports = STATE
 
-async function init (datapath) {
-  STATE.init = undefined
-  if (data) throw new Error('Access denied')
-  data = await (await fetch(datapath)).json()
-  xdata = JSON.parse(JSON.stringify(data))
-  Object.keys(data).forEach(idfy)
-  Object.entries(data).forEach(assign)
-  return i2s['index']
+function STATE () {
+  const deny = []
+  return { get, init }
+  function get (sid) {
+    if (deny.includes(sid)) throw new Error('access denied')
+    const item = xdata[s2i[sid]]
+    item.sub && Object.values(item.sub).forEach(sids => {
+      if(typeof(sid) === 'object')
+        deny.push(...sids)
+      else
+        deny.push(sids)
+    })
+    if(s2i[sid] === '11')
+      return {data: item, xget, add, get_id}
+    return item
+  }
+  function xget (sid) {
+    return data[s2i[sid]]
+  }
+  function get_id (id) {
+    return data[id]
+  }
+  function add (instance) {
+    const id = Object.keys(data).length
+    instance = JSON.parse(instance)
+    data[id] = instance
+    xdata[id] = instance
+    idfy(id)
+    data[instance.hub].sub[instance.comp].push(id)
+    xdata[instance.hub].sub[instance.comp].push(i2s[id])
+    return i2s[id]
+  }
+  async function init (datapath) {
+    STATE.init = undefined
+    if (data) throw new Error('Access denied')
+    data = await (await fetch(datapath)).json()
+    xdata = JSON.parse(JSON.stringify(data))
+    Object.keys(data).forEach(idfy)
+    Object.entries(data).forEach(assign)
+    return i2s['0']
+  }
   function idfy (id) {
     const sid = Symbol(id)
     s2i[sid] = id
@@ -838,29 +866,6 @@ async function init (datapath) {
         xdata[entry[0]].sub[item[0]] = i2s[item[1]]
       }
     })
-  }
-}
-function reset () {
-  data = undefined
-}
-function STATE () {
-  const deny = []
-  return { get }
-  function get (sid) {
-    if (deny.includes(sid)) throw new Error('access denied')
-    const item = xdata[s2i[sid]]
-    item.sub && Object.values(item.sub).forEach(sids => {
-      if(typeof(sid) === 'object')
-        deny.push(...sids)
-      else
-        deny.push(sids)
-    })
-    if(s2i[sid] === 'theme_editor')
-      return {data: item, xget}
-    return item
-  }
-  function xget (sid) {
-    return data[s2i[sid]]
   }
 }
 },{}],5:[function(require,module,exports){
@@ -1019,7 +1024,7 @@ async function contributor (opts) {
 
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
+      const pref_shared = pref[name] || data.shared || [{ id: name + '.css' }]
       const pref_uniq = pref[css_id] || data.uniq || []
       pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
       pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
@@ -1046,7 +1051,7 @@ async function contributor (opts) {
     async function get_theme ({local = true, theme = 'default', id}) {
       let theme_css
       if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}`)).text()
       else
         theme_css = JSON.parse(localStorage[theme])[id]
       return theme_css
@@ -2089,7 +2094,9 @@ async function io(data, on) {
   const id = ports.length
   ports.push({id, name: data.name, on})
   data.hub && graph[data.hub[0]].sub.push(id)
-  graph.push({id, ...data, sub: [] })
+  graph.push({ id, ...data, sub: [] })
+  if(id === 33)
+    init()
   return {send, css_id: id}
 
   async function send(data) {
@@ -2206,7 +2213,8 @@ async function our_contributors (opts) {
     const on = {
         inject,
         inject_all,
-        scroll
+        scroll,
+        refresh
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
@@ -2226,11 +2234,6 @@ async function our_contributors (opts) {
     ]
 
     const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
-    const temp = []
-    for (const sid of data.sub.contributor){
-        temp.push(await Contributor({sid, hub: [css_id]}))
-    }
-    const contributors = await Promise.all(temp)
 
     let cloud1Rellax = new Rellax( cloud1, { speed: 0.3})
     let cloud2Rellax = new Rellax( cloud2, { speed: 0.4})
@@ -2240,30 +2243,39 @@ async function our_contributors (opts) {
     // ----------------------------------------
     const el = document.createElement('div')
     const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
+    refresh()
+    return el
+
+    async function refresh() {
+      const data = sdb.get(opts.sid)
+      const temp = []
+      for (const sid of data.sub.contributor){
+          temp.push(await Contributor({sid, hub: [css_id]}))
+      }
+      const contributors = await Promise.all(temp)
+      shadow.innerHTML = `
         <section id="ourContributors" class="section">
             <div class='inner'>
             </div>
-
             <div class='groups'>
             </div>
-
             ${cloud4.outerHTML}
             ${cloud5.outerHTML}
             ${cloud6.outerHTML}
             ${cloud7.outerHTML}
         </section>
-    `
-    // ----------------------------------------
-    const inner = shadow.querySelector('.inner')
-    const groups = shadow.querySelector('.groups')
-    const main = shadow.querySelector('section')
-    groups.append(...contributors.map(el => el.classList.add('group') || el))
-    main.prepend(await Content({ sid: data.sub.content, hub: [css_id] }))
-    inner.append(island, cloud1, cloud2, cloud3)
-    init_css()
-    return el
-
+      `
+      // ----------------------------------------
+      const inner = shadow.querySelector('.inner')
+      const groups = shadow.querySelector('.groups')
+      const main = shadow.querySelector('section')
+      groups.append(...contributors.map(el => el.classList.add('group') || el))
+      main.prepend(await Content({ sid: data.sub.content, hub: [css_id] }))
+      inner.append(island, cloud1, cloud2, cloud3)
+      init_css()
+      console.log(el)
+      console.log(data.sub)
+    }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
       const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2617,7 +2629,7 @@ async function theme_editor (opts) {
     hide
   }
 	const sdb = statedb()
-	const {data, xget} = sdb.get(opts.sid)
+	const {data, xget, add: add_data, get_id} = sdb.get(opts.sid)
   const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
   status.themes = {
     builtin: Object.keys(opts.paths),
@@ -2840,15 +2852,21 @@ async function theme_editor (opts) {
     }
   }
   async function on_inject () {
-    const type = select_access.value === 'uniq' ? 'inject' : 'inject_all'
-    if(status.select){
-      const ids = await get_select()
-      ids.forEach(id => {
-        send({ type, to: id, data: status.textarea.value })
-      })
-    }
-    else
-      send({ type, to: status.instance_id, data: status.textarea.value })
+      const sid = add_data(status.textarea.value)
+      const hub = get_id(xget(sid).hub).comp
+      send({type: 'refresh', to: hub})
+    
+    // else{
+    //   const type = select_access.value === 'uniq' ? 'inject' : 'inject_all'
+    //   if(status.select){
+    //     const ids = await get_select()
+    //     ids.forEach(id => {
+    //       send({ type, to: id, data: status.textarea.value })
+    //     })
+    //   }
+    //   else
+    //     send({ type, to: status.instance_id, data: status.textarea.value })
+    // }
   }
   async function get_select () {
     return await send({ type: 'get_select', to: 'theme_widget'})
@@ -2886,7 +2904,7 @@ async function theme_editor (opts) {
     await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v), 'shared', v.theme)))
     await Promise.all(pref_uniq.map(async v => await add_tab(v.id, await get_css(v), 'uniq', v.theme)))
   }
-  async function add_tab (id, css = '', ext, access = 'uniq', theme = 'default') {
+  async function add_tab (id, css = '', ext = '', access = 'uniq', theme = 'default') {
     if(id === 'New' && status.themes.builtin.includes(theme)){
       theme += '*'
       add(theme)
@@ -2903,6 +2921,7 @@ async function theme_editor (opts) {
     tab.dataset.name = btn.innerHTML
     tab.dataset.theme = theme
     tab.dataset.access = access
+    tab.dataset.ext = ext
     btn.onclick = () => switch_tab(tab.id)
     btn.ondblclick = rename
     const btn_x = document.createElement('span')
@@ -2943,12 +2962,12 @@ async function theme_editor (opts) {
     input.value = status.active_tab.dataset.theme
   }
   async function init_tab({ data }) {
-    add_tab(data.id, await get_css(data), '.css', '', data.theme)
+    add_tab(data.id, await get_css(data), '', '', data.theme)
   }
   async function get_css ({ local = true, theme = 'default', id }) {
     let theme_css
     if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}`)).text()
     else
       theme_css = db.read([theme, id])
     return theme_css
@@ -3122,6 +3141,7 @@ async function theme_widget (opts) {
   async function refresh ({ data }) {
     let id = data.length
     const themes_id = id++
+    console.log(data)
     data.push({id: themes_id, name: 'themes', type: 'themes', sub: []})
     Object.entries(paths).forEach(entry => {
       const theme_id = id
@@ -3145,7 +3165,7 @@ async function theme_widget (opts) {
     data.forEach(node => {
       if(node.type === 'comp'){
         node.inputs = []
-        const shared = node.shared || [{id: node.comp}]
+        const shared = node.shared || [{id: node.comp + '.css'}]
         shared.forEach(async file => {
           node.inputs.push(await find_id(file.id, 'file'))
         })
@@ -3154,7 +3174,6 @@ async function theme_widget (opts) {
         })
       }
     })
-    console.log(data)
     status.tree = data
     stats.innerHTML = `Entries: ${Object.keys(data).length}`
     send({type: 'init', to: 'graph_explorer' , data})

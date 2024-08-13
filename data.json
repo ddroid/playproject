@@ -1,28 +1,32 @@
 {
-  "index": {
+  "0": {
     "sub": {
-      "theme_widget": "theme_widget",
-      "topnav": "topnav",
-      "header": "header",
-      "datdot": "datdot",
-      "editor": "editor",
-      "smartcontract_codes": "smartcontract_codes",
-      "supporters": "supporters",
-      "our_contributors": "our_contributors",
-      "footer": "footer"
+      "theme_widget": "1",
+      "topnav": "2",
+      "header": "3",
+      "datdot": "4",
+      "editor": "5",
+      "smartcontract_codes": "6",
+      "supporters": "7",
+      "our_contributors": "8",
+      "footer": "9"
     }
   },
-  "theme_editor": {
+  "11": {
+    "comp": "theme_editor"
   },
-  "graph_explorer": {
+  "10": {
+    "comp": "graph_explorer"
   },
-  "theme_widget": {
+  "1": {
+    "comp": "theme_widget",
     "sub": {
-      "graph_explorer": "graph_explorer",
-      "theme_editor": "theme_editor"
+      "graph_explorer": "10",
+      "theme_editor": "11"
     }
   },
-  "topnav": {
+  "2": {
+    "comp": "topnav",
     "links": [
       {
         "id": "datdot",
@@ -51,49 +55,57 @@
       }
     ]
   },
-  "header": {
+  "3": {
+    "comp": "header",
     "title": "Infrastructure for the next-generation Internet"
   },
-  "datdot": {
+  "4": {
+    "comp": "datdot",
     "sub": {
-      "content": "content_datdot"
+      "content": "12"
     },
     "logo": "",
     "image": ""
   },
-  "content_datdot": {
+  "12": {
+    "comp": "content",
     "title": "DatDot",
     "article": "A system that enables peer-to-peer sharing of storage space and data seeding, eliminating the need for users to rely on renting servers for data hosting or accept the potential unreliability of P2P data sharing. To achieve this goal, our protocol is designed to automate the matchmaking process and conduct periodic checks to ensure reliable hosting and serving of data to readers.",
     "action": "Learn more",
     "url": "https://datdot.org/"
   },
-  "editor": {
+  "5": {
+    "comp": "editor",
     "sub": {
-      "content": "content_editor"
+      "content": "13"
     },
     "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
     "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"
   },
-  "content_editor": {
+  "13": {
+    "comp": "content",
     "title": "Play Editor",
     "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
     "action": "Learn more",
     "url": "https://smartcontract-codes.github.io/play-ed/"
   },
-  "smartcontract_codes": {
+  "6": {
+    "comp": "smartcontract_codes",
     "sub": {
-      "content": "content_smartcontract"
+      "content": "14"
     },
     "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
     "image": "./src/node_modules/assets/images/smart-contract-codes.jpg"
   },
-  "content_smartcontract": {
-      "title": "Smart contract codes",
-      "article": "Experimental peer-to peer search engine for smart contract source codes. The project aims to make smart contracts verifiable and more transparent.",
-      "action": "Learn more",
-      "url": "https://smartcontract.codes/"
+  "14": {
+    "comp": "content",
+    "title": "Smart contract codes",
+    "article": "Experimental peer-to peer search engine for smart contract source codes. The project aims to make smart contracts verifiable and more transparent.",
+    "action": "Learn more",
+    "url": "https://smartcontract.codes/"
   },
-  "supporters": {
+  "7": {
+    "comp": "supporters",
     "title": "Supporters",
     "supporters": [
       {
@@ -123,19 +135,22 @@
       }
     ]
   },
-  "our_contributors": {
+  "8": {
+    "comp": "our_contributors",
     "sub": {
-      "content": "content_contributor",
+      "content": "15",
       "contributor": [
-        "contributor_nina", "contributor_serapath", "contributor_jam", "contributor_mauve", "contributor_fiona", "contributor_toshi", "contributor_ailin", "contributor_kayla", "contributor_tommings", "contributor_santies", "contributor_jannis", "contributor_nora", "contributor_mimi", "contributor_helen", "contributor_ali", "contributor_ibrar", "contributor_cypher"
+        "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"
       ]
     }
   },
-  "content_contributor": {
+  "15": {
+    "comp": "content",
     "title": "Contributors",
     "article": "We're a community of developers researching how to improve and sustain the Web. We're currently exploring the role that peer-to-peer protocols might play in making the Web more open, equitable and playful."
   },
-  "footer": {
+  "9": {
+    "comp": "footer",
     "copyright": " PlayProject",
     "icons": [
       {
@@ -164,201 +179,219 @@
       }
     ]
   },
-  "contributor_nina":{
+  "16":{
     "name": "Nina",
+    "comp": "contributor",
     "careers": ["Decentralized tech"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-nina.png"
   },
-  "contributor_serapath":{
+  "17":{
+    "comp": "contributor",
     "name": "Serapath",
     "careers": ["Decentralized tech"],
     "contact": {
       "twitter": "",
       "github": ""
     },
-    "uniq": [{ "id": "contributor_2" }],
+    "uniq": [{ "id": "contributor_2.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-alex.png"
   },
-  "contributor_jam": {
+  "18": {
     "name": "Jam",
+    "comp": "contributor",
     "careers": ["Substrate"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-joshua.png"
   },
-  "contributor_mauve": {
+  "19": {
     "name": "Mauve",
+    "comp": "contributor",
     "careers": ["Decentralized tech"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-mauve.png"
   },
-  "contributor_fiona": {
+  "20": {
     "name": "Fiona",
+    "comp": "contributor",
     "careers": ["UI/UX & Frontend"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-fiona.png"
   },
-  "contributor_toshi": {
+  "21": {
     "name": "Toshi",
+    "comp": "contributor",
     "careers": ["UI/UX & Frontend"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-toshi.png"
   },
-  "contributor_ailin": {
+  "22": {
     "name": "Ailin",
+    "comp": "contributor",
     "careers": ["NodeJS & Web3"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-ailin.png"
   },
-  "contributor_kayla": {
+  "23": {
     "name": "Kayla",
+    "comp": "contributor",
     "careers": ["UX/UI"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-kayla.png"
   },
-  "contributor_tommings": {
+  "24": {
     "name": "Tommings",
+    "comp": "contributor",
     "careers": ["Illustration & Design"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-tommings.png"
   },
-  "contributor_santies": {
+  "25": {
     "name": "Santies",
+    "comp": "contributor",
     "careers": ["3D design"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-santies.png"
   },
-  "contributor_pepe": {
+  "26": {
     "name": "Pepe",
+    "comp": "contributor",
     "careers": ["Fullstack & 3D"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-pepe.png"
   },
-  "contributor_jannis": {
+  "27": {
     "name": "Jannis",
+    "comp": "contributor",
     "careers": ["NodeJS"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-jannis.png"
   },
-  "contributor_nora": {
+  "28": {
     "name": "Nora",
+    "comp": "contributor",
     "careers": ["Frontend & Web3"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-nora.png"
   },
-  "contributor_mimi": {
+  "29": {
     "name": "Mimi",
+    "comp": "contributor",
     "careers": ["UI/UX & Frontend"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-mimi.png"
   },
-  "contributor_helen": {
+  "30": {
     "name": "Helen",
+    "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   },
-  "contributor_ali": {
+  "31": {
     "name": "Ali",
+    "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   },
-  "contributor_ibrar": {
+  "32": {
     "name": "Ibrar",
+    "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   },
-  "contributor_cypher": {
+  "33": {
     "name": "Cypher",
+    "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
     "contact": {
       "twitter": "",
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1" }],
+    "uniq": [{ "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   }
 }

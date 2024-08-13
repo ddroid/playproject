@@ -40,8 +40,8 @@ async function make_page(opts, lang) {
     inject,
     inject_all,
   }
-  const sid = await statedb.init('./data.json')
   const sdb = statedb()
+  const sid = await sdb.init('./data.json')
   const data = sdb.get(sid)
   const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
   // ----------------------------------------
@@ -76,13 +76,9 @@ async function make_page(opts, lang) {
     shadow.append(await entry[1]({ sid: data.sub[entry[0]], hub: [css_id] }))
     return el
   })))
-  update_theme_widget()
   init_css()
   return el
   
-  async function update_theme_widget () {
-    send({ type: 'init', by: name })
-  }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
