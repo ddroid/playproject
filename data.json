@@ -1,5 +1,6 @@
 {
   "0": {
+    "id": "0",
     "sub": {
       "theme_widget": "1",
       "topnav": "2",
@@ -13,19 +14,25 @@
     }
   },
   "11": {
-    "comp": "theme_editor"
+    "id": "11",
+    "comp": "theme_editor",
+    "admin": "true"
   },
   "10": {
+    "id": "10",
     "comp": "graph_explorer"
   },
   "1": {
+    "id": "1",
     "comp": "theme_widget",
+    "admin": "true",
     "sub": {
       "graph_explorer": "10",
       "theme_editor": "11"
     }
   },
   "2": {
+    "id": "2",
     "comp": "topnav",
     "links": [
       {
@@ -56,10 +63,12 @@
     ]
   },
   "3": {
+    "id": "3",
     "comp": "header",
     "title": "Infrastructure for the next-generation Internet"
   },
   "4": {
+    "id": "4",
     "comp": "datdot",
     "sub": {
       "content": "12"
@@ -68,6 +77,7 @@
     "image": ""
   },
   "12": {
+    "id": "12",
     "comp": "content",
     "title": "DatDot",
     "article": "A system that enables peer-to-peer sharing of storage space and data seeding, eliminating the need for users to rely on renting servers for data hosting or accept the potential unreliability of P2P data sharing. To achieve this goal, our protocol is designed to automate the matchmaking process and conduct periodic checks to ensure reliable hosting and serving of data to readers.",
@@ -75,6 +85,7 @@
     "url": "https://datdot.org/"
   },
   "5": {
+    "id": "5",
     "comp": "editor",
     "sub": {
       "content": "13"
@@ -83,6 +94,7 @@
     "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"
   },
   "13": {
+    "id": "13",
     "comp": "content",
     "title": "Play Editor",
     "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
@@ -90,6 +102,7 @@
     "url": "https://smartcontract-codes.github.io/play-ed/"
   },
   "6": {
+    "id": "6",
     "comp": "smartcontract_codes",
     "sub": {
       "content": "14"
@@ -98,6 +111,7 @@
     "image": "./src/node_modules/assets/images/smart-contract-codes.jpg"
   },
   "14": {
+    "id": "14",
     "comp": "content",
     "title": "Smart contract codes",
     "article": "Experimental peer-to peer search engine for smart contract source codes. The project aims to make smart contracts verifiable and more transparent.",
@@ -105,6 +119,7 @@
     "url": "https://smartcontract.codes/"
   },
   "7": {
+    "id": "7",
     "comp": "supporters",
     "title": "Supporters",
     "supporters": [
@@ -136,6 +151,7 @@
     ]
   },
   "8": {
+    "id": "8",
     "comp": "our_contributors",
     "sub": {
       "content": "15",
@@ -145,11 +161,13 @@
     }
   },
   "15": {
+    "id": "15",
     "comp": "content",
     "title": "Contributors",
     "article": "We're a community of developers researching how to improve and sustain the Web. We're currently exploring the role that peer-to-peer protocols might play in making the Web more open, equitable and playful."
   },
   "9": {
+    "id": "9",
     "comp": "footer",
     "copyright": " PlayProject",
     "icons": [
@@ -180,6 +198,7 @@
     ]
   },
   "16":{
+    "id": "16",
     "name": "Nina",
     "comp": "contributor",
     "careers": ["Decentralized tech"],
@@ -188,10 +207,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-nina.png"
   },
   "17":{
+    "id": "17",
     "comp": "contributor",
     "name": "Serapath",
     "careers": ["Decentralized tech"],
@@ -199,10 +219,11 @@
       "twitter": "",
       "github": ""
     },
-    "uniq": [{ "id": "contributor_2.css" }],
+    "css": [{ "id": "contributor.css"},{ "id": "contributor_2.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-alex.png"
   },
   "18": {
+    "id": "18",
     "name": "Jam",
     "comp": "contributor",
     "careers": ["Substrate"],
@@ -211,10 +232,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-joshua.png"
   },
   "19": {
+    "id": "19",
     "name": "Mauve",
     "comp": "contributor",
     "careers": ["Decentralized tech"],
@@ -223,10 +245,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-mauve.png"
   },
   "20": {
+    "id": "20",
     "name": "Fiona",
     "comp": "contributor",
     "careers": ["UI/UX & Frontend"],
@@ -235,10 +258,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-fiona.png"
   },
   "21": {
+    "id": "21",
     "name": "Toshi",
     "comp": "contributor",
     "careers": ["UI/UX & Frontend"],
@@ -247,10 +271,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-toshi.png"
   },
   "22": {
+    "id": "22",
     "name": "Ailin",
     "comp": "contributor",
     "careers": ["NodeJS & Web3"],
@@ -259,10 +284,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-ailin.png"
   },
   "23": {
+    "id": "23",
     "name": "Kayla",
     "comp": "contributor",
     "careers": ["UX/UI"],
@@ -271,10 +297,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-kayla.png"
   },
   "24": {
+    "id": "24",
     "name": "Tommings",
     "comp": "contributor",
     "careers": ["Illustration & Design"],
@@ -283,10 +310,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-tommings.png"
   },
   "25": {
+    "id": "25",
     "name": "Santies",
     "comp": "contributor",
     "careers": ["3D design"],
@@ -295,10 +323,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-santies.png"
   },
   "26": {
+    "id": "26",
     "name": "Pepe",
     "comp": "contributor",
     "careers": ["Fullstack & 3D"],
@@ -307,10 +336,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-pepe.png"
   },
   "27": {
+    "id": "27",
     "name": "Jannis",
     "comp": "contributor",
     "careers": ["NodeJS"],
@@ -319,10 +349,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-jannis.png"
   },
   "28": {
+    "id": "28",
     "name": "Nora",
     "comp": "contributor",
     "careers": ["Frontend & Web3"],
@@ -331,10 +362,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-nora.png"
   },
   "29": {
+    "id": "29",
     "name": "Mimi",
     "comp": "contributor",
     "careers": ["UI/UX & Frontend"],
@@ -343,10 +375,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-mimi.png"
   },
   "30": {
+    "id": "30",
     "name": "Helen",
     "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
@@ -355,10 +388,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   },
   "31": {
+    "id": "31",
     "name": "Ali",
     "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
@@ -367,10 +401,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   },
   "32": {
+    "id": "32",
     "name": "Ibrar",
     "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
@@ -379,10 +414,11 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   },
   "33": {
+    "id": "33",
     "name": "Cypher",
     "comp": "contributor",
     "careers": ["UX/UI and graphic design"],
@@ -391,7 +427,7 @@
       "github": "",
       "website": ""
     },
-    "uniq": [{ "id": "contributor_1.css" }],
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
   }
 }

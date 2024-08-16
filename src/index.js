@@ -15,13 +15,6 @@ const statedb = require('STATE')
   MAKE_PAGE COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 
@@ -32,18 +25,15 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const name = 'index'
-  const id = `${ID}:${count++}` // assigns their own name
-  const status = {}
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
   const on = {
     jump,
     inject,
     inject_all,
   }
   const sdb = statedb()
-  const sid = await sdb.init('./data.json')
+  const {admin, sid} = await statedb.init('./data.json')
   const data = sdb.get(sid)
-  const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
+  const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
   // ----------------------------------------

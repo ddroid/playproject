@@ -686,7 +686,6 @@ process.umask = function() { return 0; };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
-(function (process,__filename){(function (){
 const IO = require('io')
 const modules = {
  theme_widget : require('theme_widget'),
@@ -704,13 +703,6 @@ const statedb = require('STATE')
   MAKE_PAGE COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 
@@ -721,18 +713,15 @@ async function make_page(opts, lang) {
   // ID + JSON STATE
   // ----------------------------------------
   const name = 'index'
-  const id = `${ID}:${count++}` // assigns their own name
-  const status = {}
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, ports: ['', '', '']} // all state of component instance
   const on = {
     jump,
     inject,
     inject_all,
   }
   const sdb = statedb()
-  const sid = await sdb.init('./data.json')
+  const {admin, sid} = await statedb.init('./data.json')
   const data = sdb.get(sid)
-  const {send, css_id} = await IO({ name, type: 'comp', comp: name }, on)
+  const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -799,76 +788,75 @@ async function make_page(opts, lang) {
 }
 
 
-}).call(this)}).call(this,require('_process'),"/src/index.js")
-},{"STATE":4,"_process":1,"datdot":8,"editor":9,"footer":10,"header":13,"io":14,"our_contributors":17,"smartcontract_codes":18,"supporters":19,"theme_widget":21,"topnav":22}],4:[function(require,module,exports){
+},{"STATE":4,"datdot":8,"editor":9,"footer":10,"header":13,"io":14,"our_contributors":17,"smartcontract_codes":18,"supporters":19,"theme_widget":21,"topnav":22}],4:[function(require,module,exports){
 // STATE.js
-var data, xdata
+const localdb = require('localdb')
+const db = localdb()
+
+Object.assign(STATE, { init })
 const s2i = {}
-const i2s ={}
+const i2s = {}
+const admin_list = []
 
 module.exports = STATE
 
+async function init (url) {
+  if (!STATE.init) throw new Error('already initialized')
+  STATE.init = undefined
+  Object.freeze(STATE)
+  const data = await (await fetch(url)).json()
+  await db.add(['defaults'], data)
+  const length = await db.length(['defaults'])
+  i2s[0] = Symbol(0)
+  for (var id = 0; id < length; id++) s2i[i2s[id] = Symbol(id)] = id
+  const admin = { reset }
+  return { sid: i2s[0], admin }
+  async function reset () {
+    await db.clear()
+  }
+}
+
 function STATE () {
-  const deny = []
-  return { get, init }
-  function get (sid) {
-    if (deny.includes(sid)) throw new Error('access denied')
-    const item = xdata[s2i[sid]]
-    item.sub && Object.values(item.sub).forEach(sids => {
-      if(typeof(sid) === 'object')
-        deny.push(...sids)
-      else
-        deny.push(sids)
-    })
-    if(s2i[sid] === '11')
-      return {data: item, xget, add, get_id}
-    return item
-  }
-  function xget (sid) {
-    return data[s2i[sid]]
-  }
-  function get_id (id) {
-    return data[id]
-  }
-  function add (instance) {
-    const id = Object.keys(data).length
-    instance = JSON.parse(instance)
-    data[id] = instance
-    xdata[id] = instance
-    idfy(id)
-    data[instance.hub].sub[instance.comp].push(id)
-    xdata[instance.hub].sub[instance.comp].push(i2s[id])
-    return i2s[id]
-  }
-  async function init (datapath) {
-    STATE.init = undefined
-    if (data) throw new Error('Access denied')
-    data = await (await fetch(datapath)).json()
-    xdata = JSON.parse(JSON.stringify(data))
-    Object.keys(data).forEach(idfy)
-    Object.entries(data).forEach(assign)
-    return i2s['0']
-  }
-  function idfy (id) {
-    const sid = Symbol(id)
-    s2i[sid] = id
-    i2s[id] = sid
-  }
-  function assign(entry){
-    entry[1].sub && Object.entries(entry[1].sub).forEach(item => {
-      if(typeof(item[1]) === 'object'){
-        xdata[entry[0]].sub[item[0]] = []
-        item[1].forEach(id => {
-          xdata[entry[0]].sub[item[0]].push(i2s[id])
+  const sdb = { get, add, req_access }
+  const deny = {}
+  return sdb
+
+  function symbolfy(data) {
+    data.sub && Object.entries(data.sub).forEach(entry =>{
+      if(typeof(entry[1]) === 'object'){
+        data.sub[entry[0]] = []
+        entry[1].forEach(id => {
+          data.sub[entry[0]].push(i2s[id])
         })
       }
       else{
-        xdata[entry[0]].sub[item[0]] = i2s[item[1]]
+        data.sub[entry[0]] = i2s[entry[1]]
       }
     })
+    return data
+  }
+  function get (sid) {
+    if (deny[sid]) throw new Error('access denied')
+    const data = symbolfy(db.read(['defaults', s2i[sid]]))
+    if(data.admin)
+      admin_list.push(sid)
+    return data
+  }
+  function add (opts) {
+    const id = db.length()
+    s2i[i2s[id] = Symbol(id)] = id
+    db.add(['defaults', id], opts)
+    return id
+  }
+  function req_access(sid) {
+    if(admin_list.includes(sid))
+      return { xget }
+  }
+  function xget(id) {
+    return symbolfy(db.read(['defaults', id]))
   }
 }
-},{}],5:[function(require,module,exports){
+},{"localdb":16}],5:[function(require,module,exports){
 (function (process,__filename){(function (){
 const IO = require('io')
 const statedb = require('STATE')
@@ -903,7 +891,7 @@ async function content (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -997,7 +985,7 @@ async function contributor (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name: data.name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -1041,7 +1029,7 @@ async function contributor (opts) {
     async function inject_all ({ data }) {
       const sheet = new CSSStyleSheet
       sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
+      shadow.adoptedStyleSheets.push(...shadow.adoptedStyleSheets, sheet)
     }
     async function inject ({ data }){
       const style = document.createElement('style')
@@ -1150,7 +1138,7 @@ async function datdot (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1260,7 +1248,7 @@ async function editor (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1385,7 +1373,7 @@ async function footer (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -1492,11 +1480,11 @@ async function graph_explorer (opts) {
   }
 	const sdb = statedb()
 	const data = sdb.get(opts.sid)
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+  const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
   const on_add = {
-    'io': add_node_io,
-    'link': add_node_link,
-    'tasks': add_node_sub,
+    'io': add_io,
+    'link': add_link,
+    'tasks': add_sub,
   }
   // ----------------------------------------
   // TEMPLATE
@@ -1514,8 +1502,8 @@ async function graph_explorer (opts) {
 
   async function init ({ data }) {
     status.graph = data
-    const root_nodes = data.filter(node => !node.hub)
-    main.append(...root_nodes.map((data, i) => add_node_root({data, last: i === root_nodes.length - 1 })))
+    const root_nodes = Object.values(data).filter(node => !node.hub)
+    main.append(...root_nodes.map((data, i) => add_root({data, last: i === root_nodes.length - 1 })))
   }
   function create_node (type, id) {
     const element = document.createElement('div')
@@ -1538,10 +1526,10 @@ async function graph_explorer (opts) {
   /******************************************
    Addition Operation
   ******************************************/
-  function add_node_el ({ data, parent, space, grand_last, type }){
+  function add_el ({ data, parent, space, grand_last, type }){
     const is_single = parent.children.length ? false : true
     if(data.root){
-      parent.prepend(add_node_root({ data, last: false}))
+      parent.prepend(add_root({ data, last: false}))
       return
     }
     //hub or sub node check
@@ -1550,7 +1538,7 @@ async function graph_explorer (opts) {
     else
       parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
   }
-  function add_node_root ({ data, last }) {
+  function add_root ({ data, last }) {
     [ element, last, space ] = html_template(data, last)
     element.innerHTML = `
       <div class="details">
@@ -1575,7 +1563,7 @@ async function graph_explorer (opts) {
       is_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on, grand_last: last, pos: false })
     }
   }
-  function add_node_sub ({ data, last, grand_last, space }) {
+  function add_sub ({ data, last, grand_last, space }) {
     [ element, last, space ] = html_template(data, last, space, grand_last)
     
     element.innerHTML = `
@@ -1607,9 +1595,6 @@ async function graph_explorer (opts) {
     sub_emo.onclick = sub_click
     inp.onclick = inp_click
     out.onclick = out_click
-    details.onclick = () => {
-      send({ type: 'click', to: hub_id, data })
-    }
     return element
     function hub_click () {
       if(hub_on){
@@ -1637,7 +1622,7 @@ async function graph_explorer (opts) {
         inp.innerHTML = '🗂'
         out_on ? out.innerHTML = '┼'+out.innerHTML.slice(1) : out.innerHTML = '┴'+out.innerHTML.slice(1)
       }
-      inp_on = handle_click({ el: inputs, type: 'io', data: data.inputs, space, is_on: inp_on, pos: true })
+      inp_on = handle_click({ el: inputs, type: 'io', hub_id: data.id, data: data.inputs, space, is_on: inp_on, pos: true })
     }
     function out_click () {
       if(out_on){
@@ -1648,7 +1633,7 @@ async function graph_explorer (opts) {
       out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_on, pos: false })
     }
   }
-  function add_node_io ({ data, first, last, space }) {
+  function add_io ({ data, first, last, space }) {
     const element = create_node('io', data.id)
     const grand_space = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
     space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
@@ -1666,7 +1651,7 @@ async function graph_explorer (opts) {
     name.onclick = () => send({ type: 'click', to: hub_id, data })
     return element
   }
-  function add_node_link ({ data, first, last, space }) {
+  function add_link ({ data, first, last, space }) {
     const element = document.createElement('div')
     element.classList.add('next', 'node')
     element.dataset.id = data.id
@@ -1717,7 +1702,7 @@ async function graph_explorer (opts) {
   }
   async function on_add_node (data) {
     const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : tree_el
-    node && node.children.length && add_node_el({ data: { name: data.name, id: status.graph.length, type: state.code_words[data.type] }, parent: node, grand_last: data.grand_last, type: data.type, space: data.space })
+    node && node.children.length && add_el({ data: { name: data.name, id: status.graph.length, type: state.code_words[data.type] }, parent: node, grand_last: data.grand_last, type: data.type, space: data.space })
     add_node_data(data.name, data.type, data.id, data.users, data.user)
   }
   /******************************************
@@ -1743,11 +1728,11 @@ async function graph_explorer (opts) {
       el.classList.remove('show')
     }, { once: true })
   }
-  function handle_click ({ el, type, data, space, is_on, grand_last, pos }) {
+  function handle_click ({ el, type, data, space, is_on, grand_last, pos, hub_id }) {
     el.classList.toggle('show')
     if(data && el.children.length < 1){
       length = data.length - 1
-      data.forEach((value, i) => el.append(on_add[type]({ data: status.graph[value], first: pos ? 0 === i : false, last: pos ? false : length === i, space, grand_last })))
+      data.forEach((value, i) => el.append(on_add[type]({ data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space, grand_last })))
     }
     return !is_on
   }
@@ -1785,7 +1770,7 @@ async function graph_explorer (opts) {
     input.onkeydown = async (event) => {
       if (event.key === 'Enter') {
         input.blur()
-        add_node_el({ data : { name: input.value, id: status.graph.length, type: state.code_words[data], root }, space, grand_last, type: data, parent: node })
+        add_el({ data : { name: input.value, id: status.graph.length, type: state.code_words[data], root }, space, grand_last, type: data, parent: node })
         const users = task_id ? graph[task_id].users : [host]
         add_node_data(input.value, data, task_id, users, host)
         //sync with other users
@@ -1886,7 +1871,7 @@ async function graph_explorer (opts) {
   }
   async function on_invite (data) {
     const {name, id, type} = data
-    tree_el.prepend(add_node_sub({ name, id, type }))
+    tree_el.prepend(add_sub({ name, id, type }))
     status.graph.push(data)
   }
   async function sx ({ data }) {
@@ -1993,7 +1978,7 @@ async function header (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2083,19 +2068,19 @@ async function header (opts) {
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/header.js")
 },{"STATE":4,"_process":1,"graphic":12,"io":14,"rellax":2}],14:[function(require,module,exports){
-const ports = []
-const graph = []
+const ports = {}
+const graph = {}
 
 module.exports = io
 async function io(data, on) {
   const on_rx = {
     on: {init}
   }
-  const id = ports.length
-  ports.push({id, name: data.name, on})
+  const id = data.id || Object.keys(ports).length
+  ports[id] = { id, name: data.name, on}
   data.hub && graph[data.hub[0]].sub.push(id)
-  graph.push({ id, ...data, sub: [] })
-  if(id === 33)
+  graph[id] = { id, ...data, sub: [] }
+  if(Object.keys(ports).length === 33)
     init()
   return {send, css_id: id}
 
@@ -2104,7 +2089,7 @@ async function io(data, on) {
     return port.on[data.type](data)
   }
   async function find_id (name){
-    return (ports.filter(node => node.name === name)[0] || {id: undefined}).id
+    return (Object.values(ports).filter(node => node.name === name)[0] || {id: undefined}).id
   }
   async function init() {
     ports[await find_id('theme_widget')].on['refresh']({ data: graph})
@@ -2129,9 +2114,21 @@ module.exports = loadSVG
 ******************************************************************************/
 module.exports = localdb
 
-async function localdb () {
-  return { add, read, drop, push }
+function localdb () {
+  return { add, read, drop, push, length }
 
+  function length (keys) {
+    if(keys) {
+      data = JSON.parse(localStorage[keys[0]])
+      let temp = data
+      keys.slice(1, -1).forEach(key => {
+        temp = temp[key]
+      })
+      return Object.keys(temp).length
+    }
+    return Object.keys(localStorage).length
+  }
+  //for object
   function add (keys, value) {
     let data
     if(keys.length > 1) {
@@ -2146,6 +2143,7 @@ async function localdb () {
       data = value
     localStorage[keys[0]] = JSON.stringify(data)
   }
+  //for arrays
   function push (keys, value) {
     const data = JSON.parse(localStorage[keys[0]])
     let temp = data
@@ -2218,7 +2216,7 @@ async function our_contributors (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2273,8 +2271,6 @@ async function our_contributors (opts) {
       main.prepend(await Content({ sid: data.sub.content, hub: [css_id] }))
       inner.append(island, cloud1, cloud2, cloud3)
       init_css()
-      console.log(el)
-      console.log(data.sub)
     }
     async function init_css () {
       const pref = JSON.parse(localStorage.pref)
@@ -2295,7 +2291,7 @@ async function our_contributors (opts) {
     async function inject_all ({ data }) {
       const sheet = new CSSStyleSheet
       sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
+      shadow.adoptedStyleSheets.push(...shadow.adoptedStyleSheets, sheet)
     }
     async function inject ({ data }){
       const style = document.createElement('style')
@@ -2348,7 +2344,7 @@ async function smartcontract_codes (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2479,7 +2475,7 @@ async function supporters (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
@@ -2629,8 +2625,9 @@ async function theme_editor (opts) {
     hide
   }
 	const sdb = statedb()
-	const {data, xget, add: add_data, get_id} = sdb.get(opts.sid)
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+	const data = sdb.get(opts.sid)
+  const {xget} = sdb.req_access(opts.sid)
+  const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
   status.themes = {
     builtin: Object.keys(opts.paths),
     saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
@@ -2649,10 +2646,6 @@ async function theme_editor (opts) {
       <input list="themes" class="theme" placeholder='Enter theme' />
       <div id="themes" class="theme"></div>
     </div>
-    <select class="access">
-      <option>shared</option>
-      <option>uniq</option>
-    </select>
     <button class="load single">
       Load
     </button>
@@ -2709,7 +2702,6 @@ async function theme_editor (opts) {
   const tabs = shadow.querySelector('.tabs > .box')
   const plus = shadow.querySelector('.plus')
   const select_theme = shadow.querySelector('div.theme')
-  const select_access = shadow.querySelector('select.access')
   const input = shadow.querySelector('input.theme')
 
   input.onfocus = () => select_theme.classList.add('active')
@@ -2727,9 +2719,6 @@ async function theme_editor (opts) {
   upload.onchange = import_fn
   reset_btn.onclick = () => {localStorage.clear(), location.reload()}
   plus.onclick = () => add_tab('New')
-  select_access.onchange = e => {
-    status.active_tab.dataset.access = e.target.value
-  }
   update_select_theme()
   init_css()
   return el
@@ -2852,21 +2841,21 @@ async function theme_editor (opts) {
     }
   }
   async function on_inject () {
-      const sid = add_data(status.textarea.value)
-      const hub = get_id(xget(sid).hub).comp
+    if(status.active_tab.dataset.type === 'json'){
+      const id = add_data(status.textarea.value)
+      const hub = xget(xget(id).hub).id
       send({type: 'refresh', to: hub})
-    
-    // else{
-    //   const type = select_access.value === 'uniq' ? 'inject' : 'inject_all'
-    //   if(status.select){
-    //     const ids = await get_select()
-    //     ids.forEach(id => {
-    //       send({ type, to: id, data: status.textarea.value })
-    //     })
-    //   }
-    //   else
-    //     send({ type, to: status.instance_id, data: status.textarea.value })
-    // }
+    }
+    else{
+      if(status.select){
+        const ids = await get_select()
+        ids.forEach(id => {
+          send({ type: 'inject', to: id, data: status.textarea.value })
+        })
+      }
+      else
+        send({ type: 'inject', to: status.node_data.hub_id, data: status.textarea.value })
+    }
   }
   async function get_select () {
     return await send({ type: 'get_select', to: 'theme_widget'})
@@ -2895,7 +2884,7 @@ async function theme_editor (opts) {
     title.innerHTML = data.id
     status.title = data.type
     status.instance_id = data.id
-    add_tab(data.name, JSON.stringify(xget(data.sid), null, 2),  '.json')
+    add_tab(data.name, JSON.stringify(xget(data.hub[0]), null, 2),  '.json')
   }
   async function init_css_tab ({id, comp, uniq, shared}) {
     const pref = db.read(['pref'])
@@ -2958,10 +2947,10 @@ async function theme_editor (opts) {
     status.active_tab = tabs.querySelector('#' + tab_id)
     status.active_tab.classList.add('active')
     status.active_tab.focus()
-    select_access.value = status.active_tab.dataset.access
     input.value = status.active_tab.dataset.theme
   }
   async function init_tab({ data }) {
+    status.node_data = data
     add_tab(data.id, await get_css(data), '', '', data.theme)
   }
   async function get_css ({ local = true, theme = 'default', id }) {
@@ -3081,7 +3070,7 @@ async function theme_widget (opts) {
   }
 	const sdb = statedb()
 	const data = sdb.get(opts.sid)
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+  const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
   
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
@@ -3102,7 +3091,7 @@ async function theme_widget (opts) {
           Entries: 
         </span>
         <button class="select">Select</button>
-        <input min="0" max="100" value="95" type="range"/>
+        <input min="0" max="100" value="75" type="range"/>
       </div>
       <div class="editor">
       </div>
@@ -3139,39 +3128,38 @@ async function theme_widget (opts) {
     send({type: 'send', to: 'theme_editor', data: output})
   }
   async function refresh ({ data }) {
-    let id = data.length
+    let id = Object.keys(data).length
     const themes_id = id++
     console.log(data)
-    data.push({id: themes_id, name: 'themes', type: 'themes', sub: []})
+    data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: []}
     Object.entries(paths).forEach(entry => {
       const theme_id = id
-      data.push({id, name: entry[0], hub: [themes_id], type: 'theme', sub: []})
+      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: []}
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data.push({id, name, type: 'file', local: true, hub: [theme_id]})
+        data[id] = {id, name, type: 'css', local: true, hub: [theme_id]}
         data[theme_id].sub.push(id++)
       })
     })
     Object.entries(JSON.parse(localStorage.index)).forEach(entry => {
       const theme_id = id
-      data.push({id, name: entry[0], hub: [themes_id], type: 'theme', sub: []})
+      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: []}
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data.push({id, name, type: 'file', hub: [theme_id]})
+        data[id] = {id, name, type: 'css', hub: [theme_id]}
         data[theme_id].sub.push(id++)
       })
     })
     status.tree = data
-    data.forEach(node => {
+    Object.values(data).forEach(node => {
       if(node.type === 'comp'){
         node.inputs = []
-        const shared = node.shared || [{id: node.comp + '.css'}]
-        shared.forEach(async file => {
-          node.inputs.push(await find_id(file.id, 'file'))
+        const css = node.css || [{id: node.comp + '.css'}]
+        css.forEach(async file => {
+          node.inputs.push(await find_id(file.id, 'css'))
         })
-        node.uniq && node.uniq.forEach(async file => {
-          node.inputs.push(await find_id(file.id, 'file'))
-        })
+        data[id] = {id, name: node.comp + '.json', type: 'json', hub: [node.id]}
+        node.inputs.push(id++)
       }
     })
     status.tree = data
@@ -3188,13 +3176,14 @@ async function theme_widget (opts) {
     }
     status.instance_id = data.id
     status.active_el = el
-    if(data.type === 'file')
-      send({to: 'theme_editor', type: 'init_tab', data: {id: data.name, local: data.local, theme: status.tree[data.hub[0]].name}})
+    console.log(data)
+    if(data.type === 'css')
+      send({to: 'theme_editor', type: 'init_tab', data: {id: data.name, local: data.local, hub_id: data.hub_id, theme: status.tree[data.hub[0]].name}})
     else
       send({ to: 'theme_editor', type: 'init', data })
   }
   async function find_id(name, type) {
-    const node = status.tree.filter(node => node.name === name && node.type === type)[0]
+    const node = Object.values(status.tree).filter(node => node.name === name && node.type === type)[0]
     return node && node.id
   }
   function make_node (instance){
@@ -3306,7 +3295,7 @@ async function topnav (opts) {
 
 	const sdb = statedb()
 	const data = sdb.get(opts.sid)
-  const {send, css_id} = await IO({name, type: 'comp', comp: name, hub: opts.hub, sid: opts.sid, uniq: data.uniq, shared: data.shared}, on)
+	const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
 	// ----------------------------------------
 	// OPTS
 	// ----------------------------------------
