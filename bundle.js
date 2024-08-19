@@ -721,6 +721,7 @@ async function make_page(opts, lang) {
   const sdb = statedb()
   const {admin, sid} = await statedb.init('./data.json')
   const data = sdb.get(sid)
+  admin.set_admins(data.admins)
   const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS
@@ -796,7 +797,7 @@ const db = localdb()
 Object.assign(STATE, { init })
 const s2i = {}
 const i2s = {}
-const admin_list = []
+var admins
 
 module.exports = STATE
 
@@ -804,15 +805,20 @@ async function init (url) {
   if (!STATE.init) throw new Error('already initialized')
   STATE.init = undefined
   Object.freeze(STATE)
-  const data = await (await fetch(url)).json()
-  await db.add(['defaults'], data)
-  const length = await db.length(['defaults'])
-  i2s[0] = Symbol(0)
+  let data = db.read(['state'])
+  if(!data){
+    data = await (await fetch(url)).json()
+    await db.add(['state'], data)
+  }
+  const length = await db.length(['state'])
   for (var id = 0; id < length; id++) s2i[i2s[id] = Symbol(id)] = id
-  const admin = { reset }
+  const admin = { reset, set_admins }
   return { sid: i2s[0], admin }
   async function reset () {
     await db.clear()
+  }
+  async function set_admins(ids) {
+    admins = ids.map(id => i2s[id])
   }
 }
 
@@ -827,33 +833,33 @@ function STATE () {
         data.sub[entry[0]] = []
         entry[1].forEach(id => {
           data.sub[entry[0]].push(i2s[id])
+          deny[i2s[id]] = true
         })
       }
       else{
         data.sub[entry[0]] = i2s[entry[1]]
+        deny[i2s[entry[1]]] = true
       }
     })
     return data
   }
   function get (sid) {
     if (deny[sid]) throw new Error('access denied')
-    const data = symbolfy(db.read(['defaults', s2i[sid]]))
-    if(data.admin)
-      admin_list.push(sid)
-    return data
+    return symbolfy(db.read(['state', s2i[sid]]))
   }
   function add (opts) {
     const id = db.length()
     s2i[i2s[id] = Symbol(id)] = id
-    db.add(['defaults', id], opts)
+    db.add(['state', id], opts)
     return id
   }
   function req_access(sid) {
-    if(admin_list.includes(sid))
+    if (deny[sid]) throw new Error('access denied')
+    if(admins.includes(sid))
       return { xget }
   }
   function xget(id) {
-    return symbolfy(db.read(['defaults', id]))
+    return db.read(['state', id])
   }
 }
 },{"localdb":16}],5:[function(require,module,exports){
@@ -985,7 +991,7 @@ async function contributor (opts) {
     }
     const sdb = statedb()
     const data = sdb.get(opts.sid)
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
+    const {send, css_id} = await IO({id: data.id, name: data.name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -1444,20 +1450,12 @@ async function footer (opts) {
 
 }).call(this)}).call(this,require('_process'),"/src/node_modules/footer.js")
 },{"STATE":4,"_process":1,"graphic":12,"io":14}],11:[function(require,module,exports){
-(function (process,__filename){(function (){
 const IO = require('io')
 const statedb = require('STATE')
 /******************************************************************************
   GRAPH COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 
@@ -1468,10 +1466,8 @@ async function graph_explorer (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const name = 'graph_explorer'
-  const id = `${ID}:${count++}` // assigns their own name
   const hub_id = opts.hub[0]
   const status = { tab_id: 0 }
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on = {
     init,
     inject,
@@ -1479,12 +1475,11 @@ async function graph_explorer (opts) {
     scroll
   }
 	const sdb = statedb()
-	const data = sdb.get(opts.sid)
-  const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
+	const main_data = sdb.get(opts.sid)
+  const {send, css_id} = await IO({id: main_data.id, name, type: 'comp', comp: name, hub: opts.hub, css: main_data.css}, on)
   const on_add = {
-    'io': add_io,
     'link': add_link,
-    'tasks': add_sub,
+    'tasks': add_entry,
   }
   // ----------------------------------------
   // TEMPLATE
@@ -1503,7 +1498,7 @@ async function graph_explorer (opts) {
   async function init ({ data }) {
     status.graph = data
     const root_nodes = Object.values(data).filter(node => !node.hub)
-    main.append(...root_nodes.map((data, i) => add_root({data, last: i === root_nodes.length - 1 })))
+    main.append(...root_nodes.map((data, i) => add_entry({data, last: i === root_nodes.length - 1 })))
   }
   function create_node (type, id) {
     const element = document.createElement('div')
@@ -1512,11 +1507,9 @@ async function graph_explorer (opts) {
     element.id = 'a'+id
     return element
   }
-  function html_template (data, last, space, grand_last){
+  function html_template (data, last, space){
     const element = create_node(data.type, data.id)
-    if(data.hub)
-      space += grand_last ? '&emsp;&emsp;' : '│&emsp;&nbsp;'
-    else
+    if(!data.hub)
       space = ''
     element.dataset.space = space
     element.dataset.grand_last = last ? 'a' : ''
@@ -1538,41 +1531,20 @@ async function graph_explorer (opts) {
     else
       parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
   }
-  function add_root ({ data, last }) {
-    [ element, last, space ] = html_template(data, last)
-    element.innerHTML = `
-      <div class="details">
-        ${last ? '└' : '├'}<span class="tas">📓─</span><span class="name">${data.name}</div>
-      </div>
-      <div class="tasks nodes">
-      </div>
-    `
-    const details = element.querySelector('.details > .name')
-    const sub_emo = element.querySelector('.details > .tas')
-    const tasks = element.querySelector('.tasks')
-    
-    let is_on
-    sub_emo.onclick = sub_click
-    details.onclick = () => {
-      send({ type: 'click', to: hub_id, data })
-    }
-    // element.onfocus = handle_focus
-    return element
-    function sub_click () {
-      sub_emo.innerHTML = is_on ? '📓─' : '📖┬'  
-      is_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on, grand_last: last, pos: false })
-    }
-  }
-  function add_sub ({ data, last, grand_last, space }) {
-    [ element, last, space ] = html_template(data, last, space, grand_last)
-    
+  function add_entry ({ data, first, last, space }) {
+    [ element, last, space ] = html_template(data, last, space)
     element.innerHTML = `
       <div class="hub nodes">
       </div>
       <div class="inputs nodes">
       </div>
       <div class="details">
-        ${space}${last ? '└' : '├'}<span class="hub_emo">📪</span><span class="tas">─📪</span><span class="inp">🗃</span><span class="out">─🗃</span><span class="name">${data.name}</span>
+        ${space}${last ? '└' : first ? "┌" : '├'}
+        <span class="hub_emo">${data.hub && data.hub.length ? main_data.hub_off : ''}</span>
+        <span class="tas">${data.sub && data.sub.length ? main_data.sub_off : ''}</span>
+        <span class="inp">${data.inputs && data.inputs.length ? main_data.in_off : ''}</span>
+        <span class="out">${data.outputs && data.outputs.length ? main_data.out_off : ''}</span>
+        <span class="name">${data.name}</span>
       </div>
       <div class="outputs nodes">
       </div>
@@ -1584,84 +1556,36 @@ async function graph_explorer (opts) {
     const sub_emo = element.querySelector('.details > .tas')
     const inp = element.querySelector('.details > .inp')
     const out = element.querySelector('.details > .out')
-    // const after = element.querySelector('.details > .after')
     const hub = element.querySelector('.hub')
     const outputs = element.querySelector('.outputs')
     const inputs = element.querySelector('.inputs')
     const tasks = element.querySelector('.tasks')
-    
-    let hub_on, sub_on, inp_on, out_on
-    hub_emo.onclick = hub_click
-    sub_emo.onclick = sub_click
-    inp.onclick = inp_click
-    out.onclick = out_click
+    details.onclick = () => send({ type: 'click', to: hub_id, data })
+    const els = []
+    space += last ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;'
+    data.hub && data.hub.length && els.push({el: hub, emo: hub_emo, el_data: data.hub, pos: true, type: 'link', of_emo: main_data.hub_on, on_emo: main_data.hub_off})
+    data.sub && data.sub.length && els.push({el: tasks, emo: sub_emo, el_data: data.sub, pos: false, of_emo: main_data.sub_on, on_emo: main_data.sub_off})
+    data.inputs && data.inputs.length && els.push({el: inputs, emo: inp, el_data: data.inputs, pos: true, of_emo: main_data.in_on, on_emo: main_data.in_off})  
+    data.outputs && data.outputs.length && els.push({el: outputs, emo: out, el_data: data.outputs, pos: false, of_emo: main_data.out_on, on_emo: main_data.out_off})
+    els.forEach(listen)
     return element
-    function hub_click () {
-      if(hub_on){
-        hub_emo.innerHTML = '📪'
-        sub_on ? sub_emo.innerHTML = '┬'+sub_emo.innerHTML.slice(1) : sub_emo.innerHTML = '─'+sub_emo.innerHTML.slice(1)
-      } else{
-        hub_emo.innerHTML = '📭'
-        sub_on ? sub_emo.innerHTML = '┼'+sub_emo.innerHTML.slice(1) : sub_emo.innerHTML = '┴'+sub_emo.innerHTML.slice(1)
+    async function listen({ el, emo, el_data, on, pos, type, on_emo, of_emo }, i) {
+      const gap = i ? space += '&emsp;&nbsp;&nbsp;' : space
+      emo.onclick = () => {
+        emo.innerHTML = on ? on_emo : of_emo
+        on = handle_click({ el, data: el_data, space: gap, is_on: on, pos, type })
       }
-      hub_on = handle_click({ el: hub, type: 'link', data: data.hub, space, is_on: hub_on, pos: true })
     }
-    function sub_click () {
-      if(sub_on){
-        hub_on ? sub_emo.innerHTML = '┴📪' : sub_emo.innerHTML = '─📪'
-      } else{
-        hub_on ? sub_emo.innerHTML = '┼📭' : sub_emo.innerHTML = '┬📭'
-      }
-      sub_on = handle_click({ el: tasks, type: 'tasks', data: data.sub, space, is_on: sub_on, grand_last: last, pos: false })
-    }
-    function inp_click () {
-      if(inp_on){
-        inp.innerHTML = '🗃'
-        out_on ? out.innerHTML = '┬'+out.innerHTML.slice(1) : out.innerHTML = '─'+out.innerHTML.slice(1)
-      } else{
-        inp.innerHTML = '🗂'
-        out_on ? out.innerHTML = '┼'+out.innerHTML.slice(1) : out.innerHTML = '┴'+out.innerHTML.slice(1)
-      }
-      inp_on = handle_click({ el: inputs, type: 'io', hub_id: data.id, data: data.inputs, space, is_on: inp_on, pos: true })
-    }
-    function out_click () {
-      if(out_on){
-        inp_on ? out.innerHTML = '┴🗃' : out.innerHTML = '─🗃'
-      } else{
-        inp_on ? out.innerHTML = '┼🗂' : out.innerHTML = '┬🗂'
-      }
-      out_on = handle_click({ el: outputs, type: 'io', data: data.outputs, space, is_on: out_on, pos: false })
-    }
-  }
-  function add_io ({ data, first, last, space }) {
-    const element = create_node('io', data.id)
-    const grand_space = space + '│&emsp;&nbsp;│&emsp;&emsp;&ensp;'
-    space += '│&emsp;&emsp;&emsp;&emsp;&ensp;'
-    element.innerHTML = `
-    <div class="details">
-      <span class="space">${space}</span><span class="grand_space">${grand_space}</span>${first ? '┌' : last ? '└' : '├'}</span><span class="btn">📥─</span><span class="name">${data.name}</span><span class="after">🔗</span>
-    </div>
-    <div class="tasks nodes">
-    </div>
-    `
-    const btn = element.querySelector('.details > .btn')
-    const name = element.querySelector('.details > .name')
-    const tasks = element.querySelector('.tasks')
-    btn.onclick = () => handle_click({ el: tasks, type: 'link', data: data.sub, space, pos: false })
-    name.onclick = () => send({ type: 'click', to: hub_id, data })
-    return element
   }
   function add_link ({ data, first, last, space }) {
     const element = document.createElement('div')
     element.classList.add('next', 'node')
     element.dataset.id = data.id
-    space += '│&emsp;&nbsp;'
     element.innerHTML = `
       <div class="details">
         ${space}${last ? '└' : first ? '┌' : '├'} ${data.name}
       </div>`
     element.onclick = jump
-    
     return element
   }
   async function add_node_data (name, type, parent_id, users, author){
@@ -1728,11 +1652,11 @@ async function graph_explorer (opts) {
       el.classList.remove('show')
     }, { once: true })
   }
-  function handle_click ({ el, type, data, space, is_on, grand_last, pos, hub_id }) {
+  function handle_click ({ el, data, space, is_on, pos, hub_id, type = 'tasks' }) {
     el.classList.toggle('show')
     if(data && el.children.length < 1){
       length = data.length - 1
-      data.forEach((value, i) => el.append(on_add[type]({ data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space, grand_last })))
+      data.forEach((value, i) => el.append(on_add[type]({ data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space })))
     }
     return !is_on
   }
@@ -1830,65 +1754,6 @@ async function graph_explorer (opts) {
   /******************************************
    Communication
   ******************************************/
-  async function open_chat () {
-    const node = graph[Number(state.xtask.id.slice(1))]
-    channel_up.send({
-      head: [id, channel_up.send.id, channel_up.mid++],
-      type: 'open_chat',
-      data: node
-    })
-    
-    if(state.chat_task)
-      state.chat_task.classList.remove('chat_active')
-    state.chat_task = state.xtask
-    state.chat_task.classList.add('chat_active')
-  }
-  async function save_msg (msg) {
-    const {data} = msg
-    msg.data = data.content,
-    msg.meta = {
-        date: new Date().getTime()
-      }
-    msg.refs = ''
-    const node = graph[Number(data.chat_id)]
-    const username = data.username === host ? '' : data.username
-    node.room[username] ? node.room[username].push(msg) : node.room[username] = [msg]
-    const channel = state.net[state.aka.taskdb]
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'set',
-      data: graph
-    })
-  }
-  async function handle_invite ({ sender, task_id }) {
-    const node = graph[Number(task_id)]
-    node.users.push(sender)
-    channel_up.send({
-      head: [id, channel_up.send.id, channel_up.mid++],
-      type: 'send',
-      data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: [sender], type: 'on_invite', data: node }
-    })
-  }
-  async function on_invite (data) {
-    const {name, id, type} = data
-    tree_el.prepend(add_sub({ name, id, type }))
-    status.graph.push(data)
-  }
-  async function sx ({ data }) {
-    const {to, route} = data
-    if(to === state.name){
-      const {type, data: shuttle_data} = data
-      on[type](shuttle_data)
-      return
-    }
-    const channel = state.net[state.aka[route[0]]]
-    data.route = data.route.slice(1)
-    channel.send({
-      head: [id, channel.send.id, channel.mid++],
-      type: 'send',
-      data
-    })
-  }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
     const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -1924,8 +1789,7 @@ async function graph_explorer (opts) {
     return theme_css
   }
 }
-}).call(this)}).call(this,require('_process'),"/src/node_modules/graph_explorer.js")
-},{"STATE":4,"_process":1,"io":14}],12:[function(require,module,exports){
+},{"STATE":4,"io":14}],12:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -2080,7 +1944,7 @@ async function io(data, on) {
   ports[id] = { id, name: data.name, on}
   data.hub && graph[data.hub[0]].sub.push(id)
   graph[id] = { id, ...data, sub: [] }
-  if(Object.keys(ports).length === 33)
+  if(Object.keys(ports).length === 34)
     init()
   return {send, css_id: id}
 
@@ -2241,7 +2105,7 @@ async function our_contributors (opts) {
     // ----------------------------------------
     const el = document.createElement('div')
     const shadow = el.attachShadow(shopts)
-    refresh()
+    await refresh()
     return el
 
     async function refresh() {
@@ -3130,7 +2994,6 @@ async function theme_widget (opts) {
   async function refresh ({ data }) {
     let id = Object.keys(data).length
     const themes_id = id++
-    console.log(data)
     data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: []}
     Object.entries(paths).forEach(entry => {
       const theme_id = id
@@ -3162,11 +3025,18 @@ async function theme_widget (opts) {
         node.inputs.push(id++)
       }
     })
+    console.log(data)
     status.tree = data
     stats.innerHTML = `Entries: ${Object.keys(data).length}`
     send({type: 'init', to: 'graph_explorer' , data})
   }
   async function click ({ data }) {
+    if(data.type === 'css')
+      send({to: 'theme_editor', type: 'init_tab', data: {id: data.name, local: data.local, hub_id: data.hub_id, theme: status.tree[data.hub[0]].name}})
+    else if(data.type === 'json')
+      send({ to: 'theme_editor', type: 'init', data })
+    else
+      return
     status.active_el && status.active_el.classList.remove('active')
     if(status.instance_id === data.id)
       editor.classList.toggle('active')
@@ -3176,11 +3046,6 @@ async function theme_widget (opts) {
     }
     status.instance_id = data.id
     status.active_el = el
-    console.log(data)
-    if(data.type === 'css')
-      send({to: 'theme_editor', type: 'init_tab', data: {id: data.name, local: data.local, hub_id: data.hub_id, theme: status.tree[data.hub[0]].name}})
-    else
-      send({ to: 'theme_editor', type: 'init', data })
   }
   async function find_id(name, type) {
     const node = Object.values(status.tree).filter(node => node.name === name && node.type === type)[0]
