@@ -827,21 +827,23 @@ function STATE () {
   const deny = {}
   return sdb
 
-  function symbolfy(data) {
-    data.sub && Object.entries(data.sub).forEach(entry =>{
-      if(typeof(entry[1]) === 'object'){
-        data.sub[entry[0]] = []
-        entry[1].forEach(id => {
-          data.sub[entry[0]].push(i2s[id])
+  function symbolfy (data) {
+    data.sub && Object.entries(data.sub).forEach(assign)
+    return data
+
+    function assign([comp, ids]){
+      if(typeof(ids) === 'object'){
+        data.sub[comp] = []
+        ids.forEach(id => {
+          data.sub[comp].push(i2s[id])
           deny[i2s[id]] = true
         })
       }
       else{
-        data.sub[entry[0]] = i2s[entry[1]]
-        deny[i2s[entry[1]]] = true
+        data.sub[comp] = i2s[ids]
+        deny[i2s[ids]] = true
       }
-    })
-    return data
+    }
   }
   function get (sid) {
     if (deny[sid]) throw new Error('access denied')
