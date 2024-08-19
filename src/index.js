@@ -33,6 +33,7 @@ async function make_page(opts, lang) {
   const sdb = statedb()
   const {admin, sid} = await statedb.init('./data.json')
   const data = sdb.get(sid)
+  admin.set_admins(data.admins)
   const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
   // OPTS

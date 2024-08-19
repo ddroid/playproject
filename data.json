@@ -11,7 +11,10 @@
       "supporters": "7",
       "our_contributors": "8",
       "footer": "9"
-    }
+    },
+    "admins": [
+      "11"
+    ]
   },
   "11": {
     "id": "11",
@@ -20,7 +23,15 @@
   },
   "10": {
     "id": "10",
-    "comp": "graph_explorer"
+    "comp": "graph_explorer",
+    "hub_off": "📪",
+    "hub_on": "📭",
+    "sub_off": "📪",
+    "sub_on": "📭",
+    "in_off": "🗃",
+    "in_on": "🗂",
+    "out_off": "🗃",
+    "out_on": "🗂"
   },
   "1": {
     "id": "1",
@@ -429,5 +440,40 @@
     },
     "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
     "avatar": "./src/node_modules/assets/images/avatar-helen.png"
+  },
+  "34": {
+    "id": "34",
+    "comp": "crystalIsland",
+    "date": "2015 - today",
+    "info": "Various private donations & volunteering",
+    "deco" : ["yellowCrystal", "card", "tree"]
+  },
+  "35": {
+    "id": "35",
+    "comp": "crystalIsland",
+    "date": "2018",
+    "info": "$48.000 / Ethereum Foundation",
+    "deco" : ["stone", "card", "tree1"]
+  },
+  "36": {
+    "id": "36",
+    "comp": "crystalIsland",
+    "date": "2020",
+    "info": "€30.000 / Web3 Foundation",
+    "deco" : ["purpleCrystal", "card", "tree2"]
+  },
+  "37": {
+    "id": "37",
+    "comp": "crystalIsland",
+    "date": "2022",
+    "info": "DOT 5530 / Polkadot Treasury Fund",
+    "deco" : ["blueCrystal", "card", "tree3"]
+  },
+  "38": {
+    "id": "38",
+    "comp": "crystalIsland",
+    "date": "2022",
+    "info": "DOT 5530 / Polkadot Treasury Fund",
+    "deco" : ["blueCrystal", "card", "tree3"]
   }
 }
