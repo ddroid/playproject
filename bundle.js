@@ -1645,11 +1645,15 @@ async function graph_explorer (opts) {
     if(getComputedStyle(type_emo, '::before').content === 'none')
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
 
-    let slot_on
+    let slot_on, timer
     type_emo.onclick = () => {
       slot_on = !slot_on
-      if(slot_on)
-        setTimeout(() => type_emo.click(), 4000)
+      if(timer){
+        clearTimeout(timer)
+        timer = null
+      }
+      else if(slot_on)
+        timer = setTimeout(() => type_emo.click(), 4000)
       details.classList.toggle('on')
       els.forEach((args, i) => {
         if(!args.emo.classList.contains('on'))
