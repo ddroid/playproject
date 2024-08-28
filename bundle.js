@@ -1469,12 +1469,16 @@ async function graph_explorer (opts) {
   // ----------------------------------------
   const name = 'graph_explorer'
   const hub_id = opts.hub[0]
-  const status = { tab_id: 0, count: 0 }
+  const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
   const on = {
     init,
     inject,
     inject_all,
     scroll
+  }
+  const on_add = {
+    entry: add_entry,
+    menu: add_action
   }
 	const sdb = statedb()
 	const main_data = sdb.get(opts.sid)
@@ -1490,14 +1494,14 @@ async function graph_explorer (opts) {
   </main>
   `
   const main = shadow.querySelector('main')
-  shadow.addEventListener('copy', handleClipboard)
+  shadow.addEventListener('copy', copy)
 
   init_css()
   return el
 
 
 
-  function handleClipboard (e) {
+  function copy (e) {
     const selection = shadow.getSelection()
     const range = selection.getRangeAt(0)
     const selectedElements = []
@@ -1506,14 +1510,14 @@ async function graph_explorer (opts) {
       NodeFilter.SHOW_ELEMENT,
       {
           acceptNode: function(node) {
-              return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+              return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
           }
       },
       false
     );
 
     while (walker.nextNode()) {
-        walker.currentNode.tagName === 'SPAN' && selectedElements.push(walker.currentNode);
+        walker.currentNode.tagName === 'SPAN' && selectedElements.push(walker.currentNode)
     }
     let text = ''
     selectedElements.forEach(el => {
@@ -1526,9 +1530,21 @@ async function graph_explorer (opts) {
   }
 
   async function init ({ data }) {
+    let id = Object.keys(data).length
+
+    add({ id, name: 'edit', type: 'action', hub: [] })
+    add({ id, name: 'link', type: 'action', hub: [] })
+    add({ id, name: 'unlink', type: 'action', hub: [] })
+    add({ id, name: 'drop', type: 'action', hub: [] })
+    
+
     status.graph = data
     const root_nodes = Object.values(data).filter(node => !node.hub)
-    main.append(...root_nodes.map((data, i) => add_entry({data, last: i === root_nodes.length - 1 })))
+    root_nodes.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_nodes.length - 1 }))
+    function add (args){
+      status.menu_ids.push(args.id)
+      data[id++] = args
+    }
   }
   function create_node (type, id) {
     const element = document.createElement('div')
@@ -1560,75 +1576,107 @@ async function graph_explorer (opts) {
   //     parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
   // }
 
-  //A button with 4 slots for sub nodes, data entity
-  function add_entry ({ data, first, last, space = '' }) {
+  function add_action ({ hub_el, data, first, last, space = '' }) {
     [ element, last, space ] = html_template(data, last, space)
+    hub_el.append(element)
+    !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
+
     element.innerHTML = `
-      <style class="hi"></style>
-      <style class="lo"></style>
-      <div class="hub nodes">
-      </div>
-      <div class="inputs nodes">
-      </div>
+    <div class="details">
+      <span class="odd">${space}</span>
+      <span class="type_emo odd"></span>
+      <span class="name odd">${data.name}</span>
+    </div>
+    `
+    const name = element.querySelector('.details > .name')
+    name.onclick = () => send({ type: 'click', to: hub_id, data })
+
+  }
+  //A button with 4 slots for sub nodes, data entity
+  function add_entry ({ hub_el, data, first, last, space = '' }) {
+    [ element, last, space ] = html_template(data, last, space)
+    hub_el.append(element)
+    !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
+
+    element.innerHTML = `
+      <div class="hub nodes"></div>
+      <div class="inputs nodes"></div>
       <div class="details">
-        <span>${space}${last ? '└' : first ? "┌" : '├'}</span>
+        <span class="odd">${space}${last ? '└' : first ? "┌" : '├'}</span>
         ${data?.hub?.length ? '<span class="hub_emo"></span>' : ''}
         ${data?.sub?.length ? '<span class="sub_emo"></span>' : ''}
         ${data?.inputs?.length ? '<span class="inp"></span>' : ''}
         ${data?.outputs?.length ? '<span class="out"></span>' : ''}
-        <span class="name">${data.name}</span>
+        <span class="menu_emo"></span>
+        <span class="type_emo odd"></span>
+        <span class="name odd">${data.name}</span>
       </div>
-      <div class="outputs nodes">
-      </div>
-      <div class="sub nodes">
-      </div>
+      <div class="menu nodes"></div>
+      <div class="outputs nodes"></div>
+      <div class="sub nodes"></div>
     `
-    const details = element.querySelector('.details > .name')
+    const details = element.querySelector('.details')
+    const name = element.querySelector('.details > .name')
     const hub_emo = element.querySelector('.details > .hub_emo')
     const sub_emo = element.querySelector('.details > .sub_emo')
     const inp = element.querySelector('.details > .inp')
     const out = element.querySelector('.details > .out')
+    const menu_emo = element.querySelector('.details > .menu_emo')
+    const type_emo = element.querySelector('.details > .type_emo')
     const hub = element.querySelector('.hub')
     const outputs = element.querySelector('.outputs')
     const inputs = element.querySelector('.inputs')
     const sub = element.querySelector('.sub')
-    const style_hi = element.querySelector('style.hi')
-    const style_lo = element.querySelector('style.lo')
+    const menu = element.querySelector('.menu')
 
-    details.onclick = () => send({ type: 'click', to: hub_id, data })
+    name.onclick = () => send({ type: 'click', to: hub_id, data })
     let lo_space = space + (last ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
     let hi_space = space + (first ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
-    const lo_space_len = lo_space.length
-    const hi_space_len = hi_space.length
-    const count = status.count++
-    data?.hub?.length && listen({el: hub, emo: hub_emo, data: data.hub, pos: true})
-    data?.sub?.length && listen({el: sub, emo: sub_emo, data: data.sub, pos: false})
-    data?.inputs?.length && listen({el: inputs, emo: inp, data: data.inputs, pos: true, type: 'input'})  
-    data?.outputs?.length && listen({el: outputs, emo: out, data: data.outputs, pos: false, type: 'output'})
-    
-    return element
+    const space_handle = []
+    const els = []
 
-    async function listen({ emo, pos, type, on, ...rest }, i) {
-      let gap = pos ? hi_space : lo_space
-      if(emo.classList.contains('inp')){
-        gap = gap.slice(0, hi_space_len) + `<span class="hi_space${count}">&emsp;</span><span class="hi_xpace${count}">│&nbsp;</span>`+gap.slice(hi_space_len + 6)
-        style_hi.innerHTML = `.hi_xpace${count}{display: none;}`
+    data?.hub?.length && els.push({el: hub, emo: hub_emo, data: data.hub, pos: true})
+    data?.sub?.length && els.push({el: sub, emo: sub_emo, data: data.sub, pos: false})
+    data?.inputs?.length && els.push({el: inputs, emo: inp, data: data.inputs, pos: true})  
+    data?.outputs?.length && els.push({el: outputs, emo: out, data: data.outputs, pos: false})
+    els.push({el: menu, emo: menu_emo, data: status.menu_ids, pos: false, type: 'menu'})
+    els.forEach(listen)
+
+    if(getComputedStyle(type_emo, '::before').content === 'none')
+      type_emo.innerHTML = `[${status.entry_types[data.type]}]`
+
+    let slot_on
+    type_emo.onclick = () => {
+      slot_on = !slot_on
+      if(slot_on)
+        setTimeout(() => type_emo.click(), 4000)
+      details.classList.toggle('on')
+      els.forEach((args, i) => {
+        if(!args.emo.classList.contains('on'))
+          space_handle[i]()
+      })
+    }
+
+    async function listen({ emo, pos, on, ...rest }, i) {
+      const count = status.count++
+      const gap = pos ? hi_space : lo_space
+      const mode = pos ? 'hi' : 'lo'
+      const style = document.createElement('style')
+      element.append(style)
+      if(pos){
+        hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span>&nbsp;&nbsp;</span>`
+        lo_space += `<span class="space${count}">&nbsp;&nbsp;&nbsp;</span>`
       }
-      else if(emo.classList.contains('out')){
-        gap = gap.slice(0, lo_space_len) + `<span class="lo_space${count}">&emsp;</span><span class="lo_xpace${count}">│&nbsp;</span>`+gap.slice(lo_space_len + 6)
-        style_lo.innerHTML = `.lo_xpace${count}{display: none;}`
+      else{
+        lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span>&nbsp;&nbsp;</span>`
+        hi_space += `<span class="space${count}">&nbsp;&nbsp;&nbsp;</span>`
       }
-      hi_space += '&emsp;&nbsp;&nbsp;'
-      lo_space += '&emsp;&nbsp;&nbsp;'
       emo.onclick = () => {
-        console.log(gap)
         emo.classList.toggle('on')
-        if(emo.classList.contains('hub_emo'))
-          style_hi.innerHTML = `.hi_${on ? 'x' : 's'}pace${count}{display: none;}`
-        else if(emo.classList.contains('sub_emo'))
-          style_lo.innerHTML = `.lo_${on ? 'x' : 's'}pace${count}{display: none;}`
+        style.innerHTML = `.space${count} > .${on ? 'x' : ''}${mode}{display: none;}`
         on = handle_click({space: gap, is_on: on, pos, ...rest })
       }
+      space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
     }
   }
   // async function add_node_data (name, type, parent_id, users, author){
@@ -1695,11 +1743,11 @@ async function graph_explorer (opts) {
       el.classList.remove('show')
     }, { once: true })
   }
-  function handle_click ({ el, data, space, is_on, pos, hub_id }) {
+  function handle_click ({ el, data, space, is_on, pos, hub_id, type = 'entry' }) {
     el.classList.toggle('show')
     if(data && el.children.length < 1){
       length = data.length - 1
-      data.forEach((value, i) => el.append(add_entry({ data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space })))
+      data.forEach((value, i) => on_add[type]({ hub_el: el, data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space }))
     }
     return !is_on
   }
@@ -2967,7 +3015,7 @@ async function theme_widget (opts) {
   // ----------------------------------------
   const name = 'theme_widget'
   const id = `${ID}:${count++}` // assigns their own name
-  const status = { tab_id: 0 }
+  const status = { tab_id: 0, init_check: true }
   const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on = {
     refresh,
@@ -3017,7 +3065,11 @@ async function theme_widget (opts) {
 
   editor.append(await theme_editor({ sid: data.sub.theme_editor, hub: [css_id], paths }))
   box.prepend(await graph_explorer({ sid: data.sub.graph_explorer, hub: [css_id] }))
-  btn.onclick = () => popup.classList.toggle('active')
+  btn.onclick = () => {
+    popup.classList.toggle('active')
+    status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
+    status.init_check = false
+  }
   select.onclick = on_select
   slider.oninput = blur
   init_css()
@@ -3076,7 +3128,6 @@ async function theme_widget (opts) {
     console.log(data)
     status.tree = data
     stats.innerHTML = `Entries: ${Object.keys(data).length}`
-    send({type: 'init', to: 'graph_explorer' , data})
   }
   async function click ({ data }) {
     if(data.type === 'css')
