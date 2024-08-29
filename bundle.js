@@ -686,7 +686,14 @@ process.umask = function() { return 0; };
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],3:[function(require,module,exports){
+module.exports={
+  "admins": [
+    "theme_editor"
+  ]
+}
+},{}],4:[function(require,module,exports){
 const IO = require('io')
+const default_data = require('./data.json')
 const modules = {
  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
@@ -719,8 +726,12 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const sdb = statedb()
-  const {admin, sid} = await statedb.init('./data.json')
-  const data = sdb.get(sid)
+  let {admin, sid} = await statedb.init('./d.json')
+  let data = sdb.get(sid)
+  if(!data){
+    const {id} = sdb.add(default_data)
+    data = {...default_data, id}
+  }
   admin.set_admins(data.admins)
   const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
@@ -752,7 +763,7 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await entry[1]({ sid: data.sub[entry[0]], hub: [css_id] }))
+    shadow.append(await entry[1]({ sid: data.sub[entry[0]]?.[0], hub: [css_id] }))
     return el
   })))
   init_css()
@@ -789,7 +800,7 @@ async function make_page(opts, lang) {
 }
 
 
-},{"STATE":4,"datdot":8,"editor":9,"footer":10,"header":13,"io":14,"our_contributors":17,"smartcontract_codes":18,"supporters":19,"theme_widget":21,"topnav":22}],4:[function(require,module,exports){
+},{"./data.json":3,"STATE":5,"datdot":12,"editor":14,"footer":16,"header":21,"io":22,"our_contributors":26,"smartcontract_codes":28,"supporters":30,"theme_widget":34,"topnav":36}],5:[function(require,module,exports){
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
@@ -807,10 +818,11 @@ async function init (url) {
   Object.freeze(STATE)
   let data = db.read(['state'])
   if(!data){
-    data = await (await fetch(url)).json()
-    await db.add(['state'], data)
+    const resp = await fetch(url)
+    data = resp.ok && await (resp).json()
+    db.add(['state'], data || {})
   }
-  const length = await db.length(['state'])
+  const length = db.length(['state'])
   for (var id = 0; id < length; id++) s2i[i2s[id] = Symbol(id)] = id
   const admin = { reset, set_admins }
   return { sid: i2s[0], admin }
@@ -818,7 +830,7 @@ async function init (url) {
     await db.clear()
   }
   async function set_admins(ids) {
-    admins = ids.map(id => i2s[id])
+    admins = ids
   }
 }
 
@@ -828,7 +840,7 @@ function STATE () {
   return sdb
 
   function symbolfy (data) {
-    data.sub && Object.entries(data.sub).forEach(assign)
+    data?.sub && Object.entries(data.sub).forEach(assign)
     return data
 
     function assign([comp, ids]){
@@ -849,37 +861,36 @@ function STATE () {
     if (deny[sid]) throw new Error('access denied')
     return symbolfy(db.read(['state', s2i[sid]]))
   }
-  function add (opts) {
-    const id = db.length()
+  function add (opts, hub) {
+    const id = db.length(['state'])
     s2i[i2s[id] = Symbol(id)] = id
+    opts.sub = {}
     db.add(['state', id], opts)
-    return id
+    if(hub){
+      if(!db.read(['state', hub, 'sub', opts.comp]))
+        db.add(['state', hub, 'sub', opts.comp], [])
+      db.push(['state', hub, 'sub', opts.comp], id)
+    }
+    return {id, sid: i2s[id]}
   }
   function req_access(sid) {
     if (deny[sid]) throw new Error('access denied')
-    if(admins.includes(sid))
+    const el = db.read(['state', s2i[sid]])
+    if(admins.includes(el.comp))
       return { xget }
   }
   function xget(id) {
     return db.read(['state', id])
   }
 }
-},{"localdb":16}],5:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"localdb":24}],6:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   CONTENT COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const sheet = new CSSStyleSheet
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = content
@@ -889,16 +900,18 @@ async function content (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'content'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
       inject,
       inject_all,
       scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // TEMPLATE
@@ -907,7 +920,6 @@ async function content (opts) {
     const style = document.createElement('style')
     el.classList.add('content')
     const shadow = el.attachShadow(shopts)
-    shadow.adoptedStyleSheets = [sheet]
     shadow.innerHTML = `
     <div class="main">
         <h2 class="subTitle subTitleColor">${data.title}</h2>
@@ -956,23 +968,23 @@ async function content (opts) {
     }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/content.js")
-},{"STATE":4,"_process":1,"io":14}],6:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":7,"STATE":5,"io":22}],7:[function(require,module,exports){
+module.exports={
+  "comp": "content",
+  "title": "Play Editor",
+  "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
+  "action": "Learn more",
+  "url": "https://smartcontract-codes.github.io/play-ed/"
+}
+},{}],8:[function(require,module,exports){
 const Graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   CONTRIBUTOR COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = contributor
@@ -982,9 +994,7 @@ async function contributor (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'contributor'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const lifeIsland = await Graphic('lifeIsland','./src/node_modules/assets/svg/life-island.svg')
     const on = {
       inject,
@@ -992,7 +1002,11 @@ async function contributor (opts) {
       scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name: data.name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // TEMPLATE
@@ -1056,8 +1070,20 @@ async function contributor (opts) {
 
 
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/contributor.js")
-},{"STATE":4,"_process":1,"graphic":12,"io":14}],7:[function(require,module,exports){
+},{"./data.json":9,"STATE":5,"graphic":19,"io":22}],9:[function(require,module,exports){
+module.exports={
+  "name": "Nina",
+  "comp": "contributor",
+  "careers": ["Decentralized tech"],
+  "contact": {
+    "twitter": "",
+    "github": "",
+    "website": ""
+  },
+  "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+  "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
+}
+},{}],10:[function(require,module,exports){
 (function (process,__filename){(function (){
 /******************************************************************************
   SUPPORTERS COMPONENT
@@ -1109,24 +1135,23 @@ async function crystalIsland({date, info}, deco, island, title) {
 
 module.exports = crystalIsland
 }).call(this)}).call(this,require('_process'),"/src/node_modules/crystalIsland.js")
-},{"_process":1}],8:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"_process":1}],11:[function(require,module,exports){
+module.exports={
+  "comp": "datdot",
+  "logo": "",
+  "image": ""
+}
+},{}],12:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   DATDOT COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = datdot
@@ -1136,16 +1161,18 @@ async function datdot (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'datdot'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
       inject,
       inject_all,
       scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -1178,7 +1205,7 @@ async function datdot (opts) {
     </section>
     `
     const main = shadow.querySelector('section')
-    main.append(await content({ sid: data.sub.content, hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+    main.append(await content({ sid: data.sub?.content?.[0], hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
     
     init_css()
     return el
@@ -1218,25 +1245,23 @@ async function datdot (opts) {
       return theme_css
     }
 }
-}).call(this)}).call(this,require('_process'),"/src/node_modules/datdot.js")
-},{"STATE":4,"_process":1,"content":5,"graphic":12,"io":14,"rellax":2}],9:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":11,"STATE":5,"content":6,"graphic":19,"io":22,"rellax":2}],13:[function(require,module,exports){
+module.exports={
+  "comp": "editor",
+  "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
+  "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"  
+}
+},{}],14:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   EDITOR COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = editor
@@ -1246,16 +1271,18 @@ async function editor (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'editor'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
         inject,
         inject_all,
         scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -1304,7 +1331,7 @@ async function editor (opts) {
     // ----------------------------------------
     const main = shadow.querySelector('section')
     main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-    main.prepend(await Content({ sid: data.sub.content, hub: [css_id] }))
+    main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
     
     init_css()
     return el
@@ -1345,23 +1372,46 @@ async function editor (opts) {
   }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/editor.js")
-},{"STATE":4,"_process":1,"content":5,"graphic":12,"io":14,"rellax":2}],10:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":13,"STATE":5,"content":6,"graphic":19,"io":22,"rellax":2}],15:[function(require,module,exports){
+module.exports={
+  "comp": "footer",
+  "copyright": " PlayProject",
+  "icons": [
+    {
+      "id": "1",
+      "name": "email",
+      "imgURL": "./src/node_modules/assets/svg/email.svg",
+      "url": "mailto:ninabreznik@gmail.com"
+    },
+    {
+      "id": "2",
+      "name": "twitter",
+      "imgURL": "./src/node_modules/assets/svg/twitter.svg",
+      "url": "https://twitter.com/playproject_io"
+    },
+    {
+      "id": "3",
+      "name": "Github",
+      "imgURL": "./src/node_modules/assets/svg/github.svg",
+      "url": "https://github.com/playproject-io"
+    },
+    {
+      "id": "4",
+      "name": "Gitter",
+      "imgURL": "./src/node_modules/assets/svg/gitter.svg",
+      "url": "https://gitter.im/playproject-io/community"
+    }
+  ]
+}
+},{}],16:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   APP FOOTER COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = footer
@@ -1371,16 +1421,18 @@ async function footer (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'footer'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
         inject,
         inject_all,
         scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -1450,10 +1502,14 @@ async function footer (opts) {
     }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/footer.js")
-},{"STATE":4,"_process":1,"graphic":12,"io":14}],11:[function(require,module,exports){
+},{"./data.json":15,"STATE":5,"graphic":19,"io":22}],17:[function(require,module,exports){
+module.exports={
+  "comp": "graph_explorer"
+}
+},{}],18:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   GRAPH COMPONENT
 ******************************************************************************/
@@ -1481,7 +1537,11 @@ async function graph_explorer (opts) {
     menu: add_action
   }
 	const sdb = statedb()
-	const main_data = sdb.get(opts.sid)
+	let main_data = sdb.get(opts.sid)
+  if(!main_data){
+    const {id} = sdb.add(default_data, opts.hub)
+    main_data = {...default_data, id}
+  }
   const {send, css_id} = await IO({id: main_data.id, name, type: 'comp', comp: name, hub: opts.hub, css: main_data.css}, on)
   // ----------------------------------------
   // TEMPLATE
@@ -1646,7 +1706,9 @@ async function graph_explorer (opts) {
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
 
     let slot_on, timer
-    type_emo.onclick = () => {
+    type_emo.onclick = type_click
+
+    async function type_click() {
       slot_on = !slot_on
       if(timer){
         clearTimeout(timer)
@@ -1660,8 +1722,7 @@ async function graph_explorer (opts) {
           space_handle[i]()
       })
     }
-
-    async function listen({ emo, pos, on, ...rest }, i) {
+    async function listen({ emo, pos, emo_on, ...rest }, i) {
       const count = status.count++
       const gap = pos ? hi_space : lo_space
       const mode = pos ? 'hi' : 'lo'
@@ -1677,8 +1738,10 @@ async function graph_explorer (opts) {
       }
       emo.onclick = () => {
         emo.classList.toggle('on')
-        style.innerHTML = `.space${count} > .${on ? 'x' : ''}${mode}{display: none;}`
-        on = handle_click({space: gap, is_on: on, pos, ...rest })
+        style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
+        emo_on && space_handle[i]()
+        emo_on = !emo_on
+        handle_click({space: gap, pos, ...rest })
       }
       space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
     }
@@ -1747,13 +1810,12 @@ async function graph_explorer (opts) {
       el.classList.remove('show')
     }, { once: true })
   }
-  function handle_click ({ el, data, space, is_on, pos, hub_id, type = 'entry' }) {
+  function handle_click ({ el, data, space, pos, hub_id, type = 'entry' }) {
     el.classList.toggle('show')
     if(data && el.children.length < 1){
       length = data.length - 1
       data.forEach((value, i) => on_add[type]({ hub_el: el, data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space }))
     }
-    return !is_on
   }
   async function handle_export () {
     const data = await traverse( state.xtask.id.slice(1) )
@@ -1886,7 +1948,7 @@ async function graph_explorer (opts) {
     return theme_css
   }
 }
-},{"STATE":4,"io":14}],12:[function(require,module,exports){
+},{"./data.json":17,"STATE":5,"io":22}],19:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -1903,23 +1965,21 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":15}],13:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"loadSVG":23}],20:[function(require,module,exports){
+module.exports={
+  "comp": "header",
+  "title": "Infrastructure for the next-generation Internet"
+}
+},{}],21:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   HEADER COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = header
@@ -1929,16 +1989,18 @@ async function header (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'header'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
       inject,
       inject_all,
       scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -2027,11 +2089,10 @@ async function header (opts) {
 }
 
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/header.js")
-},{"STATE":4,"_process":1,"graphic":12,"io":14,"rellax":2}],14:[function(require,module,exports){
+},{"./data.json":20,"STATE":5,"graphic":19,"io":22,"rellax":2}],22:[function(require,module,exports){
 const ports = {}
 const graph = {}
-
+let timer
 module.exports = io
 async function io(data, on) {
   const on_rx = {
@@ -2041,8 +2102,8 @@ async function io(data, on) {
   ports[id] = { id, name: data.name, on}
   data.hub && graph[data.hub[0]].sub.push(id)
   graph[id] = { id, ...data, sub: [] }
-  if(Object.keys(ports).length === 34)
-    init()
+  timer && clearTimeout(timer)
+  timer = setTimeout(init, 1000)
   return {send, css_id: id}
 
   async function send(data) {
@@ -2056,7 +2117,7 @@ async function io(data, on) {
     ports[await find_id('theme_widget')].on['refresh']({ data: graph})
   }
 }
-},{}],15:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -2069,7 +2130,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],16:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -2080,7 +2141,7 @@ function localdb () {
 
   function length (keys) {
     if(keys) {
-      data = JSON.parse(localStorage[keys[0]])
+      data = JSON.parse(localStorage[keys[0]] || '{}')
       let temp = data
       keys.slice(1, -1).forEach(key => {
         temp = temp[key]
@@ -2116,7 +2177,7 @@ function localdb () {
   }
   function read (keys) {
     let data = localStorage[keys[0]] && JSON.parse(localStorage[keys[0]])
-    keys.slice(1).forEach(key => {
+    data && keys.slice(1).forEach(key => {
       data = data[key]
     })
     return data
@@ -2138,25 +2199,27 @@ function localdb () {
       delete(localStorage[keys[0]])
   }
 }
-},{}],17:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{}],25:[function(require,module,exports){
+module.exports={
+  "comp": "our_contributors",
+  "sub": {
+    "contributor": [
+      "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"
+    ]
+  }
+}
+},{}],26:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
 const Contributor = require('contributor')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = our_contributors
@@ -2166,9 +2229,7 @@ async function our_contributors (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'our_contributors'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
         inject,
         inject_all,
@@ -2176,7 +2237,12 @@ async function our_contributors (opts) {
         refresh
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id, sid} = sdb.add(JSON.parse(JSON.stringify(default_data)), opts.hub)
+      opts.sid = sid
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -2206,9 +2272,9 @@ async function our_contributors (opts) {
     return el
 
     async function refresh() {
-      const data = sdb.get(opts.sid)
+      const xdata = sdb.get(opts.sid)
       const temp = []
-      for (const sid of data.sub.contributor){
+      for (const sid of xdata.sub.contributor || data.sub.contributor){
           temp.push(await Contributor({sid, hub: [css_id]}))
       }
       const contributors = await Promise.all(temp)
@@ -2229,7 +2295,7 @@ async function our_contributors (opts) {
       const groups = shadow.querySelector('.groups')
       const main = shadow.querySelector('section')
       groups.append(...contributors.map(el => el.classList.add('group') || el))
-      main.prepend(await Content({ sid: data.sub.content, hub: [css_id] }))
+      main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
       inner.append(island, cloud1, cloud2, cloud3)
       init_css()
     }
@@ -2268,24 +2334,22 @@ async function our_contributors (opts) {
       return theme_css
     }
 }
-}).call(this)}).call(this,require('_process'),"/src/node_modules/our_contributors.js")
-},{"STATE":4,"_process":1,"content":5,"contributor":6,"graphic":12,"io":14,"rellax":2}],18:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":25,"STATE":5,"content":6,"contributor":8,"graphic":19,"io":22,"rellax":2}],27:[function(require,module,exports){
+module.exports={
+ "comp": "smartcontract_codes",
+  "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
+  "image": "./src/node_modules/assets/images/smart-contract-codes.jpg" 
+}
+},{}],28:[function(require,module,exports){
 const graphic = require('graphic')
 const Content = require('content')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   SMARTCONTRACT-CODES COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const sheet = new CSSStyleSheet
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = smartcontract_codes
@@ -2295,16 +2359,18 @@ async function smartcontract_codes (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'smartcontract_codes'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
       inject,
       inject_all,
       scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -2356,7 +2422,7 @@ async function smartcontract_codes (opts) {
   </section>
   `
   const main = shadow.querySelector('section')
-  main.prepend(await Content({ sid: data.sub.content, hub: [css_id] }))
+  main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
   
   init_css()
   return el
@@ -2397,26 +2463,49 @@ async function smartcontract_codes (opts) {
   }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/smartcontract_codes.js")
-},{"STATE":4,"_process":1,"content":5,"graphic":12,"io":14}],19:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":27,"STATE":5,"content":6,"graphic":19,"io":22}],29:[function(require,module,exports){
+module.exports={
+  "comp": "supporters",
+  "title": "Supporters",
+  "supporters": [
+    {
+      "date": "2015 - today",
+      "info": "Various private donations & volunteering",
+      "deco" : ["yellowCrystal", "card", "tree"]
+    },
+    {
+      "date": "2018",
+      "info": "$48.000 / Ethereum Foundation",
+      "deco" : ["stone", "card", "tree1"]
+    },
+    {
+      "date": "2020",
+      "info": "€30.000 / Web3 Foundation",
+      "deco" : ["purpleCrystal", "card", "tree2"]
+    },
+    {
+      "date": "2022",
+      "info": "DOT 5530 / Polkadot Treasury Fund",
+      "deco" : ["blueCrystal", "card", "tree3"]
+    },
+    {
+      "date": "2022",
+      "info": "DOT 5530 / Polkadot Treasury Fund",
+      "deco" : ["blueCrystal", "card", "tree3"]
+    }
+  ]
+}
+},{}],30:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const crystalIsland = require('crystalIsland')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   SUPPORTERS COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const sheet = new CSSStyleSheet
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = supporters
@@ -2426,16 +2515,18 @@ async function supporters (opts) {
     // ID + JSON STATE
     // ----------------------------------------
     const name = 'supporters'
-    const id = `${ID}:${count++}` // assigns their own name
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
     const on = {
         inject,
         inject_all,
         scroll
     }
     const sdb = statedb()
-    const data = sdb.get(opts.sid)
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
@@ -2500,7 +2591,6 @@ async function supporters (opts) {
     // ----------------------------------------
     const el = document.createElement('div')
     const shadow = el.attachShadow(shopts)
-    shadow.adoptedStyleSheets = [sheet]
     shadow.innerHTML = `
         <section id="supporters" class="section">
             
@@ -2550,23 +2640,20 @@ async function supporters (opts) {
       }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/supporters.js")
-},{"STATE":4,"_process":1,"crystalIsland":7,"graphic":12,"io":14,"rellax":2}],20:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":29,"STATE":5,"crystalIsland":10,"graphic":19,"io":22,"rellax":2}],31:[function(require,module,exports){
+module.exports={
+  "comp": "theme_editor",
+  "admin": "true"
+}
+},{}],32:[function(require,module,exports){
 const DB = require('localdb')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 
@@ -2576,17 +2663,20 @@ async function theme_editor (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const name = 'theme_editor'
-  const id = `${ID}:${count++}` // assigns their own name
   const status = { tab_id: 0 }
   const db = await DB()
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on = {
     init,
     init_tab,
     hide
   }
 	const sdb = statedb()
-	const data = sdb.get(opts.sid)
+	let data = sdb.get(opts.sid)
+  if(!data){
+    const {id, sid} = sdb.add(default_data, opts.hub)
+    opts.sid = sid
+    data = {...default_data, id}
+  }
   const {xget} = sdb.req_access(opts.sid)
   const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
   status.themes = {
@@ -2990,24 +3080,22 @@ async function theme_editor (opts) {
   }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/theme_editor.js")
-},{"STATE":4,"_process":1,"io":14,"localdb":16}],21:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":31,"STATE":5,"io":22,"localdb":24}],33:[function(require,module,exports){
+module.exports={
+  "id": "1",
+  "comp": "theme_widget",
+  "admin": "true"
+}
+},{}],34:[function(require,module,exports){
 const theme_editor = require('theme_editor')
 const graph_explorer = require('graph_explorer')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   THEME_WIDGET COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 
@@ -3018,9 +3106,7 @@ async function theme_widget (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const name = 'theme_widget'
-  const id = `${ID}:${count++}` // assigns their own name
   const status = { tab_id: 0, init_check: true }
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {}, channels: {}} // all state of instance instance
   const on = {
     refresh,
     get_select,
@@ -3030,7 +3116,11 @@ async function theme_widget (opts) {
     click
   }
 	const sdb = statedb()
-	const data = sdb.get(opts.sid)
+	let data = sdb.get(opts.sid)
+  if(!data){
+    const {id} = sdb.add(default_data, opts.hub)
+    data = {...default_data, id}
+  }
   const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
   
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
@@ -3067,8 +3157,8 @@ async function theme_widget (opts) {
   const select = box.querySelector('.select')
   const slider = box.querySelector('input')
 
-  editor.append(await theme_editor({ sid: data.sub.theme_editor, hub: [css_id], paths }))
-  box.prepend(await graph_explorer({ sid: data.sub.graph_explorer, hub: [css_id] }))
+  editor.append(await theme_editor({ sid: data.sub?.theme_editor?.[0], hub: [css_id], paths }))
+  box.prepend(await graph_explorer({ sid: data.sub?.graph_explorer?.[0], hub: [css_id] }))
   btn.onclick = () => {
     popup.classList.toggle('active')
     status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
@@ -3226,23 +3316,46 @@ async function theme_widget (opts) {
   }
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/theme_widget.js")
-},{"STATE":4,"_process":1,"graph_explorer":11,"io":14,"theme_editor":20}],22:[function(require,module,exports){
-(function (process,__filename){(function (){
+},{"./data.json":33,"STATE":5,"graph_explorer":18,"io":22,"theme_editor":32}],35:[function(require,module,exports){
+module.exports={
+  "comp": "topnav",
+  "links": [
+    {
+      "id": "datdot",
+      "text": "DatDot",
+      "url": "datdot"
+    },
+    {
+      "id": "editor",
+      "text": "Play Editor",
+      "url": "editor"
+    },
+    {
+      "id": "smartcontract_codes",
+      "text": "Smart Contract Codes",
+      "url": "smartcontract_codes"
+    },
+    {
+      "id": "supporters",
+      "text": "Supporters",
+      "url": "supporters"
+    },
+    {
+      "id": "our_contributors",
+      "text": "Contributors",
+      "url": "our_contributors"
+    }
+  ]
+}
+},{}],36:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 module.exports = topnav
@@ -3252,9 +3365,7 @@ async function topnav (opts) {
 	// ID + JSON STATE
 	// ----------------------------------------
 	const name = 'topnav'
-	const id = `${ID}:${count++}` // assigns their own name
 	const status = {}
-	const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
 	const on = {
 		inject,
 		inject_all,
@@ -3262,7 +3373,11 @@ async function topnav (opts) {
 	}
 
 	const sdb = statedb()
-	const data = sdb.get(opts.sid)
+	let data = sdb.get(opts.sid)
+	if(!data){
+    const {id} = sdb.add(default_data, opts.hub)
+    data = {...default_data, id}
+  }
 	const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
 	// ----------------------------------------
 	// OPTS
@@ -3367,8 +3482,7 @@ async function topnav (opts) {
 	}
 }
 
-}).call(this)}).call(this,require('_process'),"/src/node_modules/topnav.js")
-},{"STATE":4,"_process":1,"graphic":12,"io":14}],23:[function(require,module,exports){
+},{"./data.json":35,"STATE":5,"graphic":19,"io":22}],37:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
 const make_page = require('../') 
 const theme = require('theme')
@@ -3564,7 +3678,7 @@ function resources (pool) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
-},{"../":3,"_process":1,"theme":24}],24:[function(require,module,exports){
+},{"../":4,"_process":1,"theme":38}],38:[function(require,module,exports){
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 document.head.innerHTML += loadFont
@@ -3655,4 +3769,4 @@ const theme = {
 
 module.exports = theme
 
-},{}]},{},[23]);
+},{}]},{},[37]);

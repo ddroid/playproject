@@ -2,18 +2,18 @@
   "0": {
     "id": "0",
     "sub": {
-      "theme_widget": "1",
-      "topnav": "2",
-      "header": "3",
-      "datdot": "4",
-      "editor": "5",
-      "smartcontract_codes": "6",
-      "supporters": "7",
-      "our_contributors": "8",
-      "footer": "9"
+      "theme_widget": ["1"],
+      "topnav": ["2"],
+      "header": ["3"],
+      "datdot": ["4"],
+      "editor": ["5"],
+      "smartcontract_codes": ["6"],
+      "supporters": ["7"],
+      "our_contributors": ["8"],
+      "footer": ["9"]
     },
     "admins": [
-      "11"
+      "theme_editor"
     ]
   },
   "11": {
@@ -38,8 +38,8 @@
     "comp": "theme_widget",
     "admin": "true",
     "sub": {
-      "graph_explorer": "10",
-      "theme_editor": "11"
+      "graph_explorer": ["10"],
+      "theme_editor": ["11"]
     }
   },
   "2": {
@@ -82,7 +82,7 @@
     "id": "4",
     "comp": "datdot",
     "sub": {
-      "content": "12"
+      "content": ["12"]
     },
     "logo": "",
     "image": ""
@@ -99,7 +99,7 @@
     "id": "5",
     "comp": "editor",
     "sub": {
-      "content": "13"
+      "content": ["13"]
     },
     "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
     "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"
@@ -116,7 +116,7 @@
     "id": "6",
     "comp": "smartcontract_codes",
     "sub": {
-      "content": "14"
+      "content": ["14"]
     },
     "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
     "image": "./src/node_modules/assets/images/smart-contract-codes.jpg"
@@ -165,7 +165,7 @@
     "id": "8",
     "comp": "our_contributors",
     "sub": {
-      "content": "15",
+      "content": ["15"],
       "contributor": [
         "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"
       ]

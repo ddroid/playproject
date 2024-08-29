@@ -1,4 +1,5 @@
 const IO = require('io')
+const default_data = require('./data.json')
 const modules = {
  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
@@ -31,8 +32,12 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const sdb = statedb()
-  const {admin, sid} = await statedb.init('./data.json')
-  const data = sdb.get(sid)
+  let {admin, sid} = await statedb.init('./d.json')
+  let data = sdb.get(sid)
+  if(!data){
+    const {id} = sdb.add(default_data)
+    data = {...default_data, id}
+  }
   admin.set_admins(data.admins)
   const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
@@ -64,7 +69,7 @@ async function make_page(opts, lang) {
     const el = document.createElement('div')
     el.id = entry[0]
     const shadow = el.attachShadow(shopts)
-    shadow.append(await entry[1]({ sid: data.sub[entry[0]], hub: [css_id] }))
+    shadow.append(await entry[1]({ sid: data.sub[entry[0]]?.[0], hub: [css_id] }))
     return el
   })))
   init_css()
