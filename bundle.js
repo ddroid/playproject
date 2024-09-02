@@ -800,7 +800,7 @@ async function make_page(opts, lang) {
 }
 
 
-},{"./data.json":3,"STATE":5,"datdot":12,"editor":14,"footer":16,"header":21,"io":22,"our_contributors":26,"smartcontract_codes":28,"supporters":30,"theme_widget":34,"topnav":36}],5:[function(require,module,exports){
+},{"./data.json":3,"STATE":5,"datdot":13,"editor":15,"footer":17,"header":22,"io":23,"our_contributors":27,"smartcontract_codes":29,"supporters":31,"theme_widget":35,"topnav":37}],5:[function(require,module,exports){
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
@@ -865,6 +865,7 @@ function STATE () {
     const id = db.length(['state'])
     s2i[i2s[id] = Symbol(id)] = id
     opts.sub = {}
+    opts.id = id
     db.add(['state', id], opts)
     if(hub){
       if(!db.read(['state', hub, 'sub', opts.comp]))
@@ -883,7 +884,7 @@ function STATE () {
     return db.read(['state', id])
   }
 }
-},{"localdb":24}],6:[function(require,module,exports){
+},{"localdb":25}],6:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
 const default_data = require('./data.json')
@@ -968,7 +969,7 @@ async function content (opts) {
     }
 }
 
-},{"./data.json":7,"STATE":5,"io":22}],7:[function(require,module,exports){
+},{"./data.json":7,"STATE":5,"io":23}],7:[function(require,module,exports){
 module.exports={
   "comp": "content",
   "title": "Play Editor",
@@ -1070,7 +1071,7 @@ async function contributor (opts) {
 
 
 
-},{"./data.json":9,"STATE":5,"graphic":19,"io":22}],9:[function(require,module,exports){
+},{"./data.json":9,"STATE":5,"graphic":20,"io":23}],9:[function(require,module,exports){
 module.exports={
   "name": "Nina",
   "comp": "contributor",
@@ -1084,64 +1085,125 @@ module.exports={
   "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
 }
 },{}],10:[function(require,module,exports){
-(function (process,__filename){(function (){
+const IO = require('io')
+const graphic = require('graphic')
+const statedb = require('STATE')
+const default_data = require('./data.json')
 /******************************************************************************
-  SUPPORTERS COMPONENT
+  CRYSTAL ISLAND COMPONENT
 ******************************************************************************/
 // ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
-// ----------------------------------------
-
-const default_opts = { }
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-module.exports = crystalIsland
+module.exports = crystal_island
 
-async function crystalIsland({date, info}, deco, island, title) {
+async function crystal_island(opts) {
+    // {date, info}, deco, island, title)
     // ----------------------------------------
     // ID + JSON STATE
     // ----------------------------------------
-    const id = `${ID}:${count++}` // assigns their own name
+    const name = 'crystal_island'
     const status = {}
-    const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
+    const on = {
+      inject,
+      inject_all,
+      scroll
+    }
+    const sdb = statedb()
+    let data = sdb.get(opts.sid)
+    if(!data){
+      const {id} = sdb.add(default_data, opts.hub)
+      data = {...default_data, id}
+    }
+    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
     // ----------------------------------------
     // OPTS
     // ----------------------------------------
-    deco = await Promise.all(deco)
+    const paths = {
+      island: './src/node_modules/assets/svg/floating-island3.svg',
+      tree: './src/node_modules/assets/svg/big-tree.svg',
+      tree1: './src/node_modules/assets/svg/single-tree1.svg',
+      tree2: './src/node_modules/assets/svg/single-tree2.svg',
+      tree3: './src/node_modules/assets/svg/single-tree3.svg',
+      yellowCrystal: './src/node_modules/assets/svg/crystal-yellow.svg',
+      purpleCrystal: './src/node_modules/assets/svg/crystal-purple.svg',
+      blueCrystal: './src/node_modules/assets/svg/crystal-blue.svg',
+      stone: './src/node_modules/assets/svg/stone1.svg',
+      card: './src/node_modules/assets/svg/card2.svg'
+    }
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
     const el = document.createElement('div')
-    el.classList.add('scene')
-    el.innerHTML = `
+    const shadow = el.attachShadow(shopts)
+    // el.classList.add('scene')
+    shadow.innerHTML = `
         <div class='deco'>
             <div class='content'>
-                <h3>${date}</h3>
-                ${ info === 'Coming soon' ? `<h3>${info}</h3>` : `<p>${info}</p>` }
+                <h3>${data.date}</h3>
+                ${ data.info === 'Coming soon' ? `<h3>${data.info}</h3>` : `<p>${data.info}</p>` }
             </div>
-            ${title}
+            ${data.title || ''}
         </div>
     `
     // ----------------------------------------
-    const deco_el = el.querySelector('.deco')
-    el.append( island)
-    deco_el.append(...deco)
+    const deco_el = shadow.querySelector('.deco')
+    shadow.append(await graphic('island', paths['island']))
+    deco_el.append(...await Promise.all(data.deco.map(async v => await graphic(v.includes('tree') ? 'tree' : v, paths[v]))))
+    init_css()
     return el
+
+    async function init_css () {
+        const pref = JSON.parse(localStorage.pref)
+        const pref_shared = pref[name] || data.shared || [{ id: name }]
+        const pref_uniq = pref[css_id] || data.uniq || []
+        pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+        pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+      }
+      async function scroll () {
+        el.scrollIntoView({behavior: 'smooth'})
+        el.tabIndex = '0'
+        el.focus()
+        el.onblur = () => {
+          el.tabIndex = '-1'
+          el.onblur = null
+        }
+      }
+      async function inject_all ({ data }) {
+        const sheet = new CSSStyleSheet
+        sheet.replaceSync(data)
+        shadow.adoptedStyleSheets.push(sheet)
+      }
+      async function inject ({ data }){
+        const style = document.createElement('style')
+        style.innerHTML = data
+        shadow.append(style)
+      }
+      async function get_theme ({local = true, theme = 'default', id}) {
+        let theme_css
+        if(local)
+          theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+        else
+          theme_css = JSON.parse(localStorage[theme])[id]
+        return theme_css
+      }
 }
 
-module.exports = crystalIsland
-}).call(this)}).call(this,require('_process'),"/src/node_modules/crystalIsland.js")
-},{"_process":1}],11:[function(require,module,exports){
+
+},{"./data.json":11,"STATE":5,"graphic":20,"io":23}],11:[function(require,module,exports){
+module.exports={
+  "comp": "crystal_island",
+  "date": "2018",
+  "info": "$48.000 / Ethereum Foundation",
+  "deco" : ["stone", "card", "tree1"]
+}
+},{}],12:[function(require,module,exports){
 module.exports={
   "comp": "datdot",
   "logo": "",
   "image": ""
 }
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
@@ -1245,13 +1307,13 @@ async function datdot (opts) {
       return theme_css
     }
 }
-},{"./data.json":11,"STATE":5,"content":6,"graphic":19,"io":22,"rellax":2}],13:[function(require,module,exports){
+},{"./data.json":12,"STATE":5,"content":6,"graphic":20,"io":23,"rellax":2}],14:[function(require,module,exports){
 module.exports={
   "comp": "editor",
   "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
   "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"  
 }
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -1372,7 +1434,7 @@ async function editor (opts) {
   }
 }
 
-},{"./data.json":13,"STATE":5,"content":6,"graphic":19,"io":22,"rellax":2}],15:[function(require,module,exports){
+},{"./data.json":14,"STATE":5,"content":6,"graphic":20,"io":23,"rellax":2}],16:[function(require,module,exports){
 module.exports={
   "comp": "footer",
   "copyright": " PlayProject",
@@ -1403,7 +1465,7 @@ module.exports={
     }
   ]
 }
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1502,11 +1564,11 @@ async function footer (opts) {
     }
 }
 
-},{"./data.json":15,"STATE":5,"graphic":19,"io":22}],17:[function(require,module,exports){
+},{"./data.json":16,"STATE":5,"graphic":20,"io":23}],18:[function(require,module,exports){
 module.exports={
   "comp": "graph_explorer"
 }
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
 const default_data = require('./data.json')
@@ -1596,7 +1658,6 @@ async function graph_explorer (opts) {
     add({ id, name: 'link', type: 'action', hub: [] })
     add({ id, name: 'unlink', type: 'action', hub: [] })
     add({ id, name: 'drop', type: 'action', hub: [] })
-    
 
     status.graph = data
     const root_nodes = Object.values(data).filter(node => !node.hub)
@@ -1659,34 +1720,18 @@ async function graph_explorer (opts) {
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
 
     element.innerHTML = `
-      <div class="hub nodes"></div>
-      <div class="inputs nodes"></div>
       <div class="details">
         <span class="odd">${space}${last ? '└' : first ? "┌" : '├'}</span>
-        ${data?.hub?.length ? '<span class="hub_emo"></span>' : ''}
-        ${data?.sub?.length ? '<span class="sub_emo"></span>' : ''}
-        ${data?.inputs?.length ? '<span class="inp"></span>' : ''}
-        ${data?.outputs?.length ? '<span class="out"></span>' : ''}
         <span class="menu_emo"></span>
         <span class="type_emo odd"></span>
         <span class="name odd">${data.name}</span>
       </div>
       <div class="menu nodes"></div>
-      <div class="outputs nodes"></div>
-      <div class="sub nodes"></div>
     `
     const details = element.querySelector('.details')
     const name = element.querySelector('.details > .name')
-    const hub_emo = element.querySelector('.details > .hub_emo')
-    const sub_emo = element.querySelector('.details > .sub_emo')
-    const inp = element.querySelector('.details > .inp')
-    const out = element.querySelector('.details > .out')
     const menu_emo = element.querySelector('.details > .menu_emo')
     const type_emo = element.querySelector('.details > .type_emo')
-    const hub = element.querySelector('.hub')
-    const outputs = element.querySelector('.outputs')
-    const inputs = element.querySelector('.inputs')
-    const sub = element.querySelector('.sub')
     const menu = element.querySelector('.menu')
 
     name.onclick = () => send({ type: 'click', to: hub_id, data })
@@ -1694,11 +1739,25 @@ async function graph_explorer (opts) {
     let hi_space = space + (first ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
     const space_handle = []
     const els = []
-
-    data?.hub?.length && els.push({el: hub, emo: hub_emo, data: data.hub, pos: true})
-    data?.sub?.length && els.push({el: sub, emo: sub_emo, data: data.sub, pos: false})
-    data?.inputs?.length && els.push({el: inputs, emo: inp, data: data.inputs, pos: true})  
-    data?.outputs?.length && els.push({el: outputs, emo: out, data: data.outputs, pos: false})
+    let slot_no = 0
+    data.slot.forEach(({x, pos, end}, i) => {
+      const el = document.createElement('div')
+      el.classList.add('nodes')
+      pos ? details.before(el) : menu.after(el)
+      const emo = document.createElement('span')
+      emo.classList.add(x)
+      menu_emo.before(emo)
+      if(getComputedStyle(emo, '::before').content === 'none'){
+        emo.classList.add(pos ? 'hi' : 'lo')
+        if(end){
+          const slot_emo = document.createElement('span')
+          slot_emo.innerHTML = slot_no
+          menu_emo.before(slot_emo)
+        }
+      }
+      els.push({ el, emo, data: data[x], pos })
+      end && slot_no++
+    })
     els.push({el: menu, emo: menu_emo, data: status.menu_ids, pos: false, type: 'menu'})
     els.forEach(listen)
 
@@ -1729,12 +1788,12 @@ async function graph_explorer (opts) {
       const style = document.createElement('style')
       element.append(style)
       if(pos){
-        hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span>&nbsp;&nbsp;</span>`
-        lo_space += `<span class="space${count}">&nbsp;&nbsp;&nbsp;</span>`
+        hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span>&nbsp;</span>`
+        lo_space += `<span class="space${count}">&nbsp;&nbsp;</span>`
       }
       else{
-        lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span>&nbsp;&nbsp;</span>`
-        hi_space += `<span class="space${count}">&nbsp;&nbsp;&nbsp;</span>`
+        lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span>&nbsp;</span>`
+        hi_space += `<span class="space${count}">&nbsp;&nbsp;</span>`
       }
       emo.onclick = () => {
         emo.classList.toggle('on')
@@ -1948,7 +2007,7 @@ async function graph_explorer (opts) {
     return theme_css
   }
 }
-},{"./data.json":17,"STATE":5,"io":22}],19:[function(require,module,exports){
+},{"./data.json":18,"STATE":5,"io":23}],20:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -1965,12 +2024,12 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":23}],20:[function(require,module,exports){
+},{"loadSVG":24}],21:[function(require,module,exports){
 module.exports={
   "comp": "header",
   "title": "Infrastructure for the next-generation Internet"
 }
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const IO = require('io')
@@ -2089,7 +2148,7 @@ async function header (opts) {
 }
 
 
-},{"./data.json":20,"STATE":5,"graphic":19,"io":22,"rellax":2}],22:[function(require,module,exports){
+},{"./data.json":21,"STATE":5,"graphic":20,"io":23,"rellax":2}],23:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -2101,7 +2160,7 @@ async function io(data, on) {
   const id = data.id || Object.keys(ports).length
   ports[id] = { id, name: data.name, on}
   data.hub && graph[data.hub[0]].sub.push(id)
-  graph[id] = { id, ...data, sub: [] }
+  graph[id] = { id, ...data, sub: [], slot: [...data.hub ? [{ x:'hub', pos: true }] : [],{ x:'sub', pos: false, end: true },{ x:'input', pos: true, end: true }]}
   timer && clearTimeout(timer)
   timer = setTimeout(init, 1000)
   return {send, css_id: id}
@@ -2117,7 +2176,7 @@ async function io(data, on) {
     ports[await find_id('theme_widget')].on['refresh']({ data: graph})
   }
 }
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -2130,7 +2189,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -2199,7 +2258,7 @@ function localdb () {
       delete(localStorage[keys[0]])
   }
 }
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports={
   "comp": "our_contributors",
   "sub": {
@@ -2208,7 +2267,7 @@ module.exports={
     ]
   }
 }
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -2334,13 +2393,13 @@ async function our_contributors (opts) {
       return theme_css
     }
 }
-},{"./data.json":25,"STATE":5,"content":6,"contributor":8,"graphic":19,"io":22,"rellax":2}],27:[function(require,module,exports){
+},{"./data.json":26,"STATE":5,"content":6,"contributor":8,"graphic":20,"io":23,"rellax":2}],28:[function(require,module,exports){
 module.exports={
  "comp": "smartcontract_codes",
   "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
   "image": "./src/node_modules/assets/images/smart-contract-codes.jpg" 
 }
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 const graphic = require('graphic')
 const Content = require('content')
 const IO = require('io')
@@ -2463,42 +2522,20 @@ async function smartcontract_codes (opts) {
   }
 }
 
-},{"./data.json":27,"STATE":5,"content":6,"graphic":19,"io":22}],29:[function(require,module,exports){
+},{"./data.json":28,"STATE":5,"content":6,"graphic":20,"io":23}],30:[function(require,module,exports){
 module.exports={
   "comp": "supporters",
   "title": "Supporters",
-  "supporters": [
-    {
-      "date": "2015 - today",
-      "info": "Various private donations & volunteering",
-      "deco" : ["yellowCrystal", "card", "tree"]
-    },
-    {
-      "date": "2018",
-      "info": "$48.000 / Ethereum Foundation",
-      "deco" : ["stone", "card", "tree1"]
-    },
-    {
-      "date": "2020",
-      "info": "€30.000 / Web3 Foundation",
-      "deco" : ["purpleCrystal", "card", "tree2"]
-    },
-    {
-      "date": "2022",
-      "info": "DOT 5530 / Polkadot Treasury Fund",
-      "deco" : ["blueCrystal", "card", "tree3"]
-    },
-    {
-      "date": "2022",
-      "info": "DOT 5530 / Polkadot Treasury Fund",
-      "deco" : ["blueCrystal", "card", "tree3"]
-    }
-  ]
+  "sub": {
+    "crystal_island": [
+      1, 2, 3, 4, 5
+    ]
+  }
 }
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
-const crystalIsland = require('crystalIsland')
+const crystal_island = require('crystal_island')
 const IO = require('io')
 const statedb = require('STATE')
 const default_data = require('./data.json')
@@ -2524,7 +2561,7 @@ async function supporters (opts) {
     const sdb = statedb()
     let data = sdb.get(opts.sid)
     if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
+      const {id, sid} = sdb.add(JSON.parse(JSON.stringify(default_data)), opts.hub)
       data = {...default_data, id}
     }
     const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
@@ -2532,38 +2569,9 @@ async function supporters (opts) {
     // OPTS
     // ----------------------------------------
     let pageTitle = `<div class='title'>${data.title}</div>`
-    const paths = {
-        island: './src/node_modules/assets/svg/floating-island3.svg',
-        tree: './src/node_modules/assets/svg/big-tree.svg',
-        tree1: './src/node_modules/assets/svg/single-tree1.svg',
-        tree2: './src/node_modules/assets/svg/single-tree2.svg',
-        tree3: './src/node_modules/assets/svg/single-tree3.svg',
-        yellowCrystal: './src/node_modules/assets/svg/crystal-yellow.svg',
-        purpleCrystal: './src/node_modules/assets/svg/crystal-purple.svg',
-        blueCrystal: './src/node_modules/assets/svg/crystal-blue.svg',
-        stone: './src/node_modules/assets/svg/stone1.svg',
-        card: './src/node_modules/assets/svg/card2.svg'
-    }
+    
 
     const graphics = [
-      // crystals
-      graphic('yellowCrystal','./src/node_modules/assets/svg/crystal-yellow.svg'),
-      graphic('purpleCrystal','./src/node_modules/assets/svg/crystal-purple.svg'),
-      graphic('blueCrystal','./src/node_modules/assets/svg/crystal-blue.svg'),
-      // stone
-      graphic('stone','./src/node_modules/assets/svg/stone1.svg'),
-      // trees
-      graphic('tree','./src/node_modules/assets/svg/big-tree.svg'),
-      graphic('tree','./src/node_modules/assets/svg/single-tree1.svg'),
-      graphic('tree','./src/node_modules/assets/svg/single-tree3.svg'),
-      graphic('treeGold','./src/node_modules/assets/svg/single-tree2.svg'),
-      // islands
-      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
-      graphic('island','./src/node_modules/assets/svg/floating-island3.svg'),
-      // clouds
       graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
       graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
       graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
@@ -2572,8 +2580,7 @@ async function supporters (opts) {
       graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
     ]
 
-    const [yellowCrystal, purpleCrystal, blueCrystal, stone, tree, tree1, tree2, tree3, 
-      island, island1, island2, island3, island4, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6] = await Promise.all(graphics)
+    const [cloud1, cloud2, cloud3, cloud4, cloud5, cloud6] = await Promise.all(graphics)
     
     // Parallax effects
     let cloud1Rellax = new Rellax( cloud1, { speed: 1.5})
@@ -2582,10 +2589,12 @@ async function supporters (opts) {
     let cloud4Rellax = new Rellax( cloud4, { speed: 4})
     let cloud5Rellax = new Rellax( cloud5, { speed: 1.5})
     let cloud6Rellax = new Rellax( cloud6, { speed: 3})
-
-    const scenes = await data.supporters.map(async (supporter, i) => 
-        await crystalIsland(supporter, supporter.deco.map(async v => await graphic(v.includes('tree') ? 'tree' : v, paths[v])), await graphic('island', paths.island), i ? '' : pageTitle)
-    )
+    
+    const scene = []
+    console.log(data)
+    for (const sid of data.sub.crystal_island){
+      scene.push(await crystal_island({sid, hub: [css_id]}))
+    }
     // ----------------------------------------
     // TEMPLATE
     // ----------------------------------------
@@ -2593,59 +2602,58 @@ async function supporters (opts) {
     const shadow = el.attachShadow(shopts)
     shadow.innerHTML = `
         <section id="supporters" class="section">
-            
         </section>
     `
     // ----------------------------------------
     const main = shadow.querySelector('section')
-    main.append(...(await Promise.all(scenes)).map(v => v), cloud1, cloud2, cloud3, cloud4, cloud5, cloud6)
+    main.append(...(await Promise.all(scene)).map(v => v), cloud1, cloud2, cloud3, cloud4, cloud5, cloud6)
     
     // port.onmessage = onmessage
     init_css()
     return el
 
     async function init_css () {
-        const pref = JSON.parse(localStorage.pref)
-        const pref_shared = pref[name] || data.shared || [{ id: name }]
-        const pref_uniq = pref[css_id] || data.uniq || []
-        pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-        pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+      const pref = JSON.parse(localStorage.pref)
+      const pref_shared = pref[name] || data.shared || [{ id: name }]
+      const pref_uniq = pref[css_id] || data.uniq || []
+      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+    }
+    async function scroll () {
+      el.scrollIntoView({behavior: 'smooth'})
+      el.tabIndex = '0'
+      el.focus()
+      el.onblur = () => {
+        el.tabIndex = '-1'
+        el.onblur = null
       }
-      async function scroll () {
-        el.scrollIntoView({behavior: 'smooth'})
-        el.tabIndex = '0'
-        el.focus()
-        el.onblur = () => {
-          el.tabIndex = '-1'
-          el.onblur = null
-        }
-      }
-      async function inject_all ({ data }) {
-        const sheet = new CSSStyleSheet
-        sheet.replaceSync(data)
-        shadow.adoptedStyleSheets.push(sheet)
-      }
-      async function inject ({ data }){
-        const style = document.createElement('style')
-        style.innerHTML = data
-        shadow.append(style)
-      }
-      async function get_theme ({local = true, theme = 'default', id}) {
-        let theme_css
-        if(local)
-          theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-        else
-          theme_css = JSON.parse(localStorage[theme])[id]
-        return theme_css
-      }
+    }
+    async function inject_all ({ data }) {
+      const sheet = new CSSStyleSheet
+      sheet.replaceSync(data)
+      shadow.adoptedStyleSheets.push(sheet)
+    }
+    async function inject ({ data }){
+      const style = document.createElement('style')
+      style.innerHTML = data
+      shadow.append(style)
+    }
+    async function get_theme ({local = true, theme = 'default', id}) {
+      let theme_css
+      if(local)
+        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+      else
+        theme_css = JSON.parse(localStorage[theme])[id]
+      return theme_css
+    }
 }
 
-},{"./data.json":29,"STATE":5,"crystalIsland":10,"graphic":19,"io":22,"rellax":2}],31:[function(require,module,exports){
+},{"./data.json":30,"STATE":5,"crystal_island":10,"graphic":20,"io":23,"rellax":2}],32:[function(require,module,exports){
 module.exports={
   "comp": "theme_editor",
   "admin": "true"
 }
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 const DB = require('localdb')
 const IO = require('io')
 const statedb = require('STATE')
@@ -3080,13 +3088,13 @@ async function theme_editor (opts) {
   }
 }
 
-},{"./data.json":31,"STATE":5,"io":22,"localdb":24}],33:[function(require,module,exports){
+},{"./data.json":32,"STATE":5,"io":23,"localdb":25}],34:[function(require,module,exports){
 module.exports={
   "id": "1",
   "comp": "theme_widget",
   "admin": "true"
 }
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 const theme_editor = require('theme_editor')
 const graph_explorer = require('graph_explorer')
 const IO = require('io')
@@ -3159,11 +3167,6 @@ async function theme_widget (opts) {
 
   editor.append(await theme_editor({ sid: data.sub?.theme_editor?.[0], hub: [css_id], paths }))
   box.prepend(await graph_explorer({ sid: data.sub?.graph_explorer?.[0], hub: [css_id] }))
-  btn.onclick = () => {
-    popup.classList.toggle('active')
-    status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
-    status.init_check = false
-  }
   select.onclick = on_select
   slider.oninput = blur
   init_css()
@@ -3185,43 +3188,50 @@ async function theme_widget (opts) {
   async function refresh ({ data }) {
     let id = Object.keys(data).length
     const themes_id = id++
-    data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: []}
+    data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: [], slot: [{ x: 'sub', pos: false, end: true }]}
     Object.entries(paths).forEach(entry => {
       const theme_id = id
-      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: []}
+      data[id] = {id, name: entry[0], hubx: [themes_id], type: 'theme', subx: [], inpx: [], outx: [], slot: [{ x:'hubx', pos: true }, { x:'subx', pos: false, end: true }, { x:'inpx', pos: true }, { x:'outx', pos: false, end: true }]}
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data[id] = {id, name, type: 'css', local: true, hub: [theme_id]}
-        data[theme_id].sub.push(id++)
+        data[id] = {id, name, type: 'css', local: true, hub: [theme_id], slot: [{ x:'hub', pos: true, end: true }]}
+        data[theme_id].inpx.push(id)
+        data[theme_id].outx.push(id)
+        data[theme_id].subx.push(id++)
       })
     })
     Object.entries(JSON.parse(localStorage.index)).forEach(entry => {
       const theme_id = id
-      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: []}
+      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: [], slot: [{ x:'hub', pos: true }, { x:'sub', pos: false, end: true }]}
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data[id] = {id, name, type: 'css', hub: [theme_id]}
+        data[id] = {id, name, type: 'css', hub: [theme_id], slot: [{ x:'hub', pos: true }]}
         data[theme_id].sub.push(id++)
       })
     })
     status.tree = data
     const data_id = id++
-    data[data_id] = {id: data_id, name: 'data', type: 'data', sub: []}
+    data[data_id] = {id: data_id, name: 'data', type: 'data', sub: [], slot: [{ x:'sub', pos: false, end: true }]}
     Object.values(data).forEach(node => {
       if(node.type === 'comp'){
-        node.inputs = []
+        node.input = []
         const css = node.css || [{id: node.comp + '.css'}]
         css.forEach(async file => {
-          node.inputs.push(await find_id(file.id, 'css'))
+          node.input.push(await find_id(file.id, 'css'))
         })
-        data[id] = {id, name: node.comp + '.json', type: 'json', hub: [node.id]}
+        data[id] = {id, name: node.comp + '.json', type: 'json', hub: [node.id], slot: [{ x:'hub', pos: true, end: true }]}
         data[data_id].sub.push(id)
-        node.inputs.push(id++)
+        node.input.push(id++)
       }
     })
     console.log(data)
     status.tree = data
     stats.innerHTML = `Entries: ${Object.keys(data).length}`
+    btn.onclick = () => {
+      popup.classList.toggle('active')
+      status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
+      status.init_check = false
+    }
   }
   async function click ({ data }) {
     if(data.type === 'css')
@@ -3316,7 +3326,7 @@ async function theme_widget (opts) {
   }
 }
 
-},{"./data.json":33,"STATE":5,"graph_explorer":18,"io":22,"theme_editor":32}],35:[function(require,module,exports){
+},{"./data.json":34,"STATE":5,"graph_explorer":19,"io":23,"theme_editor":33}],36:[function(require,module,exports){
 module.exports={
   "comp": "topnav",
   "links": [
@@ -3347,7 +3357,7 @@ module.exports={
     }
   ]
 }
-},{}],36:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -3482,7 +3492,7 @@ async function topnav (opts) {
 	}
 }
 
-},{"./data.json":35,"STATE":5,"graphic":19,"io":22}],37:[function(require,module,exports){
+},{"./data.json":36,"STATE":5,"graphic":20,"io":23}],38:[function(require,module,exports){
 (function (process,__filename,__dirname){(function (){
 const make_page = require('../') 
 const theme = require('theme')
@@ -3678,7 +3688,7 @@ function resources (pool) {
   }
 }
 }).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
-},{"../":4,"_process":1,"theme":38}],38:[function(require,module,exports){
+},{"../":4,"_process":1,"theme":39}],39:[function(require,module,exports){
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 document.head.innerHTML += loadFont
@@ -3769,4 +3779,4 @@ const theme = {
 
 module.exports = theme
 
-},{}]},{},[37]);
+},{}]},{},[38]);
