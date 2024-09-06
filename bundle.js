@@ -1661,25 +1661,32 @@ async function graph_explorer (opts) {
 
     status.graph = data
     const root_nodes = Object.values(data).filter(node => !node.hub)
-    root_nodes.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_nodes.length - 1 }))
+    root_nodes.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_nodes.length - 1, ancestry:[] }))
     function add (args){
       status.menu_ids.push(args.id)
       data[id++] = args
     }
   }
+  function get_color() {
+    const letters = 'CDEF89'
+    let color = '#'
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * letters.length)]
+    }
+    return color;
+}
   function create_node (type, id) {
     const element = document.createElement('div')
     element.classList.add(type, 'node')
     element.tabIndex = '0'
-    element.id = 'a'+id
+    element.classList.add('a'+id)
     return element
   }
-  function html_template (data, last, space){
+  function html_template (data, last, space, pos){
     const element = create_node(data.type, data.id)
     element.dataset.space = space
-    element.dataset.grand_last = last ? 'a' : ''
-
-    return [element, last, space]
+    element.dataset.pos = pos
+    return element
   }
   /******************************************
    Addition Operation
@@ -1698,7 +1705,7 @@ async function graph_explorer (opts) {
   // }
 
   function add_action ({ hub_el, data, first, last, space = '' }) {
-    [ element, last, space ] = html_template(data, last, space)
+    const element = html_template(data, last, space)
     hub_el.append(element)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
 
@@ -1714,59 +1721,123 @@ async function graph_explorer (opts) {
 
   }
   //A button with 4 slots for sub nodes, data entity
-  function add_entry ({ hub_el, data, first, last, space = '' }) {
-    [ element, last, space ] = html_template(data, last, space)
+  function add_entry ({ hub_el, data, first, last, space = '', pos, ancestry }) {
+    const element = html_template(data, last, space, pos)
     hub_el.append(element)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
+    ancestry = [...ancestry]
 
     element.innerHTML = `
+      <div class="nodes hi_row">${space}${first ? '&nbsp;' : '│'}</div>
       <div class="details">
-        <span class="odd">${space}${last ? '└' : first ? "┌" : '├'}</span>
-        <span class="menu_emo"></span>
-        <span class="type_emo odd"></span>
-        <span class="name odd">${data.name}</span>
+        <span class="space odd"><!--
+        -->${space}<span>${last ? '└' : first ? "┌" : '├'}</span><!--
+        --><span class='on'>${last ? '┗' : first ? "┏" : '┠'}</span>
+        </span><!--
+        --><span class="menu_emo"></span><!--
+        --><span class="type_emo odd"></span><!--
+        --><span class="name odd">${data.name}</span>
       </div>
+      <div class="nodes lo_row">${space}${last ? '&nbsp;' : '│'}</div>
       <div class="menu nodes"></div>
     `
+    const copies = main.querySelectorAll('.a'+data.id + '> .details')
+    if(copies.length > 1){
+      const color = get_color()
+      copies.forEach(copy => copy.style.backgroundColor = color)
+    }
+    if(ancestry.includes(data.id))
+      return
+    ancestry.push(data.id)
     const details = element.querySelector('.details')
     const name = element.querySelector('.details > .name')
     const menu_emo = element.querySelector('.details > .menu_emo')
     const type_emo = element.querySelector('.details > .type_emo')
     const menu = element.querySelector('.menu')
+    const hi_row = element.querySelector('.hi_row')
+    const lo_row = element.querySelector('.lo_row')
 
+    type_emo.onclick = type_click
     name.onclick = () => send({ type: 'click', to: hub_id, data })
     let lo_space = space + (last ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
     let hi_space = space + (first ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
     const space_handle = []
     const els = []
-    let slot_no = 0
-    data.slot.forEach(({x, pos, end}, i) => {
-      const el = document.createElement('div')
-      el.classList.add('nodes')
-      pos ? details.before(el) : menu.after(el)
-      const emo = document.createElement('span')
-      emo.classList.add(x)
-      menu_emo.before(emo)
-      if(getComputedStyle(emo, '::before').content === 'none'){
-        emo.classList.add(pos ? 'hi' : 'lo')
-        if(end){
-          const slot_emo = document.createElement('span')
-          slot_emo.innerHTML = slot_no
-          menu_emo.before(slot_emo)
-        }
-      }
-      els.push({ el, emo, data: data[x], pos })
-      end && slot_no++
-    })
-    els.push({el: menu, emo: menu_emo, data: status.menu_ids, pos: false, type: 'menu'})
-    els.forEach(listen)
+    let slot_no = 0, slot_on, timer
 
+    data.slot.forEach(handle_slot)
+    listen({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
     if(getComputedStyle(type_emo, '::before').content === 'none')
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
 
-    let slot_on, timer
-    type_emo.onclick = type_click
+    async function handle_slot (pair, i) {
+      const slot_check = [false, false]
+      const slot_emo = document.createElement('span')
+      slot_emo.innerHTML = '<span></span><span>─</span>'
+      menu_emo.before(slot_emo)
 
+      pair.forEach((x, j) => {
+        let gap, mode, emo_on, temp
+        const pos = !j
+        const count = status.count++
+        const el = document.createElement('div')
+        const emo = document.createElement('span')
+        const style = document.createElement('style')
+        
+        el.classList.add('nodes')
+        element.append(style)
+        if(pos){
+          hi_row.before(el)
+          hi_row.append(emo)
+          mode= 'hi'
+          gap = hi_space
+          hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span>${x ? '<span class="xhi">│</span>' : ''}&nbsp;&nbsp;</span>`
+          temp = `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span></span>`
+        }
+        else{
+          menu.after(el)
+          lo_row.append(emo)
+          mode = 'lo'
+          gap = lo_space
+          lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span>${x ? '<span class="xlo">│</span>' : ''}&nbsp;&nbsp;</span>`
+          temp = `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span></span>`
+        }
+        style.innerHTML = `.space${count} > .x${mode}{display: none;}`
+        els.push(slot_emo)
+        space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
+        if(!x){
+          const space = document.createElement('span')
+          space.innerHTML = '&nbsp;&nbsp;&nbsp;'
+          j ? lo_row.append(space) : hi_row.append(space)
+          return
+        }
+        slot_emo.classList.add(x)
+        emo.classList.add(mode+'_emo')
+        emo.innerHTML = temp
+
+        emo.onclick = () => {
+          emo.classList.toggle('on')
+          slot_emo.classList.add('on')
+          style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
+          emo_on && space_handle[i]()
+          slot_check[j] = emo_on = !emo_on
+          if(slot_check[0] && slot_check[1])
+            slot_emo.children[1].innerHTML = '┼'
+          else if(slot_check[0] && !slot_check[1])
+            slot_emo.children[1].innerHTML = '┴'
+          else if(!slot_check[0] && slot_check[1])
+            slot_emo.children[1].innerHTML = '┬'
+          else{
+            slot_emo.children[1].innerHTML = '─'
+            slot_emo.classList.remove('on')
+          }
+          handle_click({space: gap, pos, el, data: data[x], ancestry })
+        }
+      })
+      slot_no++
+      if(getComputedStyle(slot_emo, '::before').content === 'none')
+        slot_emo.innerHTML = `<span>${slot_no}</span><span>─</span>`
+    }
     async function type_click() {
       slot_on = !slot_on
       if(timer){
@@ -1774,35 +1845,33 @@ async function graph_explorer (opts) {
         timer = null
       }
       else if(slot_on)
-        timer = setTimeout(() => type_emo.click(), 4000)
+        timer = setTimeout(() => type_emo.click(), 8000)
       details.classList.toggle('on')
-      els.forEach((args, i) => {
-        if(!args.emo.classList.contains('on'))
+      hi_row.classList.toggle('show')
+      lo_row.classList.toggle('show')
+      let temp = element
+      while(temp.tagName !== 'MAIN'){
+        if(temp.classList.contains('node')){
+          slot_on ? temp.classList.add('on') : temp.classList.remove('on')
+          while(temp.previousElementSibling){
+            temp = temp.previousElementSibling
+            slot_on ? temp.classList.add('on') : temp.classList.remove('on')
+          }
+        }
+        temp = temp.parentElement
+      }
+      els.forEach((emo, i) => {
+        if(!emo.classList.contains('on')){
           space_handle[i]()
+        }
       })
     }
-    async function listen({ emo, pos, emo_on, ...rest }, i) {
-      const count = status.count++
-      const gap = pos ? hi_space : lo_space
-      const mode = pos ? 'hi' : 'lo'
-      const style = document.createElement('style')
-      element.append(style)
-      if(pos){
-        hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span>&nbsp;</span>`
-        lo_space += `<span class="space${count}">&nbsp;&nbsp;</span>`
-      }
-      else{
-        lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span>&nbsp;</span>`
-        hi_space += `<span class="space${count}">&nbsp;&nbsp;</span>`
-      }
+    async function listen({ emo, emo_on, ...rest }, i) {
       emo.onclick = () => {
         emo.classList.toggle('on')
-        style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
-        emo_on && space_handle[i]()
         emo_on = !emo_on
-        handle_click({space: gap, pos, ...rest })
+        handle_click({space: lo_space, ...rest })
       }
-      space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
     }
   }
   // async function add_node_data (name, type, parent_id, users, author){
@@ -1869,11 +1938,11 @@ async function graph_explorer (opts) {
       el.classList.remove('show')
     }, { once: true })
   }
-  function handle_click ({ el, data, space, pos, hub_id, type = 'entry' }) {
+  function handle_click ({ el, data, pos, hub_id, type = 'entry', ...rest }) {
     el.classList.toggle('show')
     if(data && el.children.length < 1){
       length = data.length - 1
-      data.forEach((value, i) => on_add[type]({ hub_el: el, data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, space }))
+      data.forEach((value, i) => on_add[type]({ hub_el: el, data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, pos, ...rest }))
     }
   }
   async function handle_export () {
@@ -1938,7 +2007,6 @@ async function graph_explorer (opts) {
       let temp
       for(temp = status.graph[target_id]; temp.hub; temp = status.graph[temp.hub[0]])
         path.push(temp.id)
-      console.log(temp, path)
       temp = main.querySelector('#a'+temp.id)
       target_id = 'a'+target_id
       while(temp.id !== target_id){
@@ -2160,7 +2228,7 @@ async function io(data, on) {
   const id = data.id || Object.keys(ports).length
   ports[id] = { id, name: data.name, on}
   data.hub && graph[data.hub[0]].sub.push(id)
-  graph[id] = { id, ...data, sub: [], slot: [...data.hub ? [{ x:'hub', pos: true }] : [],{ x:'sub', pos: false, end: true },{ x:'input', pos: true, end: true }]}
+  graph[id] = { id, ...data, sub: [], slot: [[data.hub && 'hub', 'sub'], ['input']]}
   timer && clearTimeout(timer)
   timer = setTimeout(init, 1000)
   return {send, css_id: id}
@@ -3188,13 +3256,13 @@ async function theme_widget (opts) {
   async function refresh ({ data }) {
     let id = Object.keys(data).length
     const themes_id = id++
-    data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: [], slot: [{ x: 'sub', pos: false, end: true }]}
+    data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: [], slot: [['', 'sub']]}
     Object.entries(paths).forEach(entry => {
       const theme_id = id
-      data[id] = {id, name: entry[0], hubx: [themes_id], type: 'theme', subx: [], inpx: [], outx: [], slot: [{ x:'hubx', pos: true }, { x:'subx', pos: false, end: true }, { x:'inpx', pos: true }, { x:'outx', pos: false, end: true }]}
+      data[id] = {id, name: entry[0], hubx: [themes_id], type: 'theme', subx: [], inpx: [], outx: [], slot: [['hubx', 'subx'],['inpx', 'outx']]}
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data[id] = {id, name, type: 'css', local: true, hub: [theme_id], slot: [{ x:'hub', pos: true, end: true }]}
+        data[id] = {id, name, type: 'css', local: true, hub: [theme_id], slot: [['hub']]}
         data[theme_id].inpx.push(id)
         data[theme_id].outx.push(id)
         data[theme_id].subx.push(id++)
@@ -3202,16 +3270,16 @@ async function theme_widget (opts) {
     })
     Object.entries(JSON.parse(localStorage.index)).forEach(entry => {
       const theme_id = id
-      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: [], slot: [{ x:'hub', pos: true }, { x:'sub', pos: false, end: true }]}
+      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: [], slot: [['hub', 'sub']]}
       data[themes_id].sub.push(id++)
       entry[1].forEach(name => {
-        data[id] = {id, name, type: 'css', hub: [theme_id], slot: [{ x:'hub', pos: true }]}
+        data[id] = {id, name, type: 'css', hub: [theme_id], slot: [['hub']]}
         data[theme_id].sub.push(id++)
       })
     })
     status.tree = data
     const data_id = id++
-    data[data_id] = {id: data_id, name: 'data', type: 'data', sub: [], slot: [{ x:'sub', pos: false, end: true }]}
+    data[data_id] = {id: data_id, name: 'data', type: 'data', sub: [], slot: [['', 'sub']]}
     Object.values(data).forEach(node => {
       if(node.type === 'comp'){
         node.input = []
@@ -3219,7 +3287,7 @@ async function theme_widget (opts) {
         css.forEach(async file => {
           node.input.push(await find_id(file.id, 'css'))
         })
-        data[id] = {id, name: node.comp + '.json', type: 'json', hub: [node.id], slot: [{ x:'hub', pos: true, end: true }]}
+        data[id] = {id, name: node.comp + '.json', type: 'json', hub: [node.id], slot: [['hub']]}
         data[data_id].sub.push(id)
         node.input.push(id++)
       }
