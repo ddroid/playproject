@@ -1,5 +1,17 @@
 {
+  "comp": "index",
   "admins": [
     "theme_editor"
-  ]
+  ],
+  "sub": {
+    "theme_widget" : [],
+    "topnav" : [],
+    "header" : [],
+    "datdot" : [],
+    "editor" : [],
+    "smartcontract_codes" : [],
+    "supporters" : [],
+    "our_contributors" : [],
+    "footer" : []
+  }
 }

@@ -1,14 +1,9 @@
 const make_page = require('../') 
+const statedb = require('../src/node_modules/STATE')
 const theme = require('theme')
 /******************************************************************************
   INITIALIZE PAGE
 ******************************************************************************/
-// ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 let current_theme = theme
 const sheet = new CSSStyleSheet()
@@ -44,10 +39,8 @@ async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const id = `${ID}:${count++}` // assigns their own name
   const status = {}
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-  const cache = resources({})
+  const sid = await statedb.init('./d.json')
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -65,9 +58,8 @@ async function boot (opts) {
   // ----------------------------------------
   { // desktop
     const on = { 'theme_change': on_theme }
-    const protocol = use_protocol('make_page')({ state, on })
-    const opts = { page, theme, themes }
-    const element = await make_page(opts, protocol)
+    const opts = { page, theme, themes, sid }
+    const element = await make_page(opts)
     shadow.append(element)
   }
   // ----------------------------------------
@@ -140,54 +132,4 @@ function get_theme (opts) {
 			font-size: calc(var(--sectionButtonSize) * 2.25 );
 		}
 	}`
-}
-// ----------------------------------------------------------------------------
-function shadowfy (props = {}, sheets = []) {
-  return element => {
-    const el = Object.assign(document.createElement('div'), { ...props })
-    const sh = el.attachShadow(shopts)
-    sh.adoptedStyleSheets = sheets
-    sh.append(element)
-    return el
-  }
-}
-function use_protocol (petname) {
-  return ({ protocol, state, on = { } }) => {
-    if (petname in state.aka) throw new Error('petname already initialized')
-    const { id } = state
-    const invalid = on[''] || (message => console.error('invalid type', message))
-    if (protocol) return handshake(protocol(Object.assign(listen, { id })))
-    else return handshake
-    // ----------------------------------------
-    // @TODO: how to disconnect channel
-    // ----------------------------------------
-    function handshake (send) {
-      state.aka[petname] = send.id
-      const channel = state.net[send.id] = { petname, mid: 0, send, on }
-      return protocol ? channel : Object.assign(listen, { id })
-    }
-    function listen (message) {
-      const [from] = message.head
-      const by = state.aka[petname]
-      if (from !== by) return invalid(message) // @TODO: maybe forward
-      console.log(`[${id}]:${petname}>`, message)
-      const { on } = state.net[by]
-      const action = on[message.type] || invalid
-      action(message)
-    }
-  }
-}
-// ----------------------------------------------------------------------------
-function resources (pool) {
-  var num = 0
-  return factory => {
-    const prefix = num++
-    const get = name => {
-      const id = prefix + name
-      if (pool[id]) return pool[id]
-      const type = factory[name]
-      return pool[id] = type()
-    }
-    return Object.assign(get, factory)
-  }
 }

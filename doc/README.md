@@ -7,9 +7,9 @@ graph = [{
   id*: Int,
   name*: String,
   type* : String,
+  slot: [['hub', 'sub'], ['','outputs']]
   hub: [...ids],
   sub; [...ids],
-  inputs: [...ids],
   outputs: [...ids]
 }]
 ```
@@ -20,6 +20,7 @@ graph = [{
     "name": "theme_widget",
     "type": "comp",
     "comp": "theme_widget",
+    "slot": [["hub", "sub"], ["inputs"]]
     "hub": [
         "0"
     ],
@@ -39,7 +40,7 @@ graph = [{
 state = [{
   id*: int,
   sub: {
-    component_name: id || [...ids]
+    [...ids]
     .
     .
   }
@@ -51,7 +52,6 @@ state = [{
     "id": "8",
     "comp": "our_contributors",
     "sub": {
-        "content": "15",
         "contributor": [
             "16",
             "17",

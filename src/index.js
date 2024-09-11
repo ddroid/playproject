@@ -32,12 +32,13 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const sdb = statedb()
-  let {admin, sid} = await statedb.init('./d.json')
-  let data = sdb.get(sid)
+  let data = sdb.get(opts.sid)
   if(!data){
-    const {id} = sdb.add(default_data)
+    const {id, sid} = sdb.add({...default_data})
+    opts.sid = sid
     data = {...default_data, id}
   }
+  const admin = sdb.req_access(opts.sid)
   admin.set_admins(data.admins)
   const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
@@ -65,12 +66,14 @@ async function make_page(opts, lang) {
   </div>`
   const main = shadow.querySelector('div')
 
-  main.append(...await Promise.all(Object.entries(modules).map(async entry => {
-    const el = document.createElement('div')
-    el.id = entry[0]
-    const shadow = el.attachShadow(shopts)
-    shadow.append(await entry[1]({ sid: data.sub[entry[0]]?.[0], hub: [css_id] }))
-    return el
+  main.append(...await Promise.all(
+    Object.entries(data.sub).map(async ([name, sids]) => {
+      console.log(name, sids)
+      const el = document.createElement('div')
+      el.name = name
+      const shadow = el.attachShadow(shopts)
+      shadow.append(await modules[name]({ sid: sids[0], hub: [css_id] }))
+      return el
   })))
   init_css()
   return el
@@ -79,7 +82,7 @@ async function make_page(opts, lang) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
   async function init_css () {
-    const pref = JSON.parse(localStorage.pref)
+    const pref = JSON.parse(localStorage.pref || '{}')
     const pref_shared = pref[name] || data.shared || [{ id: name }]
     const pref_uniq = pref[css_id] || data.uniq || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))

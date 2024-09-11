@@ -1,190 +1,4 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-// shim for using process in browser
-var process = module.exports = {};
-
-// cached from whatever global is present so that test runners that stub it
-// don't break things.  But we need to wrap it in a try catch in case it is
-// wrapped in strict mode code which doesn't define any globals.  It's inside a
-// function because try/catches deoptimize in certain engines.
-
-var cachedSetTimeout;
-var cachedClearTimeout;
-
-function defaultSetTimout() {
-    throw new Error('setTimeout has not been defined');
-}
-function defaultClearTimeout () {
-    throw new Error('clearTimeout has not been defined');
-}
-(function () {
-    try {
-        if (typeof setTimeout === 'function') {
-            cachedSetTimeout = setTimeout;
-        } else {
-            cachedSetTimeout = defaultSetTimout;
-        }
-    } catch (e) {
-        cachedSetTimeout = defaultSetTimout;
-    }
-    try {
-        if (typeof clearTimeout === 'function') {
-            cachedClearTimeout = clearTimeout;
-        } else {
-            cachedClearTimeout = defaultClearTimeout;
-        }
-    } catch (e) {
-        cachedClearTimeout = defaultClearTimeout;
-    }
-} ())
-function runTimeout(fun) {
-    if (cachedSetTimeout === setTimeout) {
-        //normal enviroments in sane situations
-        return setTimeout(fun, 0);
-    }
-    // if setTimeout wasn't available but was latter defined
-    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-        cachedSetTimeout = setTimeout;
-        return setTimeout(fun, 0);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedSetTimeout(fun, 0);
-    } catch(e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-            return cachedSetTimeout.call(null, fun, 0);
-        } catch(e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-            return cachedSetTimeout.call(this, fun, 0);
-        }
-    }
-
-
-}
-function runClearTimeout(marker) {
-    if (cachedClearTimeout === clearTimeout) {
-        //normal enviroments in sane situations
-        return clearTimeout(marker);
-    }
-    // if clearTimeout wasn't available but was latter defined
-    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-        cachedClearTimeout = clearTimeout;
-        return clearTimeout(marker);
-    }
-    try {
-        // when when somebody has screwed with setTimeout but no I.E. maddness
-        return cachedClearTimeout(marker);
-    } catch (e){
-        try {
-            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-            return cachedClearTimeout.call(null, marker);
-        } catch (e){
-            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-            return cachedClearTimeout.call(this, marker);
-        }
-    }
-
-
-
-}
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-    if (!draining || !currentQueue) {
-        return;
-    }
-    draining = false;
-    if (currentQueue.length) {
-        queue = currentQueue.concat(queue);
-    } else {
-        queueIndex = -1;
-    }
-    if (queue.length) {
-        drainQueue();
-    }
-}
-
-function drainQueue() {
-    if (draining) {
-        return;
-    }
-    var timeout = runTimeout(cleanUpNextTick);
-    draining = true;
-
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        while (++queueIndex < len) {
-            if (currentQueue) {
-                currentQueue[queueIndex].run();
-            }
-        }
-        queueIndex = -1;
-        len = queue.length;
-    }
-    currentQueue = null;
-    draining = false;
-    runClearTimeout(timeout);
-}
-
-process.nextTick = function (fun) {
-    var args = new Array(arguments.length - 1);
-    if (arguments.length > 1) {
-        for (var i = 1; i < arguments.length; i++) {
-            args[i - 1] = arguments[i];
-        }
-    }
-    queue.push(new Item(fun, args));
-    if (queue.length === 1 && !draining) {
-        runTimeout(drainQueue);
-    }
-};
-
-// v8 likes predictible objects
-function Item(fun, array) {
-    this.fun = fun;
-    this.array = array;
-}
-Item.prototype.run = function () {
-    this.fun.apply(null, this.array);
-};
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
-process.versions = {};
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-process.prependListener = noop;
-process.prependOnceListener = noop;
-
-process.listeners = function (name) { return [] }
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-process.umask = function() { return 0; };
-
-},{}],2:[function(require,module,exports){
 (function (global){(function (){
 
 // ------------------------------------------
@@ -685,13 +499,25 @@ process.umask = function() { return 0; };
 }));
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 module.exports={
+  "comp": "index",
   "admins": [
     "theme_editor"
-  ]
+  ],
+  "sub": {
+    "theme_widget" : [],
+    "topnav" : [],
+    "header" : [],
+    "datdot" : [],
+    "editor" : [],
+    "smartcontract_codes" : [],
+    "supporters" : [],
+    "our_contributors" : [],
+    "footer" : []
+  }
 }
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 const IO = require('io')
 const default_data = require('./data.json')
 const modules = {
@@ -726,12 +552,13 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const sdb = statedb()
-  let {admin, sid} = await statedb.init('./d.json')
-  let data = sdb.get(sid)
+  let data = sdb.get(opts.sid)
   if(!data){
-    const {id} = sdb.add(default_data)
+    const {id, sid} = sdb.add({...default_data})
+    opts.sid = sid
     data = {...default_data, id}
   }
+  const admin = sdb.req_access(opts.sid)
   admin.set_admins(data.admins)
   const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
   // ----------------------------------------
@@ -759,12 +586,14 @@ async function make_page(opts, lang) {
   </div>`
   const main = shadow.querySelector('div')
 
-  main.append(...await Promise.all(Object.entries(modules).map(async entry => {
-    const el = document.createElement('div')
-    el.id = entry[0]
-    const shadow = el.attachShadow(shopts)
-    shadow.append(await entry[1]({ sid: data.sub[entry[0]]?.[0], hub: [css_id] }))
-    return el
+  main.append(...await Promise.all(
+    Object.entries(data.sub).map(async ([name, sids]) => {
+      console.log(name, sids)
+      const el = document.createElement('div')
+      el.name = name
+      const shadow = el.attachShadow(shopts)
+      shadow.append(await modules[name]({ sid: sids[0], hub: [css_id] }))
+      return el
   })))
   init_css()
   return el
@@ -773,7 +602,7 @@ async function make_page(opts, lang) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
   async function init_css () {
-    const pref = JSON.parse(localStorage.pref)
+    const pref = JSON.parse(localStorage.pref || '{}')
     const pref_shared = pref[name] || data.shared || [{ id: name }]
     const pref_uniq = pref[css_id] || data.uniq || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
@@ -800,7 +629,7 @@ async function make_page(opts, lang) {
 }
 
 
-},{"./data.json":3,"STATE":5,"datdot":13,"editor":15,"footer":17,"header":22,"io":23,"our_contributors":27,"smartcontract_codes":29,"supporters":31,"theme_widget":35,"topnav":37}],5:[function(require,module,exports){
+},{"./data.json":2,"STATE":4,"datdot":12,"editor":14,"footer":16,"header":22,"io":23,"our_contributors":27,"smartcontract_codes":29,"supporters":31,"theme_widget":35,"topnav":37}],4:[function(require,module,exports){
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
@@ -808,7 +637,7 @@ const db = localdb()
 Object.assign(STATE, { init })
 const s2i = {}
 const i2s = {}
-var admins
+var admins = [0]
 
 module.exports = STATE
 
@@ -824,13 +653,9 @@ async function init (url) {
   }
   const length = db.length(['state'])
   for (var id = 0; id < length; id++) s2i[i2s[id] = Symbol(id)] = id
-  const admin = { reset, set_admins }
-  return { sid: i2s[0], admin }
+  return i2s[0]
   async function reset () {
     await db.clear()
-  }
-  async function set_admins(ids) {
-    admins = ids
   }
 }
 
@@ -877,14 +702,18 @@ function STATE () {
   function req_access(sid) {
     if (deny[sid]) throw new Error('access denied')
     const el = db.read(['state', s2i[sid]])
-    if(admins.includes(el.comp))
-      return { xget }
+  console.log(s2i, sid)
+    if(admins.includes(s2i[sid]) || admins.includes(el?.comp))
+      return { xget, set_admins }
   }
   function xget(id) {
     return db.read(['state', id])
   }
+  async function set_admins(ids) {
+    admins = ids
+  }
 }
-},{"localdb":25}],6:[function(require,module,exports){
+},{"localdb":25}],5:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
 const default_data = require('./data.json')
@@ -969,7 +798,7 @@ async function content (opts) {
     }
 }
 
-},{"./data.json":7,"STATE":5,"io":23}],7:[function(require,module,exports){
+},{"./data.json":6,"STATE":4,"io":23}],6:[function(require,module,exports){
 module.exports={
   "comp": "content",
   "title": "Play Editor",
@@ -977,7 +806,7 @@ module.exports={
   "action": "Learn more",
   "url": "https://smartcontract-codes.github.io/play-ed/"
 }
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 const Graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1071,7 +900,7 @@ async function contributor (opts) {
 
 
 
-},{"./data.json":9,"STATE":5,"graphic":20,"io":23}],9:[function(require,module,exports){
+},{"./data.json":8,"STATE":4,"graphic":20,"io":23}],8:[function(require,module,exports){
 module.exports={
   "name": "Nina",
   "comp": "contributor",
@@ -1084,7 +913,7 @@ module.exports={
   "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
   "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
 }
-},{}],10:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 const IO = require('io')
 const graphic = require('graphic')
 const statedb = require('STATE')
@@ -1190,20 +1019,20 @@ async function crystal_island(opts) {
 }
 
 
-},{"./data.json":11,"STATE":5,"graphic":20,"io":23}],11:[function(require,module,exports){
+},{"./data.json":10,"STATE":4,"graphic":20,"io":23}],10:[function(require,module,exports){
 module.exports={
   "comp": "crystal_island",
   "date": "2018",
   "info": "$48.000 / Ethereum Foundation",
   "deco" : ["stone", "card", "tree1"]
 }
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports={
   "comp": "datdot",
   "logo": "",
   "image": ""
 }
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
@@ -1307,13 +1136,13 @@ async function datdot (opts) {
       return theme_css
     }
 }
-},{"./data.json":12,"STATE":5,"content":6,"graphic":20,"io":23,"rellax":2}],14:[function(require,module,exports){
+},{"./data.json":11,"STATE":4,"content":5,"graphic":20,"io":23,"rellax":1}],13:[function(require,module,exports){
 module.exports={
   "comp": "editor",
   "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
   "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"  
 }
-},{}],15:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -1434,7 +1263,7 @@ async function editor (opts) {
   }
 }
 
-},{"./data.json":14,"STATE":5,"content":6,"graphic":20,"io":23,"rellax":2}],16:[function(require,module,exports){
+},{"./data.json":13,"STATE":4,"content":5,"graphic":20,"io":23,"rellax":1}],15:[function(require,module,exports){
 module.exports={
   "comp": "footer",
   "copyright": " PlayProject",
@@ -1465,7 +1294,7 @@ module.exports={
     }
   ]
 }
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1564,14 +1393,15 @@ async function footer (opts) {
     }
 }
 
-},{"./data.json":16,"STATE":5,"graphic":20,"io":23}],18:[function(require,module,exports){
+},{"./data.json":15,"STATE":4,"graphic":20,"io":23}],17:[function(require,module,exports){
 module.exports={
   "comp": "graph_explorer"
 }
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
 const default_data = require('./data.json')
+const {copy, get_color, download_json} = require('helper')
 /******************************************************************************
   GRAPH COMPONENT
 ******************************************************************************/
@@ -1616,41 +1446,19 @@ async function graph_explorer (opts) {
   </main>
   `
   const main = shadow.querySelector('main')
-  shadow.addEventListener('copy', copy)
+  shadow.addEventListener('copy', oncopy)
 
   init_css()
   return el
 
-
-
-  function copy (e) {
+  /******************************************
+   Mix
+  ******************************************/
+  async function oncopy(e) {
     const selection = shadow.getSelection()
-    const range = selection.getRangeAt(0)
-    const selectedElements = []
-    const walker = document.createTreeWalker(
-      range.commonAncestorContainer,
-      NodeFilter.SHOW_ELEMENT,
-      {
-          acceptNode: function(node) {
-              return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
-          }
-      },
-      false
-    );
-
-    while (walker.nextNode()) {
-        walker.currentNode.tagName === 'SPAN' && selectedElements.push(walker.currentNode)
-    }
-    let text = ''
-    selectedElements.forEach(el => {
-      const before = getComputedStyle(el, '::before').content
-      text += (before === 'none' ? '' : before.slice(1, -1)) + el.textContent
-      text += el.classList.contains('name') ? '\n' : ''
-    })
-    e.clipboardData.setData('text/plain', text)
+    e.clipboardData.setData('text/plain', copy(selection))
     e.preventDefault()
   }
-
   async function init ({ data }) {
     let id = Object.keys(data).length
 
@@ -1667,23 +1475,10 @@ async function graph_explorer (opts) {
       data[id++] = args
     }
   }
-  function get_color() {
-    const letters = 'CDEF89'
-    let color = '#'
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * letters.length)]
-    }
-    return color;
-}
-  function create_node (type, id) {
+  function html_template (data, space, pos){
     const element = document.createElement('div')
-    element.classList.add(type, 'node')
+    element.classList.add(data.type, 'node', 'a'+data.id)
     element.tabIndex = '0'
-    element.classList.add('a'+id)
-    return element
-  }
-  function html_template (data, last, space, pos){
-    const element = create_node(data.type, data.id)
     element.dataset.space = space
     element.dataset.pos = pos
     return element
@@ -1704,7 +1499,7 @@ async function graph_explorer (opts) {
   //     parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
   // }
 
-  function add_action ({ hub_el, data, first, last, space = '' }) {
+  function add_action ({ hub_el, data, last, space = '' }) {
     const element = html_template(data, last, space)
     hub_el.append(element)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
@@ -1722,11 +1517,16 @@ async function graph_explorer (opts) {
   }
   //A button with 4 slots for sub nodes, data entity
   function add_entry ({ hub_el, data, first, last, space = '', pos, ancestry }) {
+    //Init
     const element = html_template(data, last, space, pos)
-    hub_el.append(element)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
     ancestry = [...ancestry]
+    let lo_space = space + (last ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
+    let hi_space = space + (first ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
+    const space_handle = [], els = []
+    let slot_no = 0, slot_on
 
+    //HTML
     element.innerHTML = `
       <div class="nodes hi_row">${space}${first ? '&nbsp;' : '│'}</div>
       <div class="details">
@@ -1741,6 +1541,8 @@ async function graph_explorer (opts) {
       <div class="nodes lo_row">${space}${last ? '&nbsp;' : '│'}</div>
       <div class="menu nodes"></div>
     `
+
+    //Unavoidable mix
     const copies = main.querySelectorAll('.a'+data.id + '> .details')
     if(copies.length > 1){
       const color = get_color()
@@ -1749,6 +1551,8 @@ async function graph_explorer (opts) {
     if(ancestry.includes(data.id))
       return
     ancestry.push(data.id)
+
+    //Elements
     const details = element.querySelector('.details')
     const name = element.querySelector('.details > .name')
     const menu_emo = element.querySelector('.details > .menu_emo')
@@ -1757,25 +1561,23 @@ async function graph_explorer (opts) {
     const hi_row = element.querySelector('.hi_row')
     const lo_row = element.querySelector('.lo_row')
 
+    //Listeners
     type_emo.onclick = type_click
     name.onclick = () => send({ type: 'click', to: hub_id, data })
-    let lo_space = space + (last ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
-    let hi_space = space + (first ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
-    const space_handle = []
-    const els = []
-    let slot_no = 0, slot_on, timer
-
+    hub_el.append(element)
     data.slot.forEach(handle_slot)
-    listen({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
+    menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
     if(getComputedStyle(type_emo, '::before').content === 'none')
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
 
+    //Procedures
     async function handle_slot (pair, i) {
       const slot_check = [false, false]
       const slot_emo = document.createElement('span')
       slot_emo.innerHTML = '<span></span><span>─</span>'
       menu_emo.before(slot_emo)
-
+      slot_no++
+      
       pair.forEach((x, j) => {
         let gap, mode, emo_on, temp
         const pos = !j
@@ -1834,18 +1636,14 @@ async function graph_explorer (opts) {
           handle_click({space: gap, pos, el, data: data[x], ancestry })
         }
       })
-      slot_no++
       if(getComputedStyle(slot_emo, '::before').content === 'none')
         slot_emo.innerHTML = `<span>${slot_no}</span><span>─</span>`
     }
     async function type_click() {
       slot_on = !slot_on
-      if(timer){
-        clearTimeout(timer)
-        timer = null
-      }
-      else if(slot_on)
-        timer = setTimeout(() => type_emo.click(), 8000)
+      if(status.xentry && status.xentry !== type_emo)
+        status.xentry.click()
+      status.xentry = type_emo
       details.classList.toggle('on')
       hi_row.classList.toggle('show')
       lo_row.classList.toggle('show')
@@ -1866,7 +1664,7 @@ async function graph_explorer (opts) {
         }
       })
     }
-    async function listen({ emo, emo_on, ...rest }, i) {
+    async function menu_click({ emo, emo_on, ...rest }, i) {
       emo.onclick = () => {
         emo.classList.toggle('on')
         emo_on = !emo_on
@@ -1947,12 +1745,7 @@ async function graph_explorer (opts) {
   }
   async function handle_export () {
     const data = await traverse( state.xtask.id.slice(1) )
-    const json_string = JSON.stringify(data, null, 2);
-    const blob = new Blob([json_string], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'data.json';
-    link.click();
+    download_json(data)
   }
   async function handle_add (data) {
     data = data.slice(2).trim().toLowerCase() + 's'
@@ -2075,7 +1868,50 @@ async function graph_explorer (opts) {
     return theme_css
   }
 }
-},{"./data.json":18,"STATE":5,"io":23}],20:[function(require,module,exports){
+},{"./data.json":17,"STATE":4,"helper":19,"io":23}],19:[function(require,module,exports){
+function copy (selection) {
+  const range = selection.getRangeAt(0)
+  const selectedElements = []
+  const walker = document.createTreeWalker(
+    range.commonAncestorContainer,
+    NodeFilter.SHOW_ELEMENT,
+    {
+        acceptNode: function(node) {
+            return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+        }
+    },
+    false
+  )
+
+  while (walker.nextNode()) {
+      walker.currentNode.tagName === 'SPAN' && selectedElements.push(walker.currentNode)
+  }
+  let text = ''
+  selectedElements.forEach(el => {
+    const before = getComputedStyle(el, '::before').content
+    text += (before === 'none' ? '' : before.slice(1, -1)) + el.textContent
+    text += el.classList.contains('name') ? '\n' : ''
+  })
+  return text
+}
+function get_color () {
+  const letters = 'CDEF89'
+  let color = '#'
+  for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * letters.length)]
+  }
+  return color;
+}
+function download_json (data) {
+  const json_string = JSON.stringify(data, null, 2);
+  const blob = new Blob([json_string], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'data.json';
+  link.click();
+}
+module.exports = {copy, get_color, download_json}
+},{}],20:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -2216,7 +2052,7 @@ async function header (opts) {
 }
 
 
-},{"./data.json":21,"STATE":5,"graphic":20,"io":23,"rellax":2}],23:[function(require,module,exports){
+},{"./data.json":21,"STATE":4,"graphic":20,"io":23,"rellax":1}],23:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -2461,7 +2297,7 @@ async function our_contributors (opts) {
       return theme_css
     }
 }
-},{"./data.json":26,"STATE":5,"content":6,"contributor":8,"graphic":20,"io":23,"rellax":2}],28:[function(require,module,exports){
+},{"./data.json":26,"STATE":4,"content":5,"contributor":7,"graphic":20,"io":23,"rellax":1}],28:[function(require,module,exports){
 module.exports={
  "comp": "smartcontract_codes",
   "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
@@ -2590,7 +2426,7 @@ async function smartcontract_codes (opts) {
   }
 }
 
-},{"./data.json":28,"STATE":5,"content":6,"graphic":20,"io":23}],30:[function(require,module,exports){
+},{"./data.json":28,"STATE":4,"content":5,"graphic":20,"io":23}],30:[function(require,module,exports){
 module.exports={
   "comp": "supporters",
   "title": "Supporters",
@@ -2716,7 +2552,7 @@ async function supporters (opts) {
     }
 }
 
-},{"./data.json":30,"STATE":5,"crystal_island":10,"graphic":20,"io":23,"rellax":2}],32:[function(require,module,exports){
+},{"./data.json":30,"STATE":4,"crystal_island":9,"graphic":20,"io":23,"rellax":1}],32:[function(require,module,exports){
 module.exports={
   "comp": "theme_editor",
   "admin": "true"
@@ -3156,7 +2992,7 @@ async function theme_editor (opts) {
   }
 }
 
-},{"./data.json":32,"STATE":5,"io":23,"localdb":25}],34:[function(require,module,exports){
+},{"./data.json":32,"STATE":4,"io":23,"localdb":25}],34:[function(require,module,exports){
 module.exports={
   "id": "1",
   "comp": "theme_widget",
@@ -3394,7 +3230,7 @@ async function theme_widget (opts) {
   }
 }
 
-},{"./data.json":34,"STATE":5,"graph_explorer":19,"io":23,"theme_editor":33}],36:[function(require,module,exports){
+},{"./data.json":34,"STATE":4,"graph_explorer":18,"io":23,"theme_editor":33}],36:[function(require,module,exports){
 module.exports={
   "comp": "topnav",
   "links": [
@@ -3560,19 +3396,14 @@ async function topnav (opts) {
 	}
 }
 
-},{"./data.json":36,"STATE":5,"graphic":20,"io":23}],38:[function(require,module,exports){
-(function (process,__filename,__dirname){(function (){
+},{"./data.json":36,"STATE":4,"graphic":20,"io":23}],38:[function(require,module,exports){
+(function (__dirname){(function (){
 const make_page = require('../') 
+const statedb = require('../src/node_modules/STATE')
 const theme = require('theme')
 /******************************************************************************
   INITIALIZE PAGE
 ******************************************************************************/
-// ----------------------------------------
-// MODULE STATE & ID
-var count = 0
-const [cwd, dir] = [process.cwd(), __filename].map(x => new URL(x, 'file://').href)
-const ID = dir.slice(cwd.length)
-const STATE = { ids: {}, net: {} } // all state of component module
 // ----------------------------------------
 let current_theme = theme
 const sheet = new CSSStyleSheet()
@@ -3608,10 +3439,8 @@ async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const id = `${ID}:${count++}` // assigns their own name
   const status = {}
-  const state = STATE.ids[id] = { id, status, wait: {}, net: {}, aka: {} } // all state of component instance
-  const cache = resources({})
+  const sid = await statedb.init('./d.json')
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -3629,9 +3458,8 @@ async function boot (opts) {
   // ----------------------------------------
   { // desktop
     const on = { 'theme_change': on_theme }
-    const protocol = use_protocol('make_page')({ state, on })
-    const opts = { page, theme, themes }
-    const element = await make_page(opts, protocol)
+    const opts = { page, theme, themes, sid }
+    const element = await make_page(opts)
     shadow.append(element)
   }
   // ----------------------------------------
@@ -3705,58 +3533,8 @@ function get_theme (opts) {
 		}
 	}`
 }
-// ----------------------------------------------------------------------------
-function shadowfy (props = {}, sheets = []) {
-  return element => {
-    const el = Object.assign(document.createElement('div'), { ...props })
-    const sh = el.attachShadow(shopts)
-    sh.adoptedStyleSheets = sheets
-    sh.append(element)
-    return el
-  }
-}
-function use_protocol (petname) {
-  return ({ protocol, state, on = { } }) => {
-    if (petname in state.aka) throw new Error('petname already initialized')
-    const { id } = state
-    const invalid = on[''] || (message => console.error('invalid type', message))
-    if (protocol) return handshake(protocol(Object.assign(listen, { id })))
-    else return handshake
-    // ----------------------------------------
-    // @TODO: how to disconnect channel
-    // ----------------------------------------
-    function handshake (send) {
-      state.aka[petname] = send.id
-      const channel = state.net[send.id] = { petname, mid: 0, send, on }
-      return protocol ? channel : Object.assign(listen, { id })
-    }
-    function listen (message) {
-      const [from] = message.head
-      const by = state.aka[petname]
-      if (from !== by) return invalid(message) // @TODO: maybe forward
-      console.log(`[${id}]:${petname}>`, message)
-      const { on } = state.net[by]
-      const action = on[message.type] || invalid
-      action(message)
-    }
-  }
-}
-// ----------------------------------------------------------------------------
-function resources (pool) {
-  var num = 0
-  return factory => {
-    const prefix = num++
-    const get = name => {
-      const id = prefix + name
-      if (pool[id]) return pool[id]
-      const type = factory[name]
-      return pool[id] = type()
-    }
-    return Object.assign(get, factory)
-  }
-}
-}).call(this)}).call(this,require('_process'),"/web/demo.js","/web")
-},{"../":4,"_process":1,"theme":39}],39:[function(require,module,exports){
+}).call(this)}).call(this,"/web")
+},{"../":3,"../src/node_modules/STATE":4,"theme":39}],39:[function(require,module,exports){
 const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 document.head.innerHTML += loadFont
