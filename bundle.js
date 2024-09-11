@@ -702,7 +702,6 @@ function STATE () {
   function req_access(sid) {
     if (deny[sid]) throw new Error('access denied')
     const el = db.read(['state', s2i[sid]])
-  console.log(s2i, sid)
     if(admins.includes(s2i[sid]) || admins.includes(el?.comp))
       return { xget, set_admins }
   }
@@ -1577,7 +1576,7 @@ async function graph_explorer (opts) {
       slot_emo.innerHTML = '<span></span><span>─</span>'
       menu_emo.before(slot_emo)
       slot_no++
-      
+
       pair.forEach((x, j) => {
         let gap, mode, emo_on, temp
         const pos = !j
@@ -1621,7 +1620,7 @@ async function graph_explorer (opts) {
           emo.classList.toggle('on')
           slot_emo.classList.add('on')
           style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
-          emo_on && space_handle[i]()
+          // emo_on && space_handle[i]()
           slot_check[j] = emo_on = !emo_on
           if(slot_check[0] && slot_check[1])
             slot_emo.children[1].innerHTML = '┼'
