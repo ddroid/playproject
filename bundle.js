@@ -1467,8 +1467,8 @@ async function graph_explorer (opts) {
     add({ id, name: 'drop', type: 'action', hub: [] })
 
     status.graph = data
-    const root_nodes = Object.values(data).filter(node => !node.hub)
-    root_nodes.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_nodes.length - 1, ancestry:[] }))
+    const root_entries = Object.values(data).filter(entry => !entry.hub)
+    root_entries.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
     function add (args){
       status.menu_ids.push(args.id)
       data[id++] = args
@@ -1476,7 +1476,7 @@ async function graph_explorer (opts) {
   }
   function html_template (data, space, pos){
     const element = document.createElement('div')
-    element.classList.add(data.type, 'node', 'a'+data.id)
+    element.classList.add(data.type, 'entry', 'a'+data.id)
     element.tabIndex = '0'
     element.dataset.space = space
     element.dataset.pos = pos
@@ -1504,17 +1504,16 @@ async function graph_explorer (opts) {
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
 
     element.innerHTML = `
-    <div class="details">
+    <div class="slot_list">
       <span class="odd">${space}</span>
       <span class="type_emo odd"></span>
       <span class="name odd">${data.name}</span>
     </div>
     `
-    const name = element.querySelector('.details > .name')
+    const name = element.querySelector('.slot_list > .name')
     name.onclick = () => send({ type: 'click', to: hub_id, data })
 
   }
-  //A button with 4 slots for sub nodes, data entity
   function add_entry ({ hub_el, data, first, last, space = '', pos, ancestry }) {
     //Init
     const element = html_template(data, last, space, pos)
@@ -1527,8 +1526,8 @@ async function graph_explorer (opts) {
 
     //HTML
     element.innerHTML = `
-      <div class="nodes hi_row">${space}${first ? '&nbsp;' : '│'}</div>
-      <div class="details">
+      <div class="entries hi_row">${space}${first ? '&nbsp;' : '│'}</div>
+      <div class="slot_list">
         <span class="space odd"><!--
         -->${space}<span>${last ? '└' : first ? "┌" : '├'}</span><!--
         --><span class='on'>${last ? '┗' : first ? "┏" : '┠'}</span>
@@ -1537,25 +1536,26 @@ async function graph_explorer (opts) {
         --><span class="type_emo odd"></span><!--
         --><span class="name odd">${data.name}</span>
       </div>
-      <div class="nodes lo_row">${space}${last ? '&nbsp;' : '│'}</div>
-      <div class="menu nodes"></div>
+      <div class="entries lo_row">${space}${last ? '&nbsp;' : '│'}</div>
+      <div class="menu entries"></div>
     `
 
     //Unavoidable mix
-    const copies = main.querySelectorAll('.a'+data.id + '> .details')
+    const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
     if(copies.length > 1){
       const color = get_color()
       copies.forEach(copy => copy.style.backgroundColor = color)
     }
+    hub_el.append(element)
     if(ancestry.includes(data.id))
       return
     ancestry.push(data.id)
 
     //Elements
-    const details = element.querySelector('.details')
-    const name = element.querySelector('.details > .name')
-    const menu_emo = element.querySelector('.details > .menu_emo')
-    const type_emo = element.querySelector('.details > .type_emo')
+    const slot_list = element.querySelector('.slot_list')
+    const name = element.querySelector('.slot_list > .name')
+    const menu_emo = element.querySelector('.slot_list > .menu_emo')
+    const type_emo = element.querySelector('.slot_list > .type_emo')
     const menu = element.querySelector('.menu')
     const hi_row = element.querySelector('.hi_row')
     const lo_row = element.querySelector('.lo_row')
@@ -1563,7 +1563,6 @@ async function graph_explorer (opts) {
     //Listeners
     type_emo.onclick = type_click
     name.onclick = () => send({ type: 'click', to: hub_id, data })
-    hub_el.append(element)
     data.slot.forEach(handle_slot)
     menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
     if(getComputedStyle(type_emo, '::before').content === 'none')
@@ -1578,30 +1577,30 @@ async function graph_explorer (opts) {
       slot_no++
 
       pair.forEach((x, j) => {
-        let gap, mode, emo_on, temp
+        let gap, mode, emo_on, arrow_gap
         const pos = !j
         const count = status.count++
-        const el = document.createElement('div')
-        const emo = document.createElement('span')
+        const entries = document.createElement('div')
+        const arrow = document.createElement('span')
         const style = document.createElement('style')
         
-        el.classList.add('nodes')
+        entries.classList.add('entries')
         element.append(style)
         if(pos){
-          hi_row.before(el)
-          hi_row.append(emo)
+          hi_row.before(entries)
+          hi_row.append(arrow)
           mode= 'hi'
           gap = hi_space
           hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span>${x ? '<span class="xhi">│</span>' : ''}&nbsp;&nbsp;</span>`
-          temp = `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span></span>`
+          arrow_gap = `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span></span>`
         }
         else{
-          menu.after(el)
-          lo_row.append(emo)
+          menu.after(entries)
+          lo_row.append(arrow)
           mode = 'lo'
           gap = lo_space
           lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span>${x ? '<span class="xlo">│</span>' : ''}&nbsp;&nbsp;</span>`
-          temp = `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span></span>`
+          arrow_gap = `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span></span>`
         }
         style.innerHTML = `.space${count} > .x${mode}{display: none;}`
         els.push(slot_emo)
@@ -1613,11 +1612,11 @@ async function graph_explorer (opts) {
           return
         }
         slot_emo.classList.add(x)
-        emo.classList.add(mode+'_emo')
-        emo.innerHTML = temp
+        arrow.classList.add(mode+'_emo')
+        arrow.innerHTML = arrow_gap
 
-        emo.onclick = () => {
-          emo.classList.toggle('on')
+        arrow.onclick = () => {
+          arrow.classList.toggle('on')
           slot_emo.classList.add('on')
           style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
           // emo_on && space_handle[i]()
@@ -1632,7 +1631,7 @@ async function graph_explorer (opts) {
             slot_emo.children[1].innerHTML = '─'
             slot_emo.classList.remove('on')
           }
-          handle_click({space: gap, pos, el, data: data[x], ancestry })
+          handle_click({space: gap, pos, el: entries, data: data[x], ancestry })
         }
       })
       if(getComputedStyle(slot_emo, '::before').content === 'none')
@@ -1643,12 +1642,13 @@ async function graph_explorer (opts) {
       if(status.xentry && status.xentry !== type_emo)
         status.xentry.click()
       status.xentry = type_emo
-      details.classList.toggle('on')
+      slot_list.classList.toggle('on')
       hi_row.classList.toggle('show')
       lo_row.classList.toggle('show')
       let temp = element
+      //Find path to root
       while(temp.tagName !== 'MAIN'){
-        if(temp.classList.contains('node')){
+        if(temp.classList.contains('entry')){
           slot_on ? temp.classList.add('on') : temp.classList.remove('on')
           while(temp.previousElementSibling){
             temp = temp.previousElementSibling
