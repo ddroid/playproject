@@ -40,7 +40,7 @@ async function boot (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const status = {}
-  const sid = await statedb.init('./d.json')
+  const sid = await statedb.init('./data.json')
   // ----------------------------------------
   // OPTS
   // ----------------------------------------

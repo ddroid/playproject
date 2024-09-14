@@ -1,5 +1,4 @@
 const IO = require('io')
-const default_data = require('./data.json')
 const modules = {
  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
@@ -32,15 +31,14 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const sdb = statedb()
-  let data = sdb.get(opts.sid)
-  if(!data){
-    const {id, sid} = sdb.add({...default_data})
-    opts.sid = sid
-    data = {...default_data, id}
-  }
+  const data = await sdb.get(opts.sid, fallback)
   const admin = sdb.req_access(opts.sid)
   admin.set_admins(data.admins)
-  const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
+  const {send, css_id} = await IO({ 
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name }, on)
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -68,7 +66,6 @@ async function make_page(opts, lang) {
 
   main.append(...await Promise.all(
     Object.entries(data.sub).map(async ([name, sids]) => {
-      console.log(name, sids)
       const el = document.createElement('div')
       el.name = name
       const shadow = el.attachShadow(shopts)
@@ -78,6 +75,9 @@ async function make_page(opts, lang) {
   init_css()
   return el
   
+  async function fallback() {
+    return require('./data.json')
+  }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }

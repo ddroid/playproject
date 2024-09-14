@@ -501,25 +501,465 @@
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
 module.exports={
-  "comp": "index",
-  "admins": [
-    "theme_editor"
-  ],
-  "sub": {
-    "theme_widget" : [],
-    "topnav" : [],
-    "header" : [],
-    "datdot" : [],
-    "editor" : [],
-    "smartcontract_codes" : [],
-    "supporters" : [],
-    "our_contributors" : [],
-    "footer" : []
+  "0": {
+    "comp": "index",
+    "id": "0",
+    "sub": {
+      "theme_widget": ["1"],
+      "topnav": ["2"],
+      "header": ["3"],
+      "datdot": ["4"],
+      "editor": ["5"],
+      "smartcontract_codes": ["6"],
+      "supporters": ["7"],
+      "our_contributors": ["8"],
+      "footer": ["9"]
+    },
+    "admins": [
+      "theme_editor"
+    ]
+  },
+  "11": {
+    "id": "11",
+    "comp": "theme_editor",
+    "admin": "true"
+  },
+  "10": {
+    "id": "10",
+    "comp": "graph_explorer",
+    "hub_off": "📪",
+    "hub_on": "📭",
+    "sub_off": "📪",
+    "sub_on": "📭",
+    "in_off": "🗃",
+    "in_on": "🗂",
+    "out_off": "🗃",
+    "out_on": "🗂"
+  },
+  "1": {
+    "id": "1",
+    "comp": "theme_widget",
+    "admin": "true",
+    "sub": {
+      "graph_explorer": ["10"],
+      "theme_editor": ["11"]
+    }
+  },
+  "2": {
+    "id": "2",
+    "comp": "topnav",
+    "links": [
+      {
+        "id": "datdot",
+        "text": "DatDot",
+        "url": "datdot"
+      },
+      {
+        "id": "editor",
+        "text": "Play Editor",
+        "url": "editor"
+      },
+      {
+        "id": "smartcontract_codes",
+        "text": "Smart Contract Codes",
+        "url": "smartcontract_codes"
+      },
+      {
+        "id": "supporters",
+        "text": "Supporters",
+        "url": "supporters"
+      },
+      {
+        "id": "our_contributors",
+        "text": "Contributors",
+        "url": "our_contributors"
+      }
+    ]
+  },
+  "3": {
+    "id": "3",
+    "comp": "header",
+    "title": "Infrastructure for the next-generation Internet"
+  },
+  "4": {
+    "id": "4",
+    "comp": "datdot",
+    "sub": {
+      "content": ["12"]
+    },
+    "logo": "",
+    "image": ""
+  },
+  "12": {
+    "id": "12",
+    "comp": "content",
+    "title": "DatDot",
+    "article": "A system that enables peer-to-peer sharing of storage space and data seeding, eliminating the need for users to rely on renting servers for data hosting or accept the potential unreliability of P2P data sharing. To achieve this goal, our protocol is designed to automate the matchmaking process and conduct periodic checks to ensure reliable hosting and serving of data to readers.",
+    "action": "Learn more",
+    "url": "https://datdot.org/"
+  },
+  "5": {
+    "id": "5",
+    "comp": "editor",
+    "sub": {
+      "content": ["13"]
+    },
+    "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
+    "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"
+  },
+  "13": {
+    "id": "13",
+    "comp": "content",
+    "title": "Play Editor",
+    "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
+    "action": "Learn more",
+    "url": "https://smartcontract-codes.github.io/play-ed/"
+  },
+  "6": {
+    "id": "6",
+    "comp": "smartcontract_codes",
+    "sub": {
+      "content": ["14"]
+    },
+    "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
+    "image": "./src/node_modules/assets/images/smart-contract-codes.jpg"
+  },
+  "14": {
+    "id": "14",
+    "comp": "content",
+    "title": "Smart contract codes",
+    "article": "Experimental peer-to peer search engine for smart contract source codes. The project aims to make smart contracts verifiable and more transparent.",
+    "action": "Learn more",
+    "url": "https://smartcontract.codes/"
+  },
+  "7": {
+    "id": "7",
+    "comp": "supporters",
+    "title": "Supporters",
+    "sub": {
+      "crystal_island": [
+        "34", "35", "36", "37", "38"
+      ]
+    }
+  },
+  "8": {
+    "id": "8",
+    "comp": "our_contributors",
+    "sub": {
+      "content": ["15"],
+      "contributor": [
+        "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"
+      ]
+    }
+  },
+  "15": {
+    "id": "15",
+    "comp": "content",
+    "title": "Contributors",
+    "article": "We're a community of developers researching how to improve and sustain the Web. We're currently exploring the role that peer-to-peer protocols might play in making the Web more open, equitable and playful."
+  },
+  "9": {
+    "id": "9",
+    "comp": "footer",
+    "copyright": " PlayProject",
+    "icons": [
+      {
+        "id": "1",
+        "name": "email",
+        "imgURL": "./src/node_modules/assets/svg/email.svg",
+        "url": "mailto:ninabreznik@gmail.com"
+      },
+      {
+        "id": "2",
+        "name": "twitter",
+        "imgURL": "./src/node_modules/assets/svg/twitter.svg",
+        "url": "https://twitter.com/playproject_io"
+      },
+      {
+        "id": "3",
+        "name": "Github",
+        "imgURL": "./src/node_modules/assets/svg/github.svg",
+        "url": "https://github.com/playproject-io"
+      },
+      {
+        "id": "4",
+        "name": "Gitter",
+        "imgURL": "./src/node_modules/assets/svg/gitter.svg",
+        "url": "https://gitter.im/playproject-io/community"
+      }
+    ]
+  },
+  "16":{
+    "id": "16",
+    "name": "Nina",
+    "comp": "contributor",
+    "careers": ["Decentralized tech"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-nina.png"
+  },
+  "17":{
+    "id": "17",
+    "comp": "contributor",
+    "name": "Serapath",
+    "careers": ["Decentralized tech"],
+    "contact": {
+      "twitter": "",
+      "github": ""
+    },
+    "css": [{ "id": "contributor.css"},{ "id": "contributor_2.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-alex.png"
+  },
+  "18": {
+    "id": "18",
+    "name": "Jam",
+    "comp": "contributor",
+    "careers": ["Substrate"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-joshua.png"
+  },
+  "19": {
+    "id": "19",
+    "name": "Mauve",
+    "comp": "contributor",
+    "careers": ["Decentralized tech"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-mauve.png"
+  },
+  "20": {
+    "id": "20",
+    "name": "Fiona",
+    "comp": "contributor",
+    "careers": ["UI/UX & Frontend"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-fiona.png"
+  },
+  "21": {
+    "id": "21",
+    "name": "Toshi",
+    "comp": "contributor",
+    "careers": ["UI/UX & Frontend"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-toshi.png"
+  },
+  "22": {
+    "id": "22",
+    "name": "Ailin",
+    "comp": "contributor",
+    "careers": ["NodeJS & Web3"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-ailin.png"
+  },
+  "23": {
+    "id": "23",
+    "name": "Kayla",
+    "comp": "contributor",
+    "careers": ["UX/UI"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-kayla.png"
+  },
+  "24": {
+    "id": "24",
+    "name": "Tommings",
+    "comp": "contributor",
+    "careers": ["Illustration & Design"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-tommings.png"
+  },
+  "25": {
+    "id": "25",
+    "name": "Santies",
+    "comp": "contributor",
+    "careers": ["3D design"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-santies.png"
+  },
+  "26": {
+    "id": "26",
+    "name": "Pepe",
+    "comp": "contributor",
+    "careers": ["Fullstack & 3D"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-pepe.png"
+  },
+  "27": {
+    "id": "27",
+    "name": "Jannis",
+    "comp": "contributor",
+    "careers": ["NodeJS"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-jannis.png"
+  },
+  "28": {
+    "id": "28",
+    "name": "Nora",
+    "comp": "contributor",
+    "careers": ["Frontend & Web3"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-nora.png"
+  },
+  "29": {
+    "id": "29",
+    "name": "Mimi",
+    "comp": "contributor",
+    "careers": ["UI/UX & Frontend"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-mimi.png"
+  },
+  "30": {
+    "id": "30",
+    "name": "Helen",
+    "comp": "contributor",
+    "careers": ["UX/UI and graphic design"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
+  },
+  "31": {
+    "id": "31",
+    "name": "Ali",
+    "comp": "contributor",
+    "careers": ["UX/UI and graphic design"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
+  },
+  "32": {
+    "id": "32",
+    "name": "Ibrar",
+    "comp": "contributor",
+    "careers": ["UX/UI and graphic design"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
+  },
+  "33": {
+    "id": "33",
+    "name": "Cypher",
+    "comp": "contributor",
+    "careers": ["UX/UI and graphic design"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
+  },
+  "34": {
+    "id": "34",
+    "comp": "crystalIsland",
+    "date": "2015 - today",
+    "info": "Various private donations & volunteering",
+    "deco" : ["yellowCrystal", "card", "tree"]
+  },
+  "35": {
+    "id": "35",
+    "comp": "crystalIsland",
+    "date": "2018",
+    "info": "$48.000 / Ethereum Foundation",
+    "deco" : ["stone", "card", "tree1"]
+  },
+  "36": {
+    "id": "36",
+    "comp": "crystalIsland",
+    "date": "2020",
+    "info": "€30.000 / Web3 Foundation",
+    "deco" : ["purpleCrystal", "card", "tree2"]
+  },
+  "37": {
+    "id": "37",
+    "comp": "crystalIsland",
+    "date": "2022",
+    "info": "DOT 5530 / Polkadot Treasury Fund",
+    "deco" : ["blueCrystal", "card", "tree3"]
+  },
+  "38": {
+    "id": "38",
+    "comp": "crystalIsland",
+    "date": "2022",
+    "info": "DOT 5530 / Polkadot Treasury Fund",
+    "deco" : ["blueCrystal", "card", "tree3"]
   }
 }
 },{}],3:[function(require,module,exports){
 const IO = require('io')
-const default_data = require('./data.json')
 const modules = {
  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
@@ -552,15 +992,14 @@ async function make_page(opts, lang) {
     inject_all,
   }
   const sdb = statedb()
-  let data = sdb.get(opts.sid)
-  if(!data){
-    const {id, sid} = sdb.add({...default_data})
-    opts.sid = sid
-    data = {...default_data, id}
-  }
+  const data = await sdb.get(opts.sid, fallback)
   const admin = sdb.req_access(opts.sid)
   admin.set_admins(data.admins)
-  const {send, css_id} = await IO({ id: data.id, name, type: 'comp', comp: name }, on)
+  const {send, css_id} = await IO({ 
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name }, on)
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
@@ -588,7 +1027,6 @@ async function make_page(opts, lang) {
 
   main.append(...await Promise.all(
     Object.entries(data.sub).map(async ([name, sids]) => {
-      console.log(name, sids)
       const el = document.createElement('div')
       el.name = name
       const shadow = el.attachShadow(shopts)
@@ -598,6 +1036,9 @@ async function make_page(opts, lang) {
   init_css()
   return el
   
+  async function fallback() {
+    return require('./data.json')
+  }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
@@ -647,9 +1088,13 @@ async function init (url) {
   Object.freeze(STATE)
   let data = db.read(['state'])
   if(!data){
-    const resp = await fetch(url)
-    data = resp.ok && await (resp).json()
-    db.add(['state'], data || {})
+    const res = await fetch(url)
+    data = res.ok && await (res).json()
+    db.add(['state'], data || {
+      "0": {
+        id: "0"
+      }
+    })
   }
   const length = db.length(['state'])
   for (var id = 0; id < length; id++) s2i[i2s[id] = Symbol(id)] = id
@@ -682,9 +1127,40 @@ function STATE () {
       }
     }
   }
-  function get (sid) {
+  async function get (sid, fallback) {
     if (deny[sid]) throw new Error('access denied')
-    return symbolfy(db.read(['state', s2i[sid]]))
+    const id = s2i[sid]
+    let node = db.read(['state', id])
+    if(Object.keys(node).length < 2){
+      const local_data = await fallback()
+      let count = db.length(['state'])
+      Object.values(local_data)[0].id = id
+      local_data[id] = Object.values(local_data)[0]
+      id && delete(local_data[0])
+      Object.values(local_data).forEach(v => {
+        v.sub && Object.entries(v.sub).forEach(([comp, list]) => {
+          v.sub[comp] = []
+          list.forEach(id => {
+            if(Number(id) > count){
+              s2i[i2s[id] = Symbol(id)] = id
+              local_data[id].id = id
+              v.sub[comp].push(id)
+            }
+            else{
+              s2i[i2s[count] = Symbol(count)] = count
+              local_data[count] = local_data[id] || {}
+              local_data[count].id = count
+              id.includes('x') && delete(local_data[id])
+              v.sub[comp].push(count++)
+            }
+          })
+        })
+      })
+      db.append(['state'], local_data)
+      node = local_data[id]
+      console.log(local_data)
+    }
+    return symbolfy(node)
   }
   function add (opts, hub) {
     const id = db.length(['state'])
@@ -715,7 +1191,6 @@ function STATE () {
 },{"localdb":25}],5:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   CONTENT COMPONENT
 ******************************************************************************/
@@ -726,90 +1201,97 @@ module.exports = content
 
 async function content (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'content'
-    const status = {}
-    const on = {
-      inject,
-      inject_all,
-      scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const style = document.createElement('style')
-    el.classList.add('content')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-    <div class="main">
-        <h2 class="subTitle subTitleColor">${data.title}</h2>
-        <article class=article>${data.article}</article>
-        ${data.url ? `<a class="button buttonBg" href=${data.url} target="_blank">${data.action}</a>` : ''}
-    </div>
-    `
-    shadow.append(style)
-    
-    init_css()
-    return el
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'content'
+  const status = {}
+  const on = {
+    inject,
+    inject_all,
+    scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)  
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const style = document.createElement('style')
+  el.classList.add('content')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <div class="main">
+      <h2 class="subTitle subTitleColor">${data.title}</h2>
+      <article class=article>${data.article}</article>
+      ${data.url ? `<a class="button buttonBg" href=${data.url} target="_blank">${data.action}</a>` : ''}
+  </div>
+  `
+  shadow.append(style)
+  
+  init_css()
+  return el
 
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
 },{"./data.json":6,"STATE":4,"io":23}],6:[function(require,module,exports){
 module.exports={
-  "comp": "content",
-  "title": "Play Editor",
-  "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
-  "action": "Learn more",
-  "url": "https://smartcontract-codes.github.io/play-ed/"
+  "0": {
+    "comp": "content",
+    "title": "Play Editor",
+    "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
+    "action": "Learn more",
+    "url": "https://smartcontract-codes.github.io/play-ed/"
+  }
 }
 },{}],7:[function(require,module,exports){
 const Graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   CONTRIBUTOR COMPONENT
 ******************************************************************************/
@@ -820,103 +1302,110 @@ module.exports = contributor
 
 async function contributor (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'contributor'
-    const status = {}
-    const lifeIsland = await Graphic('lifeIsland','./src/node_modules/assets/svg/life-island.svg')
-    const on = {
-      inject,
-      inject_all,
-      scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name: data.name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-      <div>
-        <div class='member'>
-          <img class='avatar' src=${data.avatar} alt=${data.name}>
-          <div class='info'>
-            <h3 class='name'>${data.name}</h3>
-            ${data.careers &&
-                data.careers.map( career =>
-                    `<span class='career'>${career}</span>`
-                )
-            }
-          </div>
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'contributor'
+  const status = {}
+  const lifeIsland = await Graphic('lifeIsland','./src/node_modules/assets/svg/life-island.svg')
+  const on = {
+    inject,
+    inject_all,
+    scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)  
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <div>
+      <div class='member'>
+        <img class='avatar' src=${data.avatar} alt=${data.name}>
+        <div class='info'>
+          <h3 class='name'>${data.name}</h3>
+          ${data.careers &&
+              data.careers.map( career =>
+                  `<span class='career'>${career}</span>`
+              )
+          }
         </div>
-        ${lifeIsland.outerHTML}
       </div>
-    `
-    init_css()
-    return el
+      ${lifeIsland.outerHTML}
+    </div>
+  `
+  init_css()
+  return el
 
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name + '.css' }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name + '.css' }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(...shadow.adoptedStyleSheets, sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(...shadow.adoptedStyleSheets, sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
 
 
 },{"./data.json":8,"STATE":4,"graphic":20,"io":23}],8:[function(require,module,exports){
 module.exports={
-  "name": "Nina",
-  "comp": "contributor",
-  "careers": ["Decentralized tech"],
-  "contact": {
-    "twitter": "",
-    "github": "",
-    "website": ""
-  },
-  "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-  "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
+  "0": {
+    "name": "Nina",
+    "comp": "contributor",
+    "careers": ["Decentralized tech"],
+    "contact": {
+      "twitter": "",
+      "github": "",
+      "website": ""
+    },
+    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
+    "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
+  }
 }
 },{}],9:[function(require,module,exports){
 const IO = require('io')
 const graphic = require('graphic')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   CRYSTAL ISLAND COMPONENT
 ******************************************************************************/
@@ -926,110 +1415,125 @@ const shopts = { mode: 'closed' }
 module.exports = crystal_island
 
 async function crystal_island(opts) {
-    // {date, info}, deco, island, title)
-    // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'crystal_island'
-    const status = {}
-    const on = {
-      inject,
-      inject_all,
-      scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    const paths = {
-      island: './src/node_modules/assets/svg/floating-island3.svg',
-      tree: './src/node_modules/assets/svg/big-tree.svg',
-      tree1: './src/node_modules/assets/svg/single-tree1.svg',
-      tree2: './src/node_modules/assets/svg/single-tree2.svg',
-      tree3: './src/node_modules/assets/svg/single-tree3.svg',
-      yellowCrystal: './src/node_modules/assets/svg/crystal-yellow.svg',
-      purpleCrystal: './src/node_modules/assets/svg/crystal-purple.svg',
-      blueCrystal: './src/node_modules/assets/svg/crystal-blue.svg',
-      stone: './src/node_modules/assets/svg/stone1.svg',
-      card: './src/node_modules/assets/svg/card2.svg'
-    }
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    // el.classList.add('scene')
-    shadow.innerHTML = `
-        <div class='deco'>
-            <div class='content'>
-                <h3>${data.date}</h3>
-                ${ data.info === 'Coming soon' ? `<h3>${data.info}</h3>` : `<p>${data.info}</p>` }
-            </div>
-            ${data.title || ''}
-        </div>
-    `
-    // ----------------------------------------
-    const deco_el = shadow.querySelector('.deco')
-    shadow.append(await graphic('island', paths['island']))
-    deco_el.append(...await Promise.all(data.deco.map(async v => await graphic(v.includes('tree') ? 'tree' : v, paths[v]))))
-    init_css()
-    return el
+  // {date, info}, deco, island, title)
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'crystal_island'
+  const status = {}
+  const on = {
+    inject,
+    inject_all,
+    scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)  
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  const paths = {
+    island: './src/node_modules/assets/svg/floating-island3.svg',
+    tree: './src/node_modules/assets/svg/big-tree.svg',
+    tree1: './src/node_modules/assets/svg/single-tree1.svg',
+    tree2: './src/node_modules/assets/svg/single-tree2.svg',
+    tree3: './src/node_modules/assets/svg/single-tree3.svg',
+    yellowCrystal: './src/node_modules/assets/svg/crystal-yellow.svg',
+    purpleCrystal: './src/node_modules/assets/svg/crystal-purple.svg',
+    blueCrystal: './src/node_modules/assets/svg/crystal-blue.svg',
+    stone: './src/node_modules/assets/svg/stone1.svg',
+    card: './src/node_modules/assets/svg/card2.svg'
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  // el.classList.add('scene')
+  shadow.innerHTML = `
+      <div class='deco'>
+          <div class='content'>
+              <h3>${data.date}</h3>
+              ${ data.info === 'Coming soon' ? `<h3>${data.info}</h3>` : `<p>${data.info}</p>` }
+          </div>
+          ${data.title || ''}
+      </div>
+  `
+  // ----------------------------------------
+  const deco_el = shadow.querySelector('.deco')
+  shadow.append(await graphic('island', paths['island']))
+  deco_el.append(...await Promise.all(data.deco.map(async v => await graphic(v.includes('tree') ? 'tree' : v, paths[v]))))
+  init_css()
+  return el
 
-    async function init_css () {
-        const pref = JSON.parse(localStorage.pref)
-        const pref_shared = pref[name] || data.shared || [{ id: name }]
-        const pref_uniq = pref[css_id] || data.uniq || []
-        pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-        pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
-      }
-      async function scroll () {
-        el.scrollIntoView({behavior: 'smooth'})
-        el.tabIndex = '0'
-        el.focus()
-        el.onblur = () => {
-          el.tabIndex = '-1'
-          el.onblur = null
-        }
-      }
-      async function inject_all ({ data }) {
-        const sheet = new CSSStyleSheet
-        sheet.replaceSync(data)
-        shadow.adoptedStyleSheets.push(sheet)
-      }
-      async function inject ({ data }){
-        const style = document.createElement('style')
-        style.innerHTML = data
-        shadow.append(style)
-      }
-      async function get_theme ({local = true, theme = 'default', id}) {
-        let theme_css
-        if(local)
-          theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-        else
-          theme_css = JSON.parse(localStorage[theme])[id]
-        return theme_css
-      }
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
+    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
 
 },{"./data.json":10,"STATE":4,"graphic":20,"io":23}],10:[function(require,module,exports){
 module.exports={
-  "comp": "crystal_island",
-  "date": "2018",
-  "info": "$48.000 / Ethereum Foundation",
-  "deco" : ["stone", "card", "tree1"]
+  "0": {
+    "comp": "crystal_island",
+    "date": "2018",
+    "info": "$48.000 / Ethereum Foundation",
+    "deco" : ["stone", "card", "tree1"]
+  }
 }
 },{}],11:[function(require,module,exports){
 module.exports={
-  "comp": "datdot",
-  "logo": "",
-  "image": ""
+  "0": {
+    "comp": "datdot",
+    "logo": "",
+    "image": "",
+    "sub": {
+      "content": [
+        "x"
+      ]
+    }
+  }
 }
 },{}],12:[function(require,module,exports){
 const graphic = require('graphic')
@@ -1037,7 +1541,6 @@ const Rellax = require('rellax')
 const content = require('content')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   DATDOT COMPONENT
 ******************************************************************************/
@@ -1048,98 +1551,111 @@ module.exports = datdot
 
 async function datdot (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'datdot'
-    const status = {}
-    const on = {
-      inject,
-      inject_all,
-      scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    var graphics = [
-      graphic('blockchainIsland', './src/node_modules/assets/svg/blockchian-island.svg'),
-      graphic('blossomIsland', './src/node_modules/assets/svg/blossom-island.svg'),
-      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
-    ]
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'datdot'
+  const status = {}
+  const on = {
+    inject,
+    inject_all,
+    scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)  
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  var graphics = [
+    graphic('blockchainIsland', './src/node_modules/assets/svg/blockchian-island.svg'),
+    graphic('blossomIsland', './src/node_modules/assets/svg/blossom-island.svg'),
+    graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+  ]
 
-    const [blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5] = await Promise.all(graphics)
-    // Parallax effects
-    let cloud1Rellax = new Rellax( cloud1, { speed: 4})
-    let cloud2Rellax = new Rellax( cloud2, { speed: 2})
-    let cloud3Rellax = new Rellax( cloud3, { speed: 5})
-    let cloud4Rellax = new Rellax( cloud4, { speed: 2})
-    let cloud5Rellax = new Rellax( cloud5, { speed: 4})
-    
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-    <section id="datdot" class="section">
-    </section>
-    `
-    const main = shadow.querySelector('section')
-    main.append(await content({ sid: data.sub?.content?.[0], hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-    
-    init_css()
-    return el
+  const [blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5] = await Promise.all(graphics)
+  // Parallax effects
+  let cloud1Rellax = new Rellax( cloud1, { speed: 4})
+  let cloud2Rellax = new Rellax( cloud2, { speed: 2})
+  let cloud3Rellax = new Rellax( cloud3, { speed: 5})
+  let cloud4Rellax = new Rellax( cloud4, { speed: 2})
+  let cloud5Rellax = new Rellax( cloud5, { speed: 4})
+  
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <section id="datdot" class="section">
+  </section>
+  `
+  const main = shadow.querySelector('section')
+  main.append(await content({ sid: data.sub?.content?.[0], hub: [css_id] }), blockchainIsland, blossomIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+  
+  init_css()
+  return el
 
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 },{"./data.json":11,"STATE":4,"content":5,"graphic":20,"io":23,"rellax":1}],13:[function(require,module,exports){
 module.exports={
-  "comp": "editor",
-  "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
-  "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"  
+  "0": {
+    "comp": "editor",
+    "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
+    "image": "./src/node_modules/assets/images/smart-contract-ui.jpg",
+    "sub": {
+      "content": [
+        "x"
+      ]
+    }
+  }
 }
 },{}],14:[function(require,module,exports){
 const graphic = require('graphic')
@@ -1147,7 +1663,6 @@ const Rellax = require('rellax')
 const Content = require('content')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   EDITOR COMPONENT
 ******************************************************************************/
@@ -1158,74 +1673,80 @@ module.exports = editor
 
 async function editor (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'editor'
-    const status = {}
-    const on = {
-        inject,
-        inject_all,
-        scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    const graphics = [
-      graphic('island', './src/node_modules/assets/svg/floating-island.svg'),
-      graphic('energyIsland', './src/node_modules/assets/svg/energy-island.svg'),
-      graphic('tree', './src/node_modules/assets/svg/single-tree.svg'),
-      graphic('stone', './src/node_modules/assets/svg/stone.svg'),
-      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
-    ]
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'editor'
+  const status = {}
+  const on = {
+      inject,
+      inject_all,
+      scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  const graphics = [
+    graphic('island', './src/node_modules/assets/svg/floating-island.svg'),
+    graphic('energyIsland', './src/node_modules/assets/svg/energy-island.svg'),
+    graphic('tree', './src/node_modules/assets/svg/single-tree.svg'),
+    graphic('stone', './src/node_modules/assets/svg/stone.svg'),
+    graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+  ]
 
-    const [island, energyIsland, tree, stone, cloud1, cloud2, cloud3, cloud4, cloud5] = await Promise.all(graphics)
+  const [island, energyIsland, tree, stone, cloud1, cloud2, cloud3, cloud4, cloud5] = await Promise.all(graphics)
 
-    // Parallax effects
-    let cloud1Rellax = new Rellax( cloud1, { speed: 2})
-    let cloud2Rellax = new Rellax( cloud2, { speed: 3})
-    let cloud3Rellax = new Rellax( cloud3, { speed: 4})
-    let cloud4Rellax = new Rellax( cloud4, { speed: 4})
-    let cloud5Rellax = new Rellax( cloud5, { speed: 3})
+  // Parallax effects
+  let cloud1Rellax = new Rellax( cloud1, { speed: 2})
+  let cloud2Rellax = new Rellax( cloud2, { speed: 3})
+  let cloud3Rellax = new Rellax( cloud3, { speed: 4})
+  let cloud4Rellax = new Rellax( cloud4, { speed: 4})
+  let cloud5Rellax = new Rellax( cloud5, { speed: 3})
 
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-    <section id="smartcontractUI" class='section'>
-        <div class='scene'>
-            <div class='objects'>
-                <img class='logo' src=${data.logo} alt="${data.title} logo">
-                <img class='screenshot' src=${data.image} alt=${data.title}>
-                <div class='deco'>
-                    ${stone.outerHTML}
-                    ${tree.outerHTML}
-                </div>
-            </div>
-            ${island.outerHTML}
-        </div>
-    </section>
-    `
-    // ----------------------------------------
-    const main = shadow.querySelector('section')
-    main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
-    main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
-    
-    init_css()
-    return el
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <section id="smartcontractUI" class='section'>
+      <div class='scene'>
+          <div class='objects'>
+              <img class='logo' src=${data.logo} alt="${data.title} logo">
+              <img class='screenshot' src=${data.image} alt=${data.title}>
+              <div class='deco'>
+                  ${stone.outerHTML}
+                  ${tree.outerHTML}
+              </div>
+          </div>
+          ${island.outerHTML}
+      </div>
+  </section>
+  `
+  // ----------------------------------------
+  const main = shadow.querySelector('section')
+  main.append(energyIsland, cloud1, cloud2, cloud3, cloud4, cloud5)
+  main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
+  
+  init_css()
+  return el
 
+  async function fallback() {
+    return require('./data.json')
+  }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
     const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -1264,40 +1785,41 @@ async function editor (opts) {
 
 },{"./data.json":13,"STATE":4,"content":5,"graphic":20,"io":23,"rellax":1}],15:[function(require,module,exports){
 module.exports={
-  "comp": "footer",
-  "copyright": " PlayProject",
-  "icons": [
-    {
-      "id": "1",
-      "name": "email",
-      "imgURL": "./src/node_modules/assets/svg/email.svg",
-      "url": "mailto:ninabreznik@gmail.com"
-    },
-    {
-      "id": "2",
-      "name": "twitter",
-      "imgURL": "./src/node_modules/assets/svg/twitter.svg",
-      "url": "https://twitter.com/playproject_io"
-    },
-    {
-      "id": "3",
-      "name": "Github",
-      "imgURL": "./src/node_modules/assets/svg/github.svg",
-      "url": "https://github.com/playproject-io"
-    },
-    {
-      "id": "4",
-      "name": "Gitter",
-      "imgURL": "./src/node_modules/assets/svg/gitter.svg",
-      "url": "https://gitter.im/playproject-io/community"
-    }
-  ]
+  "0": {
+    "comp": "footer",
+    "copyright": " PlayProject",
+    "icons": [
+      {
+        "id": "1",
+        "name": "email",
+        "imgURL": "./src/node_modules/assets/svg/email.svg",
+        "url": "mailto:ninabreznik@gmail.com"
+      },
+      {
+        "id": "2",
+        "name": "twitter",
+        "imgURL": "./src/node_modules/assets/svg/twitter.svg",
+        "url": "https://twitter.com/playproject_io"
+      },
+      {
+        "id": "3",
+        "name": "Github",
+        "imgURL": "./src/node_modules/assets/svg/github.svg",
+        "url": "https://github.com/playproject-io"
+      },
+      {
+        "id": "4",
+        "name": "Gitter",
+        "imgURL": "./src/node_modules/assets/svg/gitter.svg",
+        "url": "https://gitter.im/playproject-io/community"
+      }
+    ]
+  }
 }
 },{}],16:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   APP FOOTER COMPONENT
 ******************************************************************************/
@@ -1308,98 +1830,106 @@ module.exports = footer
 
 async function footer (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'footer'
-    const status = {}
-    const on = {
-        inject,
-        inject_all,
-        scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    let island = await graphic('island', './src/node_modules/assets/svg/deco-island.svg')
-    const graphics = data.icons.map(icon => graphic('icon', icon.imgURL))
-    const icons = await Promise.all(graphics)
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-    <footer class='footer'>
-        <div class='scene'>
-            ${island.outerHTML}
-            <nav class='contacts'>
-                ${data.icons.map((icon, i) => 
-                    `<a href=${icon.url} 
-                    title=${icon.name} 
-                    target="${icon.url.includes('http') ? "_blank" : null}"
-                    >${icons[i].outerHTML}</a>`
-                )}
-            </nav>
-        </div>
-        
-        <p class='copyright'>${new Date().getFullYear()+' '+data.copyright}</p>
-    </footer>
-    `
-    
-    init_css()
-    return el
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'footer'
+  const status = {}
+  const on = {
+      inject,
+      inject_all,
+      scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
 
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  let island = await graphic('island', './src/node_modules/assets/svg/deco-island.svg')
+  const graphics = data.icons.map(icon => graphic('icon', icon.imgURL))
+  const icons = await Promise.all(graphics)
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <footer class='footer'>
+      <div class='scene'>
+          ${island.outerHTML}
+          <nav class='contacts'>
+              ${data.icons.map((icon, i) => 
+                  `<a href=${icon.url} 
+                  title=${icon.name} 
+                  target="${icon.url.includes('http') ? "_blank" : null}"
+                  >${icons[i].outerHTML}</a>`
+              )}
+          </nav>
+      </div>
+      
+      <p class='copyright'>${new Date().getFullYear()+' '+data.copyright}</p>
+  </footer>
+  `
+  
+  init_css()
+  return el
+
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
 },{"./data.json":15,"STATE":4,"graphic":20,"io":23}],17:[function(require,module,exports){
-module.exports={
-  "comp": "graph_explorer"
+module.exports={ 
+  "0": {
+    "comp": "graph_explorer"
+  }
 }
 },{}],18:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 const {copy, get_color, download_json} = require('helper')
 /******************************************************************************
   GRAPH COMPONENT
@@ -1428,12 +1958,15 @@ async function graph_explorer (opts) {
     menu: add_action
   }
 	const sdb = statedb()
-	let main_data = sdb.get(opts.sid)
-  if(!main_data){
-    const {id} = sdb.add(default_data, opts.hub)
-    main_data = {...default_data, id}
-  }
-  const {send, css_id} = await IO({id: main_data.id, name, type: 'comp', comp: name, hub: opts.hub, css: main_data.css}, on)
+  const main_data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: main_data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: main_data.css
+  }, on)
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -1453,6 +1986,9 @@ async function graph_explorer (opts) {
   /******************************************
    Mix
   ******************************************/
+  async function fallback() {
+    return require('./data.json')
+  }
   async function oncopy(e) {
     const selection = shadow.getSelection()
     e.clipboardData.setData('text/plain', copy(selection))
@@ -1508,8 +2044,7 @@ async function graph_explorer (opts) {
       <span class="odd">${space}</span>
       <span class="type_emo odd"></span>
       <span class="name odd">${data.name}</span>
-    </div>
-    `
+    </div>`
     const name = element.querySelector('.slot_list > .name')
     name.onclick = () => send({ type: 'click', to: hub_id, data })
 
@@ -1932,15 +2467,16 @@ function graphic(className, url) {
 module.exports = graphic
 },{"loadSVG":24}],21:[function(require,module,exports){
 module.exports={
-  "comp": "header",
-  "title": "Infrastructure for the next-generation Internet"
+  "0": {
+    "comp": "header",
+    "title": "Infrastructure for the next-generation Internet"
+  }
 }
 },{}],22:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   HEADER COMPONENT
 ******************************************************************************/
@@ -1951,106 +2487,112 @@ module.exports = header
 
 async function header (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'header'
-    const status = {}
-    const on = {
-      inject,
-      inject_all,
-      scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    var graphics = [
-      graphic('playIsland', './src/node_modules/assets/svg/play-island.svg'),
-      graphic('sun', './src/node_modules/assets/svg/sun.svg'),
-      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
-    ]
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'header'
+  const status = {}
+  const on = {
+    inject,
+    inject_all,
+    scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  var graphics = [
+    graphic('playIsland', './src/node_modules/assets/svg/play-island.svg'),
+    graphic('sun', './src/node_modules/assets/svg/sun.svg'),
+    graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
+  ]
 
-    const [playIsland, sun, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
+  const [playIsland, sun, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
 
-		// Parallax effects
-		// let playRellax = new Rellax(playIsland, { speed: 2 })
-		let sunRellax = new Rellax(sun, { speed: 2 })
-		let cloud1Rellax = new Rellax(cloud1, { speed: 4 })
-		let cloud2Rellax = new Rellax(cloud2, { speed: 2 })
-		let cloud3Rellax = new Rellax(cloud3, { speed: 4 })
-		let cloud4Rellax = new Rellax(cloud4, { speed: 2 })
-		let cloud5Rellax = new Rellax(cloud5, { speed: 4 })
-		let cloud6Rellax = new Rellax(cloud6, { speed: 3 })
-		let cloud7Rellax = new Rellax(cloud7, { speed: 3 })
-		// ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-		<div class='header'>
-				<h1 class='title'>${data.title}</h1>
-				<section class='scene'>
-						<div class='sunCloud'>
-						</div>
-				</section>
-		</div>
-		`
-    // ----------------------------------------
-		const scene = shadow.querySelector('.scene')
-		const sunCloud = shadow.querySelector('.sunCloud')
-		scene.append(cloud3, cloud4, cloud5, cloud6, cloud7, playIsland)
-		sunCloud.append(cloud1, sun, cloud2)
-		
-    init_css()
-    return el
+  // Parallax effects
+  // let playRellax = new Rellax(playIsland, { speed: 2 })
+  let sunRellax = new Rellax(sun, { speed: 2 })
+  let cloud1Rellax = new Rellax(cloud1, { speed: 4 })
+  let cloud2Rellax = new Rellax(cloud2, { speed: 2 })
+  let cloud3Rellax = new Rellax(cloud3, { speed: 4 })
+  let cloud4Rellax = new Rellax(cloud4, { speed: 2 })
+  let cloud5Rellax = new Rellax(cloud5, { speed: 4 })
+  let cloud6Rellax = new Rellax(cloud6, { speed: 3 })
+  let cloud7Rellax = new Rellax(cloud7, { speed: 3 })
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <div class='header'>
+      <h1 class='title'>${data.title}</h1>
+      <section class='scene'>
+          <div class='sunCloud'>
+          </div>
+      </section>
+  </div>
+  `
+  // ----------------------------------------
+  const scene = shadow.querySelector('.scene')
+  const sunCloud = shadow.querySelector('.sunCloud')
+  scene.append(cloud3, cloud4, cloud5, cloud6, cloud7, playIsland)
+  sunCloud.append(cloud1, sun, cloud2)
+  
+  init_css()
+  return el
 
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
 
@@ -2102,7 +2644,7 @@ module.exports = loadSVG
 module.exports = localdb
 
 function localdb () {
-  return { add, read, drop, push, length }
+  return { add, read, drop, push, length, append }
 
   function length (keys) {
     if(keys) {
@@ -2115,7 +2657,12 @@ function localdb () {
     }
     return Object.keys(localStorage).length
   }
-  //for object
+  /**
+   * Assigns value to the key of an object already present in the DB
+   * 
+   * @param {String[]} keys 
+   * @param {any} value 
+   */
   function add (keys, value) {
     let data
     if(keys.length > 1) {
@@ -2130,7 +2677,32 @@ function localdb () {
       data = value
     localStorage[keys[0]] = JSON.stringify(data)
   }
-  //for arrays
+  /**
+   * Appends values into an object already present in the DB
+   * 
+   * @param {String[]} keys 
+   * @param {any} value 
+   */
+  function append (keys, value) {
+    let data
+    data = JSON.parse(localStorage[keys[0]])
+    if(keys.length > 1) {
+      let temp = data
+      keys.slice(1, -1).forEach(key => {
+        temp = temp[key]
+      })
+      temp[keys.slice(-1)[0]] = {...temp[keys.slice(-1)[0]], ...value}
+    }
+    else
+      data = {...data, ...value}
+    localStorage[keys[0]] = JSON.stringify(data)
+  }
+  /**
+   * Pushes value to an array already present in the DB
+   * 
+   * @param {String[]} keys
+   * @param {any} value 
+   */
   function push (keys, value) {
     const data = JSON.parse(localStorage[keys[0]])
     let temp = data
@@ -2166,11 +2738,16 @@ function localdb () {
 }
 },{}],26:[function(require,module,exports){
 module.exports={
-  "comp": "our_contributors",
-  "sub": {
-    "contributor": [
-      "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"
-    ]
+  "0": {
+    "comp": "our_contributors",
+    "sub": {
+      "contributor": [
+        "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x", "x"
+      ],
+      "content": [
+        "x"
+      ]
+    }
   }
 }
 },{}],27:[function(require,module,exports){
@@ -2180,7 +2757,6 @@ const Content = require('content')
 const Contributor = require('contributor')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
@@ -2191,126 +2767,138 @@ module.exports = our_contributors
 
 async function our_contributors (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'our_contributors'
-    const status = {}
-    const on = {
-        inject,
-        inject_all,
-        scroll,
-        refresh
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id, sid} = sdb.add(JSON.parse(JSON.stringify(default_data)), opts.hub)
-      opts.sid = sid
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    const graphics = [
-      graphic('island','./src/node_modules/assets/svg/waterfall-island.svg'),
-      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
-    ]
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'our_contributors'
+  const status = {}
+  const on = {
+      inject,
+      inject_all,
+      scroll,
+      refresh
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
 
-    const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  const graphics = [
+    graphic('island','./src/node_modules/assets/svg/waterfall-island.svg'),
+    graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
+  ]
 
-    let cloud1Rellax = new Rellax( cloud1, { speed: 0.3})
-    let cloud2Rellax = new Rellax( cloud2, { speed: 0.4})
-    let cloud3Rellax = new Rellax( cloud3, { speed: 0.3})
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    await refresh()
-    return el
+  const [island, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
 
-    async function refresh() {
-      const xdata = sdb.get(opts.sid)
-      const temp = []
-      for (const sid of xdata.sub.contributor || data.sub.contributor){
-          temp.push(await Contributor({sid, hub: [css_id]}))
-      }
-      const contributors = await Promise.all(temp)
-      shadow.innerHTML = `
-        <section id="ourContributors" class="section">
-            <div class='inner'>
-            </div>
-            <div class='groups'>
-            </div>
-            ${cloud4.outerHTML}
-            ${cloud5.outerHTML}
-            ${cloud6.outerHTML}
-            ${cloud7.outerHTML}
-        </section>
-      `
-      // ----------------------------------------
-      const inner = shadow.querySelector('.inner')
-      const groups = shadow.querySelector('.groups')
-      const main = shadow.querySelector('section')
-      groups.append(...contributors.map(el => el.classList.add('group') || el))
-      main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
-      inner.append(island, cloud1, cloud2, cloud3)
-      init_css()
+  let cloud1Rellax = new Rellax( cloud1, { speed: 0.3})
+  let cloud2Rellax = new Rellax( cloud2, { speed: 0.4})
+  let cloud3Rellax = new Rellax( cloud3, { speed: 0.3})
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  await refresh()
+  return el
+
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function refresh() {
+    const data = await sdb.get(opts.sid, fallback)
+    const temp = []
+    for (const sid of data.sub.contributor){
+        temp.push(await Contributor({sid, hub: [css_id]}))
     }
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+    const contributors = await Promise.all(temp)
+    shadow.innerHTML = `
+      <section id="ourContributors" class="section">
+          <div class='inner'>
+          </div>
+          <div class='groups'>
+          </div>
+          ${cloud4.outerHTML}
+          ${cloud5.outerHTML}
+          ${cloud6.outerHTML}
+          ${cloud7.outerHTML}
+      </section>
+    `
+    // ----------------------------------------
+    const inner = shadow.querySelector('.inner')
+    const groups = shadow.querySelector('.groups')
+    const main = shadow.querySelector('section')
+    groups.append(...contributors.map(el => el.classList.add('group') || el))
+    main.prepend(await Content({ sid: data.sub?.content?.[0], hub: [css_id] }))
+    inner.append(island, cloud1, cloud2, cloud3)
+    init_css()
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(...shadow.adoptedStyleSheets, sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(...shadow.adoptedStyleSheets, sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 },{"./data.json":26,"STATE":4,"content":5,"contributor":7,"graphic":20,"io":23,"rellax":1}],28:[function(require,module,exports){
 module.exports={
- "comp": "smartcontract_codes",
-  "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
-  "image": "./src/node_modules/assets/images/smart-contract-codes.jpg" 
+  "0": {
+    "comp": "smartcontract_codes",
+    "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
+    "image": "./src/node_modules/assets/images/smart-contract-codes.jpg",
+    "sub": {
+      "content": [
+        "x"
+      ]
+    }
+  }
 }
 },{}],29:[function(require,module,exports){
 const graphic = require('graphic')
 const Content = require('content')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   SMARTCONTRACT-CODES COMPONENT
 ******************************************************************************/
@@ -2321,25 +2909,29 @@ module.exports = smartcontract_codes
 
 async function smartcontract_codes (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'smartcontract_codes'
-    const status = {}
-    const on = {
-      inject,
-      inject_all,
-      scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id} = sdb.add(default_data, opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'smartcontract_codes'
+  const status = {}
+  const on = {
+    inject,
+    inject_all,
+    scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
+
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
   const graphics = [
     graphic('island', './src/node_modules/assets/svg/floating-island1.svg'),
     graphic('islandMiddle', './src/node_modules/assets/svg/floating-island2.svg'),
@@ -2351,39 +2943,39 @@ async function smartcontract_codes (opts) {
     graphic('smallStone', './src/node_modules/assets/svg/small-stone.svg'),
   ]
 
-    const [island, islandMiddle, islandRight, blossom, tree, trees, stone, smallStone] = await Promise.all(graphics)
+  const [island, islandMiddle, islandRight, blossom, tree, trees, stone, smallStone] = await Promise.all(graphics)
 
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-    <section id="smartcontractCodes" class='section'>
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <section id="smartcontractCodes" class='section'>
 
-      <div class='scene'>
-          <div class='deco'>
-              <img class='logo' src=${data.logo} alt="${data.title} logo">
-              <img class='screenshot' src=${data.image} alt=${data.title}>
-              ${trees.outerHTML}
-          </div>
-          ${island.outerHTML}
-      </div>
-      <div class='sceneMedium'>
-          <div class='deco'>
-              <div class='container'>
-                  ${smallStone.outerHTML}
-                  ${stone.outerHTML}
-                  ${blossom.outerHTML}
-              </div>
-              ${islandMiddle.outerHTML}
-          </div>
-          <div class='deco'>
-              ${tree.outerHTML}
-              ${islandRight.outerHTML}
-          </div>
-      </div>
-      
+    <div class='scene'>
+        <div class='deco'>
+            <img class='logo' src=${data.logo} alt="${data.title} logo">
+            <img class='screenshot' src=${data.image} alt=${data.title}>
+            ${trees.outerHTML}
+        </div>
+        ${island.outerHTML}
+    </div>
+    <div class='sceneMedium'>
+        <div class='deco'>
+            <div class='container'>
+                ${smallStone.outerHTML}
+                ${stone.outerHTML}
+                ${blossom.outerHTML}
+            </div>
+            ${islandMiddle.outerHTML}
+        </div>
+        <div class='deco'>
+            ${tree.outerHTML}
+            ${islandRight.outerHTML}
+        </div>
+    </div>
+    
   </section>
   `
   const main = shadow.querySelector('section')
@@ -2392,6 +2984,9 @@ async function smartcontract_codes (opts) {
   init_css()
   return el
 
+  async function fallback() {
+    return require('./data.json')
+  }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
     const pref_shared = pref[name] || data.shared || [{ id: name }]
@@ -2430,12 +3025,14 @@ async function smartcontract_codes (opts) {
 
 },{"./data.json":28,"STATE":4,"content":5,"graphic":20,"io":23}],30:[function(require,module,exports){
 module.exports={
-  "comp": "supporters",
-  "title": "Supporters",
-  "sub": {
-    "crystal_island": [
-      1, 2, 3, 4, 5
-    ]
+  "0": {
+    "comp": "supporters",
+    "title": "Supporters",
+    "sub": {
+      "crystal_island": [
+        "x", "x", "x", "x", "x"
+      ]
+    }
   }
 }
 },{}],31:[function(require,module,exports){
@@ -2455,115 +3052,122 @@ module.exports = supporters
 
 async function supporters (opts) {
   // ----------------------------------------
-    // ID + JSON STATE
-    // ----------------------------------------
-    const name = 'supporters'
-    const status = {}
-    const on = {
-        inject,
-        inject_all,
-        scroll
-    }
-    const sdb = statedb()
-    let data = sdb.get(opts.sid)
-    if(!data){
-      const {id, sid} = sdb.add(JSON.parse(JSON.stringify(default_data)), opts.hub)
-      data = {...default_data, id}
-    }
-    const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-    // ----------------------------------------
-    // OPTS
-    // ----------------------------------------
-    let pageTitle = `<div class='title'>${data.title}</div>`
-    
+  // ID + JSON STATE
+  // ----------------------------------------
+  const name = 'supporters'
+  const status = {}
+  const on = {
+      inject,
+      inject_all,
+      scroll
+  }
+  const sdb = statedb()
+  const data = await sdb.get(opts.sid, fallback)
+  console.log(data)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
 
-    const graphics = [
-      graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
-      graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
-    ]
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  let pageTitle = `<div class='title'>${data.title}</div>`
+  
 
-    const [cloud1, cloud2, cloud3, cloud4, cloud5, cloud6] = await Promise.all(graphics)
-    
-    // Parallax effects
-    let cloud1Rellax = new Rellax( cloud1, { speed: 1.5})
-    let cloud2Rellax = new Rellax( cloud2, { speed: 1})
-    let cloud3Rellax = new Rellax( cloud3, { speed: 1.5})
-    let cloud4Rellax = new Rellax( cloud4, { speed: 4})
-    let cloud5Rellax = new Rellax( cloud5, { speed: 1.5})
-    let cloud6Rellax = new Rellax( cloud6, { speed: 3})
-    
-    const scene = []
-    console.log(data)
-    for (const sid of data.sub.crystal_island){
-      scene.push(await crystal_island({sid, hub: [css_id]}))
-    }
-    // ----------------------------------------
-    // TEMPLATE
-    // ----------------------------------------
-    const el = document.createElement('div')
-    const shadow = el.attachShadow(shopts)
-    shadow.innerHTML = `
-        <section id="supporters" class="section">
-        </section>
-    `
-    // ----------------------------------------
-    const main = shadow.querySelector('section')
-    main.append(...(await Promise.all(scene)).map(v => v), cloud1, cloud2, cloud3, cloud4, cloud5, cloud6)
-    
-    // port.onmessage = onmessage
-    init_css()
-    return el
+  const graphics = [
+    graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
+  ]
 
-    async function init_css () {
-      const pref = JSON.parse(localStorage.pref)
-      const pref_shared = pref[name] || data.shared || [{ id: name }]
-      const pref_uniq = pref[css_id] || data.uniq || []
-      pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-      pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  const [cloud1, cloud2, cloud3, cloud4, cloud5, cloud6] = await Promise.all(graphics)
+  
+  // Parallax effects
+  let cloud1Rellax = new Rellax( cloud1, { speed: 1.5})
+  let cloud2Rellax = new Rellax( cloud2, { speed: 1})
+  let cloud3Rellax = new Rellax( cloud3, { speed: 1.5})
+  let cloud4Rellax = new Rellax( cloud4, { speed: 4})
+  let cloud5Rellax = new Rellax( cloud5, { speed: 1.5})
+  let cloud6Rellax = new Rellax( cloud6, { speed: 3})
+  
+  const scene = []
+  for (const sid of data.sub.crystal_island){
+    scene.push(await crystal_island({sid, hub: [css_id]}))
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+      <section id="supporters" class="section">
+      </section>
+  `
+  // ----------------------------------------
+  const main = shadow.querySelector('section')
+  main.append(...(await Promise.all(scene)).map(v => v), cloud1, cloud2, cloud3, cloud4, cloud5, cloud6)
+  
+  // port.onmessage = onmessage
+  init_css()
+  return el
+
+  async function fallback() {
+    return require('./data.json')
+  }
+  async function init_css () {
+    const pref = JSON.parse(localStorage.pref)
+    const pref_shared = pref[name] || data.shared || [{ id: name }]
+    const pref_uniq = pref[css_id] || data.uniq || []
+    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
+    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
     }
-    async function scroll () {
-      el.scrollIntoView({behavior: 'smooth'})
-      el.tabIndex = '0'
-      el.focus()
-      el.onblur = () => {
-        el.tabIndex = '-1'
-        el.onblur = null
-      }
-    }
-    async function inject_all ({ data }) {
-      const sheet = new CSSStyleSheet
-      sheet.replaceSync(data)
-      shadow.adoptedStyleSheets.push(sheet)
-    }
-    async function inject ({ data }){
-      const style = document.createElement('style')
-      style.innerHTML = data
-      shadow.append(style)
-    }
-    async function get_theme ({local = true, theme = 'default', id}) {
-      let theme_css
-      if(local)
-        theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-      else
-        theme_css = JSON.parse(localStorage[theme])[id]
-      return theme_css
-    }
+  }
+  async function inject_all ({ data }) {
+    const sheet = new CSSStyleSheet
+    sheet.replaceSync(data)
+    shadow.adoptedStyleSheets.push(sheet)
+  }
+  async function inject ({ data }){
+    const style = document.createElement('style')
+    style.innerHTML = data
+    shadow.append(style)
+  }
+  async function get_theme ({local = true, theme = 'default', id}) {
+    let theme_css
+    if(local)
+      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
+    else
+      theme_css = JSON.parse(localStorage[theme])[id]
+    return theme_css
+  }
 }
 
 },{"./data.json":30,"STATE":4,"crystal_island":9,"graphic":20,"io":23,"rellax":1}],32:[function(require,module,exports){
-module.exports={
-  "comp": "theme_editor",
-  "admin": "true"
+module.exports={ 
+  "0": {
+    "comp": "theme_editor"
+  }
 }
 },{}],33:[function(require,module,exports){
 const DB = require('localdb')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
@@ -2585,14 +3189,17 @@ async function theme_editor (opts) {
     hide
   }
 	const sdb = statedb()
-	let data = sdb.get(opts.sid)
-  if(!data){
-    const {id, sid} = sdb.add(default_data, opts.hub)
-    opts.sid = sid
-    data = {...default_data, id}
-  }
+  let data = await sdb.get(opts.sid, fallback)
   const {xget} = sdb.req_access(opts.sid)
-  const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
+  
   status.themes = {
     builtin: Object.keys(opts.paths),
     saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
@@ -2688,6 +3295,9 @@ async function theme_editor (opts) {
   init_css()
   return el
 
+  async function fallback() {
+    return require('./data.json')
+  }
   async function hide () {
     main.classList.toggle('select')
     status.select = !status.select
@@ -2996,16 +3606,19 @@ async function theme_editor (opts) {
 
 },{"./data.json":32,"STATE":4,"io":23,"localdb":25}],34:[function(require,module,exports){
 module.exports={
-  "id": "1",
-  "comp": "theme_widget",
-  "admin": "true"
+  "0": {
+    "comp": "theme_widget",
+    "sub": {
+      "theme_editor": ["x"],
+      "graph_explorer": ["x"]
+    }
+  }
 }
 },{}],35:[function(require,module,exports){
 const theme_editor = require('theme_editor')
 const graph_explorer = require('graph_explorer')
 const IO = require('io')
 const statedb = require('STATE')
-const default_data = require('./data.json')
 /******************************************************************************
   THEME_WIDGET COMPONENT
 ******************************************************************************/
@@ -3030,13 +3643,16 @@ async function theme_widget (opts) {
     click
   }
 	const sdb = statedb()
-	let data = sdb.get(opts.sid)
-  if(!data){
-    const {id} = sdb.add(default_data, opts.hub)
-    data = {...default_data, id}
-  }
-  const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
-  
+  const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
+
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
@@ -3078,6 +3694,9 @@ async function theme_widget (opts) {
   init_css()
   return el
 
+  async function fallback() {
+    return require('./data.json')
+  }
   async function blur(e) {
     popup.style.opacity = e.target.value/100
   }
@@ -3233,35 +3852,37 @@ async function theme_widget (opts) {
 }
 
 },{"./data.json":34,"STATE":4,"graph_explorer":18,"io":23,"theme_editor":33}],36:[function(require,module,exports){
-module.exports={
-  "comp": "topnav",
-  "links": [
-    {
-      "id": "datdot",
-      "text": "DatDot",
-      "url": "datdot"
-    },
-    {
-      "id": "editor",
-      "text": "Play Editor",
-      "url": "editor"
-    },
-    {
-      "id": "smartcontract_codes",
-      "text": "Smart Contract Codes",
-      "url": "smartcontract_codes"
-    },
-    {
-      "id": "supporters",
-      "text": "Supporters",
-      "url": "supporters"
-    },
-    {
-      "id": "our_contributors",
-      "text": "Contributors",
-      "url": "our_contributors"
-    }
-  ]
+module.exports={ 
+  "0": {
+    "comp": "topnav",
+    "links": [
+      {
+        "id": "datdot",
+        "text": "DatDot",
+        "url": "datdot"
+      },
+      {
+        "id": "editor",
+        "text": "Play Editor",
+        "url": "editor"
+      },
+      {
+        "id": "smartcontract_codes",
+        "text": "Smart Contract Codes",
+        "url": "smartcontract_codes"
+      },
+      {
+        "id": "supporters",
+        "text": "Supporters",
+        "url": "supporters"
+      },
+      {
+        "id": "our_contributors",
+        "text": "Contributors",
+        "url": "our_contributors"
+      }
+    ]
+  }
 }
 },{}],37:[function(require,module,exports){
 const graphic = require('graphic')
@@ -3289,12 +3910,15 @@ async function topnav (opts) {
 	}
 
 	const sdb = statedb()
-	let data = sdb.get(opts.sid)
-	if(!data){
-    const {id} = sdb.add(default_data, opts.hub)
-    data = {...default_data, id}
-  }
-	const {send, css_id} = await IO({id: data.id, name, type: 'comp', comp: name, hub: opts.hub, css: data.css}, on)
+	const data = await sdb.get(opts.sid, fallback)
+  const {send, css_id} = await IO({
+    id: data.id, 
+    name, 
+    type: 'comp', 
+    comp: name, 
+    hub: opts.hub, 
+    css: data.css
+  }, on)
 	// ----------------------------------------
 	// OPTS
 	// ----------------------------------------
@@ -3348,6 +3972,9 @@ async function topnav (opts) {
 	init_css()
 	return el
 
+	async function fallback() {
+    return require('./data.json')
+  }
 	function click(url) {
 		send({to:'index', type: 'jump', data: url })
 	}
@@ -3442,7 +4069,7 @@ async function boot (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const status = {}
-  const sid = await statedb.init('./d.json')
+  const sid = await statedb.init('./data.json')
   // ----------------------------------------
   // OPTS
   // ----------------------------------------
