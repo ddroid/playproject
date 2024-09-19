@@ -1,22 +1,26 @@
-const make_page = require('../') 
-const statedb = require('../src/node_modules/STATE')
-const theme = require('theme')
+const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
   INITIALIZE PAGE
 ******************************************************************************/
-// ----------------------------------------
-let current_theme = theme
-const sheet = new CSSStyleSheet()
-sheet.replaceSync(get_theme(current_theme))
-// ----------------------------------------
-config().then(() => boot({ themes: { theme } }))
-
+const statedb = STATE({ modulename: '' }) // demo has no package.json
+statedb(fallback).then(({ id, sdb, getdb, admin }) => {
+	const [sid] = sdb.sub('main')
+	sdb.on({
+		css: css => {},
+		data: data => admin.add_admins(data.admins)
+	})
+	config().then(() => boot({ sid }))	
+})
+async function fallback (root_db) { // -> set database defaults or load from database
+  const path = './snapshot.json' // page/snapshot.json
+	const data = await((await fetch(path)).json())
+  root_db.populate(data)
+}
 /******************************************************************************
   CSS & HTML Defaults
 ******************************************************************************/
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
-
   const html = document.documentElement
   const meta = document.createElement('meta')
 	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
@@ -27,7 +31,6 @@ async function config () {
   meta.setAttribute('name', 'viewport')
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
   // @TODO: use font api and cache to avoid re-downloading the font data every time
-  document.adoptedStyleSheets = [sheet]
   document.head.append(meta)
   document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest
   await document.fonts.ready // @TODO: investigate why there is a FOUC
@@ -40,25 +43,18 @@ async function boot (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const status = {}
-  const sid = await statedb.init('./data.json')
-  // ----------------------------------------
-  // OPTS
-  // ----------------------------------------
-  const { page = 'INFO', theme = 'theme' } = opts
-  const themes = opts.themes
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
   const el = document.body
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
-  shadow.adoptedStyleSheets = [sheet]
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
   { // desktop
+		const make_page = require('../') 
     const on = { 'theme_change': on_theme }
-    const opts = { page, theme, themes, sid }
     const element = await make_page(opts)
     shadow.append(element)
   }

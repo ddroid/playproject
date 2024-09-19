@@ -1,0 +1,83 @@
+{
+  "1": {
+    "id": 1,
+    "name": "demo",
+    "code": "page/demo.js",
+    "data": {
+      "admins": ["theme_editor"]
+    },
+    "node": [2],
+    "uses": {
+      "main": {"2": [3]}
+    }
+  },
+  "2": {
+    "name": "index",
+    "id": 2,
+    "code": "src/index.js",
+    "data": {},
+    "node": [3]
+  },
+  "3": {
+    "id": 3,
+    "name": "index",
+    "user": 2,
+    "data": {},
+    "uses": {
+      "theme_widget": {
+        "4": [5]
+      }
+    }
+  },
+  "4": {
+    "id": 4,
+    "name": "theme_widget",
+    "code": "src/node_modules/theme_widget/theme_widget.js",
+    "data": {},
+    "node": [5]
+  },
+  "5": {
+    "id": 5,
+    "name": "theme_widget",
+    "user": 4,
+    "data": {},
+    "uses": {
+      "theme_editor": {
+        "6": [7]
+      },
+      "graph_explorer": {
+        "8": [9]
+      }
+    }
+  },
+  "6": {
+    "id": 6,
+    "name": "theme_editor",
+    "code": "src/node_modules/theme_editor/theme_editor.js",
+    "data": {},
+    "node": [7]
+  },
+  "7": {
+    "id": 7,
+    "name": "theme_editor",
+    "user": 6,
+    "data": {},
+    "uses": {
+    }
+  },
+  "8": {
+    "id": 8,
+    "name": "graph_explorer",
+    "code": "src/node_modules/graph_explorer/graph_explorer.js",
+    "data": {},
+    "node": [9]
+  },
+  "9": {
+    "id": 9,
+    "name": "graph_explorer",
+    "user": 8,
+    "data": {},
+    "uses": {
+    }
+  }
+}
