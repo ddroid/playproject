@@ -9,12 +9,11 @@ The `STATE` module is a database management system that enables managing state d
 #### `STATE(...)`
 Creates an instance of the state database for a specific module or initializes the root database. Returns methods for interacting with the state data.
 
-- **Sample**
-  ```js
-    const statedb = STATE({ modulename })
-  ```
+```js
+  const statedb = STATE({ modulename })
+```
 - **Params:**
-  - `modulename`: `String` (optional)  
+  - `modulename`: *String* (optional)  
     The name of the module to create a state instance for. If not provided, it initializes the root state database.
 
 - **Returns:**  
@@ -26,42 +25,40 @@ Creates an instance of the state database for a specific module or initializes t
 Initializes or retrieves a state database for the provided module name. This method will either return the state for the given `modulename` or invoke a fallback function to initialize default data.
 
 
-- **Sample**
-  ```js
-    const { id, sdb, getdb } = statedb(db => {
-      db.populate(require('data.json'))
-    })
-  ```
+```js
+  const { id, sdb, getdb } = statedb(db => {
+    db.populate(require('data.json'))
+  })
+```
 - **Params:**
-  - `fallback`: `Function`  
+  - `fallback`: *Function*  
     A callback function that provides default data when no state exists for the module.
 
 - **Returns:**  
   `Object` — Contains the following properties:
-  - `id`: `Number` — The ID of the current module.
-  - `sdb`: `Object` — Contains methods (`on`, `sub`, `req_access`) for interacting with state data.
-  - `getdb`: `Function` — Method for initializing the instance state data.
+  - `id`: *Number* — The ID of the current module.
+  - `sdb`: *Object* — Contains methods (`on`, `sub`, `req_access`) for interacting with state data.
+  - `getdb`: *Function* — Method for initializing the instance state data.
 ---
 
 ### `statedb_root(...)`
 Initializes the root state database. This is called when no specific `modulename` is provided. It loads or initializes the root database, sets up admin permissions, and populates default data.
 
-- **Sample**
-  ```js
+```js
   const { id, sdb, getdb } = statedb(async db => {
-      db.populate(await fetch('data.json'))
-    })
-  ```
+    db.populate(await fetch('data.json'))
+  })
+```
 - **Params:**
-  - `fallback`: `Function`  
+  - `fallback`: *Function*  
     A callback function to provide default data for the root state database.
 
 - **Returns:**  
   `Object` — Contains the following properties:
-  - `id`: `Number` — The ID of the root database.
-  - `sdb`: `Object` — Methods (`on`, `sub`, `req_access`) for interacting with the state database.
-  - `getdb`: `Function` — Retrieves a state database by session ID.
-  - `admin`: `Object` — Contains admin-specific methods (`xget`, `add_admins`).
+  - `id`: *Number* — The ID of the root database.
+  - `sdb`: *Object* — Methods (`on`, `sub`, `req_access`) for interacting with the state database.
+  - `getdb`: *Function* — Retrieves a state database by session ID.
+  - `admin`: *Object* — Contains admin-specific methods (`xget`, `add_admins`).
 
 ---
 
@@ -70,37 +67,35 @@ Initializes the root state database. This is called when no specific `modulename
 #### `sdb.getdb(...)`
 Retrieves or initializes a state database for a given session ID (`sid`). If no state exists, it calls the provided fallback function to populate default data.
 
-- **Example**
-  ```js
-    const { id, sdb } = await getdb(sid, fallback)
-  ```
+```js
+  const { id, sdb } = await getdb(sid, fallback)
+```
 - **Params:**
-  - `sid`: `Symbol`  
+  - `sid`: *Symbol*  
     The session ID of the requested state.
-  - `fallback`: `Function`  
+  - `fallback`: *Function*  
     A fallback function to provide default state data if the session ID is not found.
 
 - **Returns:**  
   `Object` — Contains the following properties:
-  - `id`: `Number` — The ID of the session.
-  - `sdb`: `Object` — Provides methods to interact with the session data.
+  - `id`: *Number* — The ID of the session.
+  - `sdb`: *Object* — Provides methods to interact with the session data.
 
 ---
 
 #### `sdb.on(...)`
 Retrieves the current usage of components in the state. It tracks data for each component by its sub-module IDs.
 
-- **Example**
-  ```js
-    const subs = await sdb.on({
-    css: function oncss (css) { },
-    args: function onargs (args) { },
-  })
-  ```
+```js
+  const subs = await sdb.on({
+  css: function oncss (css) { },
+  args: function onargs (args) { },
+})
+```
 - **Params:**
-  - `css`: `String` (optional)  
+  - `css`: *String* (optional)  
     CSS properties tied to the state data.
-  - `data`: `Object` (optional)  
+  - `data`: *Object* (optional)  
     Any associated data passed along.
 
 - **Returns:**  
@@ -111,12 +106,11 @@ Retrieves the current usage of components in the state. It tracks data for each 
 #### `sdb.sub(...)`
 Returns all the sub-modules associated with the given component `name`.
 
-- **Example**
-  ```js
-    const card_sids = sdb.sub('card')
-  ```
+```js
+  const card_sids = sdb.sub('card')
+```
 - **Params:**
-  - `name`: `String`  
+  - `name`: *String*  
     The name of the component whose sub-modules are being requested.
 
 - **Returns:**  
@@ -126,13 +120,11 @@ Returns all the sub-modules associated with the given component `name`.
 
 #### `sdb.req_access(...)`
 Checks if a given session ID (`sid`) has admin-level access. If the session belongs to an admin, it returns the admin object.
-
-- **Example**
-  ```js
+```js
   const admin = sdb.req_access(sid)
-  ```
+```
 - **Params:**
-  - `sid`: `Symbol`  
+  - `sid`: *Symbol*  
     The session ID of the requested state.
 
 - **Returns:**  
@@ -142,15 +134,14 @@ Checks if a given session ID (`sid`) has admin-level access. If the session belo
 
 ### Admin Methods
 
-#### `admin.xget(id)`
+#### `admin.xget(...)`
 Fetches state data for a given ID from the root database. This is an admin-only operation.
 
-- **Example**
-  ```js
-    const data = admin.xget(id) 
-  ```
+```js
+  const data = admin.xget(id) 
+```
 - **Params:**
-  - `id`: `Number`  
+  - `id`: *Number*  
     The ID of the state data to retrieve.
 
 - **Returns:**  
@@ -158,15 +149,14 @@ Fetches state data for a given ID from the root database. This is an admin-only 
 
 ---
 
-#### `admin.add_admins(ids)`
+#### `admin.add_admins(...)`
 Adds new admin IDs to the list of authorized admins.
 
-- **Example**
-  ```js
-    admin.add_admins(ids || modulename)
-  ```
+```js
+  admin.add_admins(ids || modulename)
+```
 - **Params:**
-  - `ids or modulename`: `Array`  
+  - `ids or modulename`: *Array*  
     An array of admin IDs/Modules to be added to the admin list.
 
 - **Returns:**  
@@ -179,12 +169,11 @@ Adds new admin IDs to the list of authorized admins.
 #### `populate(...)`
 Populates the state database with the given data. This is typically used to initialize or append new data to the state.
 
-- **Example**
-  ```js
-    populate(data)
-  ```
+```js
+  populate(data)
+```
 - **Params:**
-  - `data`: `Object`  
+  - `data`: *Object*  
     The state data to be appended to the database.
 
 ---
@@ -192,12 +181,11 @@ Populates the state database with the given data. This is typically used to init
 #### `symbolfy(...)`
 Converts the sub-module IDs into symbols and maps them for internal tracking. This is used to handle references between components and modules.
 
-- **Example**
-  ```js
-    symbolfy(data)
-  ```
+```js
+  symbolfy(data)
+```
 - **Params:**
-  - `data`: `Object`  
+  - `data`: *Object*  
     The state data containing components and sub-module IDs.
 
 - **Returns:**  
@@ -207,13 +195,13 @@ Converts the sub-module IDs into symbols and maps them for internal tracking. Th
 
 ### Internal Data Structures
 
-- `s2i`: `Object`  
+- `s2i`: *Object*  
   Maps symbols to instance IDs.
   
-- `i2s`: `Object`  
+- `i2s`: *Object*  
   Maps instance IDs to symbols.
   
-- `admins`: `Array`  
+- `admins`: *Array*  
   Stores a list of admin IDs that have special access permissions.
 
 ---
