@@ -26,7 +26,7 @@ Initializes or retrieves a state database for the provided module name. This met
 
 
 ```js
-  const { id, sdb, getdb } = statedb(db => {
+  const { id, sdb, getdb, admin } = statedb(db => {
     db.populate(require('data.json'))
   })
 ```
@@ -64,7 +64,7 @@ Initializes the root state database. This is called when no specific `modulename
 
 ### Methods in `sdb`
 
-#### `sdb.getdb(...)`
+#### `getdb(...)`
 Retrieves or initializes a state database for a given session ID (`sid`). If no state exists, it calls the provided fallback function to populate default data.
 
 ```js
