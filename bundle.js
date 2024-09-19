@@ -500,465 +500,154 @@
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
-module.exports={
-  "0": {
-    "comp": "index",
-    "id": "0",
-    "sub": {
-      "theme_widget": ["1"],
-      "topnav": ["2"],
-      "header": ["3"],
-      "datdot": ["4"],
-      "editor": ["5"],
-      "smartcontract_codes": ["6"],
-      "supporters": ["7"],
-      "our_contributors": ["8"],
-      "footer": ["9"]
-    },
-    "admins": [
-      "theme_editor"
-    ]
-  },
-  "11": {
-    "id": "11",
-    "comp": "theme_editor",
-    "admin": "true"
-  },
-  "10": {
-    "id": "10",
-    "comp": "graph_explorer",
-    "hub_off": "📪",
-    "hub_on": "📭",
-    "sub_off": "📪",
-    "sub_on": "📭",
-    "in_off": "🗃",
-    "in_on": "🗂",
-    "out_off": "🗃",
-    "out_on": "🗂"
-  },
-  "1": {
-    "id": "1",
-    "comp": "theme_widget",
-    "admin": "true",
-    "sub": {
-      "graph_explorer": ["10"],
-      "theme_editor": ["11"]
-    }
-  },
-  "2": {
-    "id": "2",
-    "comp": "topnav",
-    "links": [
-      {
-        "id": "datdot",
-        "text": "DatDot",
-        "url": "datdot"
-      },
-      {
-        "id": "editor",
-        "text": "Play Editor",
-        "url": "editor"
-      },
-      {
-        "id": "smartcontract_codes",
-        "text": "Smart Contract Codes",
-        "url": "smartcontract_codes"
-      },
-      {
-        "id": "supporters",
-        "text": "Supporters",
-        "url": "supporters"
-      },
-      {
-        "id": "our_contributors",
-        "text": "Contributors",
-        "url": "our_contributors"
-      }
-    ]
-  },
-  "3": {
-    "id": "3",
-    "comp": "header",
-    "title": "Infrastructure for the next-generation Internet"
-  },
-  "4": {
-    "id": "4",
-    "comp": "datdot",
-    "sub": {
-      "content": ["12"]
-    },
-    "logo": "",
-    "image": ""
-  },
-  "12": {
-    "id": "12",
-    "comp": "content",
-    "title": "DatDot",
-    "article": "A system that enables peer-to-peer sharing of storage space and data seeding, eliminating the need for users to rely on renting servers for data hosting or accept the potential unreliability of P2P data sharing. To achieve this goal, our protocol is designed to automate the matchmaking process and conduct periodic checks to ensure reliable hosting and serving of data to readers.",
-    "action": "Learn more",
-    "url": "https://datdot.org/"
-  },
-  "5": {
-    "id": "5",
-    "comp": "editor",
-    "sub": {
-      "content": ["13"]
-    },
-    "logo": "https://smartcontract-codes.github.io/play-ed/assets/logo.png",
-    "image": "./src/node_modules/assets/images/smart-contract-ui.jpg"
-  },
-  "13": {
-    "id": "13",
-    "comp": "content",
-    "title": "Play Editor",
-    "article": "Web based IDE with interactive UI generator for easy writing, deploying and interacting with Solidity smart contracts.",
-    "action": "Learn more",
-    "url": "https://smartcontract-codes.github.io/play-ed/"
-  },
-  "6": {
-    "id": "6",
-    "comp": "smartcontract_codes",
-    "sub": {
-      "content": ["14"]
-    },
-    "logo": "https://smartcontract.codes/src/assets/images/logo-1.png",
-    "image": "./src/node_modules/assets/images/smart-contract-codes.jpg"
-  },
-  "14": {
-    "id": "14",
-    "comp": "content",
-    "title": "Smart contract codes",
-    "article": "Experimental peer-to peer search engine for smart contract source codes. The project aims to make smart contracts verifiable and more transparent.",
-    "action": "Learn more",
-    "url": "https://smartcontract.codes/"
-  },
-  "7": {
-    "id": "7",
-    "comp": "supporters",
-    "title": "Supporters",
-    "sub": {
-      "crystal_island": [
-        "34", "35", "36", "37", "38"
-      ]
-    }
-  },
-  "8": {
-    "id": "8",
-    "comp": "our_contributors",
-    "sub": {
-      "content": ["15"],
-      "contributor": [
-        "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"
-      ]
-    }
-  },
-  "15": {
-    "id": "15",
-    "comp": "content",
-    "title": "Contributors",
-    "article": "We're a community of developers researching how to improve and sustain the Web. We're currently exploring the role that peer-to-peer protocols might play in making the Web more open, equitable and playful."
-  },
-  "9": {
-    "id": "9",
-    "comp": "footer",
-    "copyright": " PlayProject",
-    "icons": [
-      {
-        "id": "1",
-        "name": "email",
-        "imgURL": "./src/node_modules/assets/svg/email.svg",
-        "url": "mailto:ninabreznik@gmail.com"
-      },
-      {
-        "id": "2",
-        "name": "twitter",
-        "imgURL": "./src/node_modules/assets/svg/twitter.svg",
-        "url": "https://twitter.com/playproject_io"
-      },
-      {
-        "id": "3",
-        "name": "Github",
-        "imgURL": "./src/node_modules/assets/svg/github.svg",
-        "url": "https://github.com/playproject-io"
-      },
-      {
-        "id": "4",
-        "name": "Gitter",
-        "imgURL": "./src/node_modules/assets/svg/gitter.svg",
-        "url": "https://gitter.im/playproject-io/community"
-      }
-    ]
-  },
-  "16":{
-    "id": "16",
-    "name": "Nina",
-    "comp": "contributor",
-    "careers": ["Decentralized tech"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-nina.png"
-  },
-  "17":{
-    "id": "17",
-    "comp": "contributor",
-    "name": "Serapath",
-    "careers": ["Decentralized tech"],
-    "contact": {
-      "twitter": "",
-      "github": ""
-    },
-    "css": [{ "id": "contributor.css"},{ "id": "contributor_2.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-alex.png"
-  },
-  "18": {
-    "id": "18",
-    "name": "Jam",
-    "comp": "contributor",
-    "careers": ["Substrate"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-joshua.png"
-  },
-  "19": {
-    "id": "19",
-    "name": "Mauve",
-    "comp": "contributor",
-    "careers": ["Decentralized tech"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-mauve.png"
-  },
-  "20": {
-    "id": "20",
-    "name": "Fiona",
-    "comp": "contributor",
-    "careers": ["UI/UX & Frontend"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-fiona.png"
-  },
-  "21": {
-    "id": "21",
-    "name": "Toshi",
-    "comp": "contributor",
-    "careers": ["UI/UX & Frontend"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-toshi.png"
-  },
-  "22": {
-    "id": "22",
-    "name": "Ailin",
-    "comp": "contributor",
-    "careers": ["NodeJS & Web3"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-ailin.png"
-  },
-  "23": {
-    "id": "23",
-    "name": "Kayla",
-    "comp": "contributor",
-    "careers": ["UX/UI"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-kayla.png"
-  },
-  "24": {
-    "id": "24",
-    "name": "Tommings",
-    "comp": "contributor",
-    "careers": ["Illustration & Design"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-tommings.png"
-  },
-  "25": {
-    "id": "25",
-    "name": "Santies",
-    "comp": "contributor",
-    "careers": ["3D design"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-santies.png"
-  },
-  "26": {
-    "id": "26",
-    "name": "Pepe",
-    "comp": "contributor",
-    "careers": ["Fullstack & 3D"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-pepe.png"
-  },
-  "27": {
-    "id": "27",
-    "name": "Jannis",
-    "comp": "contributor",
-    "careers": ["NodeJS"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-jannis.png"
-  },
-  "28": {
-    "id": "28",
-    "name": "Nora",
-    "comp": "contributor",
-    "careers": ["Frontend & Web3"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-nora.png"
-  },
-  "29": {
-    "id": "29",
-    "name": "Mimi",
-    "comp": "contributor",
-    "careers": ["UI/UX & Frontend"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-mimi.png"
-  },
-  "30": {
-    "id": "30",
-    "name": "Helen",
-    "comp": "contributor",
-    "careers": ["UX/UI and graphic design"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
-  },
-  "31": {
-    "id": "31",
-    "name": "Ali",
-    "comp": "contributor",
-    "careers": ["UX/UI and graphic design"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
-  },
-  "32": {
-    "id": "32",
-    "name": "Ibrar",
-    "comp": "contributor",
-    "careers": ["UX/UI and graphic design"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
-  },
-  "33": {
-    "id": "33",
-    "name": "Cypher",
-    "comp": "contributor",
-    "careers": ["UX/UI and graphic design"],
-    "contact": {
-      "twitter": "",
-      "github": "",
-      "website": ""
-    },
-    "css": [{ "id": "contributor.css"}, { "id": "contributor_1.css" }],
-    "avatar": "./src/node_modules/assets/images/avatar-helen.png"
-  },
-  "34": {
-    "id": "34",
-    "comp": "crystalIsland",
-    "date": "2015 - today",
-    "info": "Various private donations & volunteering",
-    "deco" : ["yellowCrystal", "card", "tree"]
-  },
-  "35": {
-    "id": "35",
-    "comp": "crystalIsland",
-    "date": "2018",
-    "info": "$48.000 / Ethereum Foundation",
-    "deco" : ["stone", "card", "tree1"]
-  },
-  "36": {
-    "id": "36",
-    "comp": "crystalIsland",
-    "date": "2020",
-    "info": "€30.000 / Web3 Foundation",
-    "deco" : ["purpleCrystal", "card", "tree2"]
-  },
-  "37": {
-    "id": "37",
-    "comp": "crystalIsland",
-    "date": "2022",
-    "info": "DOT 5530 / Polkadot Treasury Fund",
-    "deco" : ["blueCrystal", "card", "tree3"]
-  },
-  "38": {
-    "id": "38",
-    "comp": "crystalIsland",
-    "date": "2022",
-    "info": "DOT 5530 / Polkadot Treasury Fund",
-    "deco" : ["blueCrystal", "card", "tree3"]
+(function (__dirname){(function (){
+const STATE = require('../src/node_modules/STATE')
+/******************************************************************************
+  INITIALIZE PAGE
+******************************************************************************/
+const statedb = STATE({ modulename: '' }) // demo has no package.json
+statedb(fallback).then(({ id, sdb, getdb, admin }) => {
+	const [sid] = sdb.sub('main')
+	sdb.on({
+		css: css => {},
+		data: data => admin.add_admins(data.admins)
+	})
+	config().then(() => boot({ sid }))	
+})
+async function fallback (root_db) { // -> set database defaults or load from database
+  const path = './snapshot.json' // page/snapshot.json
+	const data = await((await fetch(path)).json())
+  root_db.populate(data)
+}
+/******************************************************************************
+  CSS & HTML Defaults
+******************************************************************************/
+async function config () {
+  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
+  const html = document.documentElement
+  const meta = document.createElement('meta')
+	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
+	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
+	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
+	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
+  html.setAttribute('lang', 'en')
+  meta.setAttribute('name', 'viewport')
+  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
+  // @TODO: use font api and cache to avoid re-downloading the font data every time
+  document.head.append(meta)
+  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest
+  await document.fonts.ready // @TODO: investigate why there is a FOUC
+}
+/******************************************************************************
+  PAGE BOOT
+******************************************************************************/
+async function boot (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const status = {}
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.body
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // desktop
+		const make_page = require('../') 
+    const on = { 'theme_change': on_theme }
+    const element = await make_page(opts)
+    shadow.append(element)
+  }
+  // ----------------------------------------
+  // INIT
+  // ----------------------------------------
+
+  return
+
+  function on_theme (message) {
+    ;current_theme = current_theme === light_theme ? dark_theme : light_theme
+    sheet.replaceSync(get_theme(current_theme))
   }
 }
-},{}],3:[function(require,module,exports){
+function get_theme (opts) {
+	return`
+	:host{
+		${Object.entries(opts).map(entry => `--${entry[0]}: ${entry[1]};`).join('')}
+	}
+	html {
+		font-size: 82.5%;
+		scroll-behavior: smooth;
+	}
+	body {
+		font-family: var(--bodyFont);
+		font-size: 1.4rem;
+		color: var(--bodyColor);
+		margin: 0;
+		padding: 0;
+		background-color: var(--bodyBg);
+		overflow-x: hidden;
+	}
+	a {
+		text-decoration: none;
+	}
+	button {
+		outline: none;
+		border: none;
+		font-family: var(--titleFont);
+		font-size: var(--sectionButtonSize);
+		color: var(--titleColor);
+		border-radius: 2rem;
+		padding: 1.2rem 3.8rem;
+		cursor: pointer;
+	}
+	img {
+		width: 100%;
+		height: auto;
+	}
+	article {
+		font-size: var(--articleSize);
+		color: var(--articleColor);
+		line-height: 2.5rem;
+		padding-bottom: 4rem;
+	}
+	@media only screen and (min-width: 2561px) {
+		article {
+			font-size: calc(var(--articleSize) * 1.5 );
+			line-height: calc(2.5rem * 1.5);
+		}
+		button {
+			font-size: calc(var(--sectionButtonSize) * 1.5 );
+	}
+	}
+	@media only screen and (min-width: 4096px) {
+		article {
+			font-size: calc(var(--articleSize) * 2.25 );
+			line-height: calc(2.5rem * 2.25);
+		}
+		button {
+			font-size: calc(var(--sectionButtonSize) * 2.25 );
+		}
+	}`
+}
+}).call(this)}).call(this,"/page")
+},{"../":3,"../src/node_modules/STATE":6}],3:[function(require,module,exports){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'index'
+const statedb = STATE({ modulename: name })
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback (main_db) { main_db.populate(require('./module.json')) }
+sdb.on({ css: css => {} })
+/******************************************************************************
+  MAKE_PAGE COMPONENT
+******************************************************************************/
 const IO = require('io')
 const modules = {
  theme_widget : require('theme_widget'),
@@ -971,50 +660,27 @@ const modules = {
  our_contributors : require('our_contributors'),
  footer : require('footer'),
 }
-const statedb = require('STATE')
-/******************************************************************************
-  MAKE_PAGE COMPONENT
-******************************************************************************/
-// ----------------------------------------
-const shopts = { mode: 'closed' }
-// ----------------------------------------
+module.exports = main
 
-module.exports = make_page
-
-async function make_page(opts, lang) {
+async function main(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const name = 'index'
+  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const subs = await sdb.on({
+    css: function oncss (css) { },
+    args: function onargs (args) { },
+  })
   const on = {
     jump,
     inject,
     inject_all,
   }
-  const sdb = statedb()
-  const data = await sdb.get(opts.sid, fallback)
-  const admin = sdb.req_access(opts.sid)
-  admin.set_admins(data.admins)
-  const {send, css_id} = await IO({ 
-    id: data.id, 
+  const send = await IO({ 
+    id, 
     name, 
     type: 'comp', 
     comp: name }, on)
-  // ----------------------------------------
-  // OPTS
-  // ----------------------------------------
-  switch(lang) {
-    case 'zh-tw':
-    case 'ja':
-    case 'th':
-    case 'fr':
-      var path = `./src/node_modules/lang/${lang}.json`
-      break
-    default:
-      var path = `./src/node_modules/lang/en-us.json`
-  }
-  const {theme} = opts
-  
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -1026,26 +692,26 @@ async function make_page(opts, lang) {
   const main = shadow.querySelector('div')
 
   main.append(...await Promise.all(
-    Object.entries(data.sub).map(async ([name, sids]) => {
+    Object.entries(subs).map(async ([name, sids]) => {
       const el = document.createElement('div')
       el.name = name
       const shadow = el.attachShadow(shopts)
-      shadow.append(await modules[name]({ sid: sids[0], hub: [css_id] }))
+      shadow.append(await modules[name]({ sid: sids[0], hub: [id] }))
       return el
   })))
   init_css()
   return el
   
-  async function fallback() {
-    return require('./data.json')
+  function fallback() {
+    return require('./instance.json')
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref || '{}')
-    const pref_shared = pref[name] || data.shared || [{ id: name }]
-    const pref_uniq = pref[css_id] || data.uniq || []
+    const pref_shared = pref[name] || [{ id: name }]
+    const pref_uniq = pref[id] || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
     pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
   }
@@ -1070,19 +736,87 @@ async function make_page(opts, lang) {
 }
 
 
-},{"./data.json":2,"STATE":4,"datdot":12,"editor":14,"footer":16,"header":22,"io":23,"our_contributors":27,"smartcontract_codes":29,"supporters":31,"theme_widget":35,"topnav":37}],4:[function(require,module,exports){
+},{"./instance.json":4,"./module.json":5,"STATE":6,"datdot":14,"editor":16,"footer":18,"header":25,"io":26,"our_contributors":30,"smartcontract_codes":32,"supporters":34,"theme_widget":40,"topnav":42}],4:[function(require,module,exports){
+module.exports={}
+},{}],5:[function(require,module,exports){
+arguments[4][4][0].apply(exports,arguments)
+},{"dup":4}],6:[function(require,module,exports){
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
+db.read(['state']) || db.add(['state'], {})
 
-Object.assign(STATE, { init })
 const s2i = {}
 const i2s = {}
 var admins = [0]
 
 module.exports = STATE
+function STATE({ modulename }) {
+  const deny = {}, uses = {}
+  const sdb = { on, sub, req_access }
+  const root_db = { populate }
+  const admin = { xget, add_admins }
+  return modulename ? statedb : statedb_root
 
-async function init (url) {
+  function statedb (fallback) {
+    let data = db.get_by_value(['state'], 'code', modulename) || fallback(root_db)
+    if(!data)
+      data = db.read(['state'], 'code', modulename)
+    return { id: data.id, sdb, getdb }
+  }
+  async function statedb_root (fallback) {
+    let data = db.read(['state'])[1] || await fallback(root_db)
+    if(!data)
+      data = db.read(['state'])[1]
+    symbolfy(data)
+    add_admins(data.data.admins)
+    return { id: data.id, sdb, getdb, admin }
+  }
+  function symbolfy(data){
+    data.uses && Object.entries(data.uses).forEach(([comp, mods]) => {
+      uses[comp] = []
+      Object.values(mods).forEach(sub_ids => 
+        sub_ids.forEach(sub_id => {
+          s2i[i2s[sub_id] = Symbol(sub_id)] = sub_id
+          uses[comp].push(i2s[sub_id])
+        })
+      )
+    })
+  }
+  function getdb (sid, fallback){
+    const id = s2i[sid]
+    let data = db.read(['state', id]) || fallback(root_db)
+    if(!data)
+      data = db.read(['state', id])
+    symbolfy(data)
+    return {id, sdb}
+  }
+  function populate(data){
+    db.append(['state'], data)
+  }
+  function on ({css, data}) {
+    return uses
+  }
+  function sub (name) {
+    return uses[name]
+  }
+  async function add_admins (ids) {
+    admins.push(...ids)
+  }
+  function req_access(sid) {
+    if (deny[sid]) throw new Error('access denied')
+    const el = db.read(['state', s2i[sid]])
+    console.log(admins, sid)
+    if(admins.includes(s2i[sid]) || admins.includes(el?.name))
+      return admin
+  }
+  function xget(id) {
+    return db.read(['state', id])
+  }
+}
+
+//DUMP
+async function pinit (url) {
   if (!STATE.init) throw new Error('already initialized')
   STATE.init = undefined
   Object.freeze(STATE)
@@ -1103,9 +837,8 @@ async function init (url) {
     await db.clear()
   }
 }
-
-function STATE () {
-  const sdb = { get, add, req_access }
+function s () {
+  const sdb = { get, req_access }
   const deny = {}
   return sdb
 
@@ -1130,50 +863,38 @@ function STATE () {
   async function get (sid, fallback) {
     if (deny[sid]) throw new Error('access denied')
     const id = s2i[sid]
-    let node = db.read(['state', id])
-    if(Object.keys(node).length < 2){
-      const local_data = await fallback()
-      let count = db.length(['state'])
+    let xnode = db.read(['state', id])
+    if(Object.keys(xnode).length < 2)
+      xnode = preprocess(await fallback())[id]
+    return symbolfy(xnode)
+  }
+  function preprocess (local_data) {
+    let count = db.length(['state'])
       Object.values(local_data)[0].id = id
       local_data[id] = Object.values(local_data)[0]
       id && delete(local_data[0])
-      Object.values(local_data).forEach(v => {
-        v.sub && Object.entries(v.sub).forEach(([comp, list]) => {
-          v.sub[comp] = []
+
+      Object.values(local_data).forEach(node => {
+        node.sub && Object.entries(node.sub).forEach(([comp, list]) => {
+          node.sub[comp] = []
           list.forEach(id => {
             if(Number(id) > count){
               s2i[i2s[id] = Symbol(id)] = id
               local_data[id].id = id
-              v.sub[comp].push(id)
+              node.sub[comp].push(id)
             }
             else{
               s2i[i2s[count] = Symbol(count)] = count
               local_data[count] = local_data[id] || {}
               local_data[count].id = count
               id.includes('x') && delete(local_data[id])
-              v.sub[comp].push(count++)
+              node.sub[comp].push(count++)
             }
           })
         })
       })
       db.append(['state'], local_data)
-      node = local_data[id]
-      console.log(local_data)
-    }
-    return symbolfy(node)
-  }
-  function add (opts, hub) {
-    const id = db.length(['state'])
-    s2i[i2s[id] = Symbol(id)] = id
-    opts.sub = {}
-    opts.id = id
-    db.add(['state', id], opts)
-    if(hub){
-      if(!db.read(['state', hub, 'sub', opts.comp]))
-        db.add(['state', hub, 'sub', opts.comp], [])
-      db.push(['state', hub, 'sub', opts.comp], id)
-    }
-    return {id, sid: i2s[id]}
+      return local_data
   }
   function req_access(sid) {
     if (deny[sid]) throw new Error('access denied')
@@ -1188,7 +909,7 @@ function STATE () {
     admins = ids
   }
 }
-},{"localdb":25}],5:[function(require,module,exports){
+},{"localdb":28}],7:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
 /******************************************************************************
@@ -1278,7 +999,7 @@ async function content (opts) {
   }
 }
 
-},{"./data.json":6,"STATE":4,"io":23}],6:[function(require,module,exports){
+},{"./data.json":8,"STATE":6,"io":26}],8:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "content",
@@ -1288,7 +1009,7 @@ module.exports={
     "url": "https://smartcontract-codes.github.io/play-ed/"
   }
 }
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 const Graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1387,7 +1108,7 @@ async function contributor (opts) {
 
 
 
-},{"./data.json":8,"STATE":4,"graphic":20,"io":23}],8:[function(require,module,exports){
+},{"./data.json":10,"STATE":6,"graphic":23,"io":26}],10:[function(require,module,exports){
 module.exports={
   "0": {
     "name": "Nina",
@@ -1402,7 +1123,7 @@ module.exports={
     "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
   }
 }
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 const IO = require('io')
 const graphic = require('graphic')
 const statedb = require('STATE')
@@ -1513,7 +1234,7 @@ async function crystal_island(opts) {
 }
 
 
-},{"./data.json":10,"STATE":4,"graphic":20,"io":23}],10:[function(require,module,exports){
+},{"./data.json":12,"STATE":6,"graphic":23,"io":26}],12:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "crystal_island",
@@ -1522,7 +1243,7 @@ module.exports={
     "deco" : ["stone", "card", "tree1"]
   }
 }
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "datdot",
@@ -1535,7 +1256,7 @@ module.exports={
     }
   }
 }
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
@@ -1644,7 +1365,7 @@ async function datdot (opts) {
     return theme_css
   }
 }
-},{"./data.json":11,"STATE":4,"content":5,"graphic":20,"io":23,"rellax":1}],13:[function(require,module,exports){
+},{"./data.json":13,"STATE":6,"content":7,"graphic":23,"io":26,"rellax":1}],15:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "editor",
@@ -1657,7 +1378,7 @@ module.exports={
     }
   }
 }
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -1783,7 +1504,7 @@ async function editor (opts) {
   }
 }
 
-},{"./data.json":13,"STATE":4,"content":5,"graphic":20,"io":23,"rellax":1}],15:[function(require,module,exports){
+},{"./data.json":15,"STATE":6,"content":7,"graphic":23,"io":26,"rellax":1}],17:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "footer",
@@ -1816,7 +1537,7 @@ module.exports={
     ]
   }
 }
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1921,15 +1642,19 @@ async function footer (opts) {
   }
 }
 
-},{"./data.json":15,"STATE":4,"graphic":20,"io":23}],17:[function(require,module,exports){
-module.exports={ 
-  "0": {
-    "comp": "graph_explorer"
-  }
-}
-},{}],18:[function(require,module,exports){
+},{"./data.json":17,"STATE":6,"graphic":23,"io":26}],19:[function(require,module,exports){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'graph_explorer'
+const statedb = STATE({ modulename: name })
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback (main_db) { main_db.populate(require('./module.json')) }
+sdb.on({ css: css => {} })
+
 const IO = require('io')
-const statedb = require('STATE')
 const {copy, get_color, download_json} = require('helper')
 /******************************************************************************
   GRAPH COMPONENT
@@ -1944,7 +1669,11 @@ async function graph_explorer (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const name = 'graph_explorer'
+  const { id, sdb } = await getdb(opts.sid, fallback)
+  const subs = await sdb.on({
+    css: function oncss (css) { },
+    args: function onargs (args) { },
+  })
   const hub_id = opts.hub[0]
   const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
   const on = {
@@ -1957,15 +1686,13 @@ async function graph_explorer (opts) {
     entry: add_entry,
     menu: add_action
   }
-	const sdb = statedb()
-  const main_data = await sdb.get(opts.sid, fallback)
-  const {send, css_id} = await IO({
-    id: main_data.id, 
+  const send = await IO({
+    id, 
     name, 
     type: 'comp', 
     comp: name, 
     hub: opts.hub, 
-    css: main_data.css
+    // css: main_data.css
   }, on)
   // ----------------------------------------
   // TEMPLATE
@@ -1987,7 +1714,7 @@ async function graph_explorer (opts) {
    Mix
   ******************************************/
   async function fallback() {
-    return require('./data.json')
+    return require('./instance.json')
   }
   async function oncopy(e) {
     const selection = shadow.getSelection()
@@ -2372,8 +2099,8 @@ async function graph_explorer (opts) {
   ******************************************/
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
-    const pref_shared = pref[name] || data.shared || [{ id: name }]
-    const pref_uniq = pref[css_id] || data.uniq || []
+    const pref_shared = pref[name] || [{ id: name }]
+    const pref_uniq = pref[id] || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
     pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
   }
@@ -2405,7 +2132,15 @@ async function graph_explorer (opts) {
     return theme_css
   }
 }
-},{"./data.json":17,"STATE":4,"helper":19,"io":23}],19:[function(require,module,exports){
+},{"./instance.json":20,"./module.json":21,"STATE":6,"helper":22,"io":26}],20:[function(require,module,exports){
+arguments[4][4][0].apply(exports,arguments)
+},{"dup":4}],21:[function(require,module,exports){
+module.exports={ 
+  "0": {
+    "comp": "graph_explorer"
+  }
+}
+},{}],22:[function(require,module,exports){
 function copy (selection) {
   const range = selection.getRangeAt(0)
   const selectedElements = []
@@ -2448,7 +2183,7 @@ function download_json (data) {
   link.click();
 }
 module.exports = {copy, get_color, download_json}
-},{}],20:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -2465,14 +2200,14 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":24}],21:[function(require,module,exports){
+},{"loadSVG":27}],24:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "header",
     "title": "Infrastructure for the next-generation Internet"
   }
 }
-},{}],22:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const IO = require('io')
@@ -2596,7 +2331,7 @@ async function header (opts) {
 }
 
 
-},{"./data.json":21,"STATE":4,"graphic":20,"io":23,"rellax":1}],23:[function(require,module,exports){
+},{"./data.json":24,"STATE":6,"graphic":23,"io":26,"rellax":1}],26:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -2605,13 +2340,13 @@ async function io(data, on) {
   const on_rx = {
     on: {init}
   }
-  const id = data.id || Object.keys(ports).length
+  const id = data.id
   ports[id] = { id, name: data.name, on}
   data.hub && graph[data.hub[0]].sub.push(id)
   graph[id] = { id, ...data, sub: [], slot: [[data.hub && 'hub', 'sub'], ['input']]}
   timer && clearTimeout(timer)
   timer = setTimeout(init, 1000)
-  return {send, css_id: id}
+  return send
 
   async function send(data) {
     const port = ports[data.to] || ports[await find_id(data.to)] || on_rx
@@ -2624,7 +2359,7 @@ async function io(data, on) {
     ports[await find_id('theme_widget')].on['refresh']({ data: graph})
   }
 }
-},{}],24:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -2637,14 +2372,14 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
 module.exports = localdb
 
 function localdb () {
-  return { add, read, drop, push, length, append }
+  return { add, read, drop, push, length, append, get_by_value }
 
   function length (keys) {
     if(keys) {
@@ -2684,6 +2419,7 @@ function localdb () {
    * @param {any} value 
    */
   function append (keys, value) {
+    console.error('hi')
     let data
     data = JSON.parse(localStorage[keys[0]])
     if(keys.length > 1) {
@@ -2735,8 +2471,12 @@ function localdb () {
     else
       delete(localStorage[keys[0]])
   }
+  function get_by_value (keys, search_key, value) {
+    const result = Object.values(read(keys)).filter(v => v[search_key]?.includes(value))[0]
+    return result
+  } 
 }
-},{}],26:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "our_contributors",
@@ -2750,7 +2490,7 @@ module.exports={
     }
   }
 }
-},{}],27:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -2881,7 +2621,7 @@ async function our_contributors (opts) {
     return theme_css
   }
 }
-},{"./data.json":26,"STATE":4,"content":5,"contributor":7,"graphic":20,"io":23,"rellax":1}],28:[function(require,module,exports){
+},{"./data.json":29,"STATE":6,"content":7,"contributor":9,"graphic":23,"io":26,"rellax":1}],31:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "smartcontract_codes",
@@ -2894,7 +2634,7 @@ module.exports={
     }
   }
 }
-},{}],29:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 const graphic = require('graphic')
 const Content = require('content')
 const IO = require('io')
@@ -3023,7 +2763,7 @@ async function smartcontract_codes (opts) {
   }
 }
 
-},{"./data.json":28,"STATE":4,"content":5,"graphic":20,"io":23}],30:[function(require,module,exports){
+},{"./data.json":31,"STATE":6,"content":7,"graphic":23,"io":26}],33:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "supporters",
@@ -3035,7 +2775,7 @@ module.exports={
     }
   }
 }
-},{}],31:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const crystal_island = require('crystal_island')
@@ -3158,29 +2898,43 @@ async function supporters (opts) {
   }
 }
 
-},{"./data.json":30,"STATE":4,"crystal_island":9,"graphic":20,"io":23,"rellax":1}],32:[function(require,module,exports){
+},{"./data.json":33,"STATE":6,"crystal_island":11,"graphic":23,"io":26,"rellax":1}],35:[function(require,module,exports){
+arguments[4][4][0].apply(exports,arguments)
+},{"dup":4}],36:[function(require,module,exports){
 module.exports={ 
   "0": {
     "comp": "theme_editor"
   }
 }
-},{}],33:[function(require,module,exports){
-const DB = require('localdb')
-const IO = require('io')
-const statedb = require('STATE')
+},{}],37:[function(require,module,exports){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'theme_editor'
+const statedb = STATE({ modulename: name })
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback (main_db) { main_db.populate(require('./module.json')) }
+sdb.on({ css: css => {} })
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
+const DB = require('localdb')
+const IO = require('io')
 // ----------------------------------------
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-
 module.exports = theme_editor
 async function theme_editor (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const name = 'theme_editor'
+  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const subs = await sdb.on({
+    css: function oncss (css) { },
+    args: function onargs (args) { },
+  })
   const status = { tab_id: 0 }
   const db = await DB()
   const on = {
@@ -3188,16 +2942,15 @@ async function theme_editor (opts) {
     init_tab,
     hide
   }
-	const sdb = statedb()
-  let data = await sdb.get(opts.sid, fallback)
+  console.log(opts)
   const {xget} = sdb.req_access(opts.sid)
-  const {send, css_id} = await IO({
-    id: data.id, 
+  const send = await IO({
+    id, 
     name, 
     type: 'comp', 
     comp: name, 
     hub: opts.hub, 
-    css: data.css
+    // css: css
   }, on)
   
   status.themes = {
@@ -3296,7 +3049,7 @@ async function theme_editor (opts) {
   return el
 
   async function fallback() {
-    return require('./data.json')
+    return require('./instance.json')
   }
   async function hide () {
     main.classList.toggle('select')
@@ -3579,8 +3332,8 @@ async function theme_editor (opts) {
   }
   async function init_css () {
     const pref = db.read(['pref'])
-    const pref_shared = pref[name] || data.shared || [{ id: name }]
-    const pref_uniq = pref[css_id] || data.uniq || []
+    const pref_shared = pref[name] || [{ id: name }]
+    const pref_uniq = pref[id] || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
     pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
   }
@@ -3604,7 +3357,9 @@ async function theme_editor (opts) {
   }
 }
 
-},{"./data.json":32,"STATE":4,"io":23,"localdb":25}],34:[function(require,module,exports){
+},{"./instance.json":35,"./module.json":36,"STATE":6,"io":26,"localdb":28}],38:[function(require,module,exports){
+arguments[4][4][0].apply(exports,arguments)
+},{"dup":4}],39:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "theme_widget",
@@ -3614,25 +3369,36 @@ module.exports={
     }
   }
 }
-},{}],35:[function(require,module,exports){
-const theme_editor = require('theme_editor')
-const graph_explorer = require('graph_explorer')
-const IO = require('io')
-const statedb = require('STATE')
+},{}],40:[function(require,module,exports){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'theme_widget'
+const statedb = STATE({ modulename: name })
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback (main_db) { main_db.populate(require('./module.json')) }
+sdb.on({ css: css => {} })
 /******************************************************************************
   THEME_WIDGET COMPONENT
 ******************************************************************************/
+const theme_editor = require('theme_editor')
+const graph_explorer = require('graph_explorer')
+const IO = require('io')
 // ----------------------------------------
-const shopts = { mode: 'closed' }
-// ----------------------------------------
-
 module.exports = theme_widget
 
 async function theme_widget (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const name = 'theme_widget'
+  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const subs = await sdb.on({
+    css: function oncss (css) { },
+    args: function onargs (args) { },
+  })
   const status = { tab_id: 0, init_check: true }
   const on = {
     refresh,
@@ -3642,15 +3408,12 @@ async function theme_widget (opts) {
     scroll,
     click
   }
-	const sdb = statedb()
-  const data = await sdb.get(opts.sid, fallback)
-  const {send, css_id} = await IO({
-    id: data.id, 
+  const send = await IO({
+    id, 
     name, 
     type: 'comp', 
     comp: name, 
     hub: opts.hub, 
-    css: data.css
   }, on)
 
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
@@ -3687,15 +3450,15 @@ async function theme_widget (opts) {
   const select = box.querySelector('.select')
   const slider = box.querySelector('input')
 
-  editor.append(await theme_editor({ sid: data.sub?.theme_editor?.[0], hub: [css_id], paths }))
-  box.prepend(await graph_explorer({ sid: data.sub?.graph_explorer?.[0], hub: [css_id] }))
+  editor.append(await theme_editor({ sid: subs.theme_editor?.[0], hub: [id], paths }))
+  box.prepend(await graph_explorer({ sid: subs.graph_explorer?.[0], hub: [id] }))
   select.onclick = on_select
   slider.oninput = blur
   init_css()
   return el
 
   async function fallback() {
-    return require('./data.json')
+    return require('./instance.json')
   }
   async function blur(e) {
     popup.style.opacity = e.target.value/100
@@ -3817,8 +3580,8 @@ async function theme_widget (opts) {
   }
   async function init_css () {
     const pref = JSON.parse(localStorage.pref)
-    const pref_shared = pref[name] || data.shared || [{ id: name }]
-    const pref_uniq = pref[css_id] || data.uniq || []
+    const pref_shared = pref[name] || [{ id: name }]
+    const pref_uniq = pref[id] || []
     pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
     pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
   }
@@ -3851,7 +3614,7 @@ async function theme_widget (opts) {
   }
 }
 
-},{"./data.json":34,"STATE":4,"graph_explorer":18,"io":23,"theme_editor":33}],36:[function(require,module,exports){
+},{"./instance.json":38,"./module.json":39,"STATE":6,"graph_explorer":19,"io":26,"theme_editor":37}],41:[function(require,module,exports){
 module.exports={ 
   "0": {
     "comp": "topnav",
@@ -3884,7 +3647,7 @@ module.exports={
     ]
   }
 }
-},{}],37:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -4025,233 +3788,4 @@ async function topnav (opts) {
 	}
 }
 
-},{"./data.json":36,"STATE":4,"graphic":20,"io":23}],38:[function(require,module,exports){
-(function (__dirname){(function (){
-const make_page = require('../') 
-const statedb = require('../src/node_modules/STATE')
-const theme = require('theme')
-/******************************************************************************
-  INITIALIZE PAGE
-******************************************************************************/
-// ----------------------------------------
-let current_theme = theme
-const sheet = new CSSStyleSheet()
-sheet.replaceSync(get_theme(current_theme))
-// ----------------------------------------
-config().then(() => boot({ themes: { theme } }))
-
-/******************************************************************************
-  CSS & HTML Defaults
-******************************************************************************/
-async function config () {
-  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
-
-  const html = document.documentElement
-  const meta = document.createElement('meta')
-	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
-	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
-	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
-	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
-  html.setAttribute('lang', 'en')
-  meta.setAttribute('name', 'viewport')
-  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
-  // @TODO: use font api and cache to avoid re-downloading the font data every time
-  document.adoptedStyleSheets = [sheet]
-  document.head.append(meta)
-  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest
-  await document.fonts.ready // @TODO: investigate why there is a FOUC
-}
-/******************************************************************************
-  PAGE BOOT
-******************************************************************************/
-async function boot (opts) {
-  // ----------------------------------------
-  // ID + JSON STATE
-  // ----------------------------------------
-  const status = {}
-  const sid = await statedb.init('./data.json')
-  // ----------------------------------------
-  // OPTS
-  // ----------------------------------------
-  const { page = 'INFO', theme = 'theme' } = opts
-  const themes = opts.themes
-  // ----------------------------------------
-  // TEMPLATE
-  // ----------------------------------------
-  const el = document.body
-  const shopts = { mode: 'closed' }
-  const shadow = el.attachShadow(shopts)
-  shadow.adoptedStyleSheets = [sheet]
-  // ----------------------------------------
-  // ELEMENTS
-  // ----------------------------------------
-  { // desktop
-    const on = { 'theme_change': on_theme }
-    const opts = { page, theme, themes, sid }
-    const element = await make_page(opts)
-    shadow.append(element)
-  }
-  // ----------------------------------------
-  // INIT
-  // ----------------------------------------
-
-  return
-
-  function on_theme (message) {
-    ;current_theme = current_theme === light_theme ? dark_theme : light_theme
-    sheet.replaceSync(get_theme(current_theme))
-  }
-}
-function get_theme (opts) {
-	return`
-	:host{
-		${Object.entries(opts).map(entry => `--${entry[0]}: ${entry[1]};`).join('')}
-	}
-	html {
-		font-size: 82.5%;
-		scroll-behavior: smooth;
-	}
-	body {
-		font-family: var(--bodyFont);
-		font-size: 1.4rem;
-		color: var(--bodyColor);
-		margin: 0;
-		padding: 0;
-		background-color: var(--bodyBg);
-		overflow-x: hidden;
-	}
-	a {
-		text-decoration: none;
-	}
-	button {
-		outline: none;
-		border: none;
-		font-family: var(--titleFont);
-		font-size: var(--sectionButtonSize);
-		color: var(--titleColor);
-		border-radius: 2rem;
-		padding: 1.2rem 3.8rem;
-		cursor: pointer;
-	}
-	img {
-		width: 100%;
-		height: auto;
-	}
-	article {
-		font-size: var(--articleSize);
-		color: var(--articleColor);
-		line-height: 2.5rem;
-		padding-bottom: 4rem;
-	}
-	@media only screen and (min-width: 2561px) {
-		article {
-			font-size: calc(var(--articleSize) * 1.5 );
-			line-height: calc(2.5rem * 1.5);
-		}
-		button {
-			font-size: calc(var(--sectionButtonSize) * 1.5 );
-	}
-	}
-	@media only screen and (min-width: 4096px) {
-		article {
-			font-size: calc(var(--articleSize) * 2.25 );
-			line-height: calc(2.5rem * 2.25);
-		}
-		button {
-			font-size: calc(var(--sectionButtonSize) * 2.25 );
-		}
-	}`
-}
-}).call(this)}).call(this,"/web")
-},{"../":3,"../src/node_modules/STATE":4,"theme":39}],39:[function(require,module,exports){
-const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
-const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
-document.head.innerHTML += loadFont
-
-const defines = {
-    fonts: {
-        slackey         : `'Slackey', Arial, sans-serif`,
-        nunito          : `'Nunito', Arial, sans-serif`,
-    },
-    sizes: {
-        'xx-small'      : '1.2rem',
-        'x-small'       : '1.3rem',
-        small           : '1.4rem',
-        medium          : '1.6rem',
-        large           : '2rem',
-        'x-large'       : '3rem',
-        'xx-large'      : '4rem',
-        'xxx-large'     : '5rem',
-    },
-    colors: {
-        white           : '#fff',
-        skyblue         : '#b3e2ff',
-        turquoise       : '#aae6ed',
-        pink            : '#e14365',
-        grey            : '#333333',
-        lightGrey       : '#999999',
-        lightGreen      : '#a1e9da',
-        blueGreen       : '#00a6ad',
-        purple          : '#b337fb',
-        lightBluePurple : '#9db9ee',
-        bluePurple      : '#9a91ff',
-        lightPurple     : '#beb2d7',
-        lightYellow     : '#eddca4',
-        lightSky        : '#b4e4fd',
-        green           : '#4aa95b',
-        lowYellow       : '#fdfbee',
-        brown           : '#b06d56',
-    }
-}
-
-const theme = {
-    bodyFont            : defines.fonts.nunito,
-    bodyColor           : defines.colors.grey,
-    bodyBg              : defines.colors.lightSky,
-    menuSize            : defines.sizes.small,
-    titleFont           : defines.fonts.slackey,
-    titleSize           : defines.sizes['xxx-large'],
-    titleSizeM          : '3.6rem',
-    titlesSizeS         : '2.8rem',
-    titleColor          : defines.colors.white,
-    playBgGStart        : defines.colors.skyblue,
-    playBgGEnd          : defines.colors.turquoise,
-    subTitleSize        : '4.2rem',
-    section1TitleColor  : defines.colors.pink,
-    section2TitleColor  : defines.colors.blueGreen,
-    section3TitleColor  : defines.colors.purple,
-    section4TitleColor  : defines.colors.brown,
-    section5TitleColor  : defines.colors.green,
-    articleSize         : defines.sizes.small,
-    articleColor        : defines.colors.grey,
-    section1BgGStart    : defines.colors.turquoise,
-    section1BgGEnd      : defines.colors.lightGreen,
-    section2BgGStart    : defines.colors.lightGreen,
-    section2BgGEnd      : defines.colors.lightBluePurple,
-    section3BgGStart    : defines.colors.lightBluePurple,
-    section3BgGEnd      : defines.colors.bluePurple,
-    section4BgGStart    : defines.colors.bluePurple,
-    section4BgGEnd      : defines.colors.lightPurple,
-    section5BgGStart    : defines.colors.lightPurple,
-    section5BgGMiddle   : defines.colors.lightYellow,
-    section5BgGEnd      : defines.colors.lightSky,
-    sectionButtonSize   : defines.sizes.small,
-    roadmapHeadlline    : '4rem',
-    roadmapHeadllineM   : '3rem',
-    roadmapHeadllineS   : '1.6rem',
-    roadmapTitleSize    : defines.sizes.large,
-    roadmapTitleSizeM   : defines.sizes.medium,
-    roadmapTitleColor   : defines.colors.blueGreen,
-    roadmapTextSize     : defines.sizes.medium,
-    roadmapTextSizeM    : defines.sizes["x-small"],
-    contributorsBg              : defines.colors.lowYellow,
-    contributorsTextSize        : defines.sizes.small,
-    contributorsTextSizeS       : defines.sizes["xx-small"],
-    contributorsCareerColor     : defines.colors.lightGrey,
-    footerTextColor     : defines.colors.grey,
-    footerBg            : defines.colors.lightSky
-}
-
-module.exports = theme
-
-},{}]},{},[38]);
+},{"./data.json":41,"STATE":6,"graphic":23,"io":26}]},{},[2]);
