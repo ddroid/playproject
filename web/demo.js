@@ -4,21 +4,21 @@ const STATE = require('../src/node_modules/STATE')
 ******************************************************************************/
 const statedb = STATE({ modulename: '' }) // demo has no package.json
 statedb(fallback).then(({ id, sdb, getdb, admin }) => {
-	const [sid] = sdb.sub('main')
+	const [sid] = sdb.get_sub('index')
 	sdb.on({
-		css: css => {},
-		data: data => admin.add_admins(data.admins)
+		css: inject,
 	})
 	config().then(() => boot({ sid }))	
 })
-async function fallback (root_db) { // -> set database defaults or load from database
+async function fallback () { // -> set database defaults or load from database
   const path = './snapshot.json' // page/snapshot.json
 	const data = await((await fetch(path)).json())
-  root_db.populate(data)
+	return data
 }
 /******************************************************************************
   CSS & HTML Defaults
 ******************************************************************************/
+const sheet = new CSSStyleSheet()
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
@@ -27,12 +27,15 @@ async function config () {
 	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
 	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
 	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
-  html.setAttribute('lang', 'en')
+  const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
+	const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
+	html.setAttribute('lang', 'en')
   meta.setAttribute('name', 'viewport')
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
   // @TODO: use font api and cache to avoid re-downloading the font data every time
   document.head.append(meta)
-  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest
+  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest + loadFont
+	document.adoptedStyleSheets = [sheet]
   await document.fonts.ready // @TODO: investigate why there is a FOUC
 }
 /******************************************************************************
@@ -49,12 +52,12 @@ async function boot (opts) {
   const el = document.body
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
+	shadow.adoptedStyleSheets = [sheet]
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
   { // desktop
 		const make_page = require('../') 
-    const on = { 'theme_change': on_theme }
     const element = await make_page(opts)
     shadow.append(element)
   }
@@ -63,69 +66,7 @@ async function boot (opts) {
   // ----------------------------------------
 
   return
-
-  function on_theme (message) {
-    ;current_theme = current_theme === light_theme ? dark_theme : light_theme
-    sheet.replaceSync(get_theme(current_theme))
-  }
 }
-function get_theme (opts) {
-	return`
-	:host{
-		${Object.entries(opts).map(entry => `--${entry[0]}: ${entry[1]};`).join('')}
-	}
-	html {
-		font-size: 82.5%;
-		scroll-behavior: smooth;
-	}
-	body {
-		font-family: var(--bodyFont);
-		font-size: 1.4rem;
-		color: var(--bodyColor);
-		margin: 0;
-		padding: 0;
-		background-color: var(--bodyBg);
-		overflow-x: hidden;
-	}
-	a {
-		text-decoration: none;
-	}
-	button {
-		outline: none;
-		border: none;
-		font-family: var(--titleFont);
-		font-size: var(--sectionButtonSize);
-		color: var(--titleColor);
-		border-radius: 2rem;
-		padding: 1.2rem 3.8rem;
-		cursor: pointer;
-	}
-	img {
-		width: 100%;
-		height: auto;
-	}
-	article {
-		font-size: var(--articleSize);
-		color: var(--articleColor);
-		line-height: 2.5rem;
-		padding-bottom: 4rem;
-	}
-	@media only screen and (min-width: 2561px) {
-		article {
-			font-size: calc(var(--articleSize) * 1.5 );
-			line-height: calc(2.5rem * 1.5);
-		}
-		button {
-			font-size: calc(var(--sectionButtonSize) * 1.5 );
-	}
-	}
-	@media only screen and (min-width: 4096px) {
-		article {
-			font-size: calc(var(--articleSize) * 2.25 );
-			line-height: calc(2.5rem * 2.25);
-		}
-		button {
-			font-size: calc(var(--sectionButtonSize) * 2.25 );
-		}
-	}`
+async function inject (data){
+	sheet.replaceSync(data.join('\n'))
 }

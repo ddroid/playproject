@@ -500,140 +500,6 @@
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
-(function (__dirname){(function (){
-const STATE = require('../src/node_modules/STATE')
-/******************************************************************************
-  INITIALIZE PAGE
-******************************************************************************/
-const statedb = STATE({ modulename: '' }) // demo has no package.json
-statedb(fallback).then(({ id, sdb, getdb, admin }) => {
-	const [sid] = sdb.sub('main')
-	sdb.on({
-		css: css => {},
-		data: data => admin.add_admins(data.admins)
-	})
-	config().then(() => boot({ sid }))	
-})
-async function fallback (root_db) { // -> set database defaults or load from database
-  const path = './snapshot.json' // page/snapshot.json
-	const data = await((await fetch(path)).json())
-  root_db.populate(data)
-}
-/******************************************************************************
-  CSS & HTML Defaults
-******************************************************************************/
-async function config () {
-  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
-  const html = document.documentElement
-  const meta = document.createElement('meta')
-	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
-	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
-	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
-	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
-  html.setAttribute('lang', 'en')
-  meta.setAttribute('name', 'viewport')
-  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
-  // @TODO: use font api and cache to avoid re-downloading the font data every time
-  document.head.append(meta)
-  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest
-  await document.fonts.ready // @TODO: investigate why there is a FOUC
-}
-/******************************************************************************
-  PAGE BOOT
-******************************************************************************/
-async function boot (opts) {
-  // ----------------------------------------
-  // ID + JSON STATE
-  // ----------------------------------------
-  const status = {}
-  // ----------------------------------------
-  // TEMPLATE
-  // ----------------------------------------
-  const el = document.body
-  const shopts = { mode: 'closed' }
-  const shadow = el.attachShadow(shopts)
-  // ----------------------------------------
-  // ELEMENTS
-  // ----------------------------------------
-  { // desktop
-		const make_page = require('../') 
-    const on = { 'theme_change': on_theme }
-    const element = await make_page(opts)
-    shadow.append(element)
-  }
-  // ----------------------------------------
-  // INIT
-  // ----------------------------------------
-
-  return
-
-  function on_theme (message) {
-    ;current_theme = current_theme === light_theme ? dark_theme : light_theme
-    sheet.replaceSync(get_theme(current_theme))
-  }
-}
-function get_theme (opts) {
-	return`
-	:host{
-		${Object.entries(opts).map(entry => `--${entry[0]}: ${entry[1]};`).join('')}
-	}
-	html {
-		font-size: 82.5%;
-		scroll-behavior: smooth;
-	}
-	body {
-		font-family: var(--bodyFont);
-		font-size: 1.4rem;
-		color: var(--bodyColor);
-		margin: 0;
-		padding: 0;
-		background-color: var(--bodyBg);
-		overflow-x: hidden;
-	}
-	a {
-		text-decoration: none;
-	}
-	button {
-		outline: none;
-		border: none;
-		font-family: var(--titleFont);
-		font-size: var(--sectionButtonSize);
-		color: var(--titleColor);
-		border-radius: 2rem;
-		padding: 1.2rem 3.8rem;
-		cursor: pointer;
-	}
-	img {
-		width: 100%;
-		height: auto;
-	}
-	article {
-		font-size: var(--articleSize);
-		color: var(--articleColor);
-		line-height: 2.5rem;
-		padding-bottom: 4rem;
-	}
-	@media only screen and (min-width: 2561px) {
-		article {
-			font-size: calc(var(--articleSize) * 1.5 );
-			line-height: calc(2.5rem * 1.5);
-		}
-		button {
-			font-size: calc(var(--sectionButtonSize) * 1.5 );
-	}
-	}
-	@media only screen and (min-width: 4096px) {
-		article {
-			font-size: calc(var(--articleSize) * 2.25 );
-			line-height: calc(2.5rem * 2.25);
-		}
-		button {
-			font-size: calc(var(--sectionButtonSize) * 2.25 );
-		}
-	}`
-}
-}).call(this)}).call(this,"/page")
-},{"../":3,"../src/node_modules/STATE":6}],3:[function(require,module,exports){
 /******************************************************************************
   STATE
 ******************************************************************************/
@@ -643,8 +509,8 @@ const statedb = STATE({ modulename: name })
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback (main_db) { main_db.populate(require('./module.json')) }
-sdb.on({ css: css => {} })
+function fallback () { return require('./module.json') }
+sdb.on(css => {})
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -660,37 +526,32 @@ const modules = {
  our_contributors : require('our_contributors'),
  footer : require('footer'),
 }
-module.exports = main
+module.exports = index
 
-async function main(opts) {
+async function index(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
-  const subs = await sdb.on({
-    css: function oncss (css) { },
-    args: function onargs (args) { },
-  })
   const on = {
     jump,
     inject,
-    inject_all,
   }
-  const send = await IO({ 
-    id, 
-    name, 
-    type: 'comp', 
-    comp: name }, on)
+  const send = await IO(id, name, on)
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
   const el = document.createElement('div')
   const shadow = el.attachShadow(shopts)
   shadow.innerHTML = `
-  <div id="top" class='wrap'>
-  </div>`
+  <div id="top" class='wrap'></div>
+  <style></style>`
+  const style = shadow.querySelector('style')
   const main = shadow.querySelector('div')
 
+  const subs = await sdb.on({
+    css: inject
+  })
   main.append(...await Promise.all(
     Object.entries(subs).map(async ([name, sids]) => {
       const el = document.createElement('div')
@@ -699,7 +560,6 @@ async function main(opts) {
       shadow.append(await modules[name]({ sid: sids[0], hub: [id] }))
       return el
   })))
-  init_css()
   return el
   
   function fallback() {
@@ -708,114 +568,113 @@ async function main(opts) {
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
-  async function init_css () {
-    const pref = JSON.parse(localStorage.pref || '{}')
-    const pref_shared = pref[name] || [{ id: name }]
-    const pref_uniq = pref[id] || []
-    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
-  }
-  async function inject_all ({ data }) {
-    const sheet = new CSSStyleSheet
-    sheet.replaceSync(data)
-    shadow.adoptedStyleSheets.push(sheet)
-  }
-  async function inject ({ data }){
-    const style = document.createElement('style')
-    style.innerHTML = data
-    shadow.append(style)
-  }
-  async function get_theme ({local = true, theme = 'default', id}) {
-    let theme_css
-    if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-    else
-      theme_css = JSON.parse(localStorage[theme])[id]
-    return theme_css
+  async function inject (data){
+    style.innerHTML = data.join('\n')
   }
 }
 
 
-},{"./instance.json":4,"./module.json":5,"STATE":6,"datdot":14,"editor":16,"footer":18,"header":25,"io":26,"our_contributors":30,"smartcontract_codes":32,"supporters":34,"theme_widget":40,"topnav":42}],4:[function(require,module,exports){
+},{"./instance.json":3,"./module.json":4,"STATE":5,"datdot":13,"editor":15,"footer":17,"header":24,"io":25,"our_contributors":29,"smartcontract_codes":31,"supporters":33,"theme_widget":39,"topnav":42}],3:[function(require,module,exports){
 module.exports={}
-},{}],5:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}],5:[function(require,module,exports){
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
+if(db.read(['version']) != 0){
+  localStorage.clear()
+  db.add(['version'], 0)
+}
 db.read(['state']) || db.add(['state'], {})
+db.read(['css']) || db.add(['css'], {})
 
+const listeners = {}
 const s2i = {}
 const i2s = {}
 var admins = [0]
 
 module.exports = STATE
 function STATE({ modulename }) {
-  const deny = {}, uses = {}
-  const sdb = { on, sub, req_access }
-  const root_db = { populate }
-  const admin = { xget, add_admins }
+  let data
+  const deny = {}, subs = {}
+  const sdb = { on, get_sub, req_access }
+  const admin = { xget, get_all, add_admins }
   return modulename ? statedb : statedb_root
 
   function statedb (fallback) {
-    let data = db.get_by_value(['state'], 'code', modulename) || fallback(root_db)
-    if(!data)
-      data = db.read(['state'], 'code', modulename)
+    data = db.get_by_value(['state'], 'name', modulename)
+    if(!data){
+      db.append(['state'], fallback())
+      data = db.read(['state'], 'name', modulename)
+    }
     return { id: data.id, sdb, getdb }
   }
   async function statedb_root (fallback) {
-    let data = db.read(['state'])[1] || await fallback(root_db)
-    if(!data)
+    data = db.read(['state'])[1]
+    if(!data){
+      db.append(['state'], await fallback())
       data = db.read(['state'])[1]
+    }
     symbolfy(data)
-    add_admins(data.data.admins)
+    add_admins(data.admins)
     return { id: data.id, sdb, getdb, admin }
   }
-  function symbolfy(data){
-    data.uses && Object.entries(data.uses).forEach(([comp, mods]) => {
-      uses[comp] = []
-      Object.values(mods).forEach(sub_ids => 
-        sub_ids.forEach(sub_id => {
-          s2i[i2s[sub_id] = Symbol(sub_id)] = sub_id
-          uses[comp].push(i2s[sub_id])
-        })
-      )
+  function symbolfy (data){
+    data.subs && data.subs.forEach(sub => {
+      const substate = db.read(['state', sub])
+      s2i[i2s[sub] = Symbol(sub)] = sub
+      subs[substate.xtype]?.push(i2s[sub]) || (subs[substate.xtype] = [i2s[sub]])
     })
   }
   function getdb (sid, fallback){
     const id = s2i[sid]
-    let data = db.read(['state', id]) || fallback(root_db)
-    if(!data)
+    data = db.read(['state', id])
+    // console.log(data, modulename, sid)
+    if(!data){
+      db.append(['state'], fallback())
       data = db.read(['state', id])
+    }
     symbolfy(data)
     return {id, sdb}
   }
-  function populate(data){
-    db.append(['state'], data)
+  async function on (local_listeners) {
+    listeners[data.id] = local_listeners
+    const input_map = {}
+    data.inputs && await Promise.all(data.inputs.map(async input => {
+      const input_state = db.read(['state', input])
+      const input_data = input_state.data || await((await fetch(input_state.file))[input_state.type === 'json' ? 'json': 'text']())
+      input_map[input_state.type]?.push(input_data) || (input_map[input_state.type] = [input_data])
+    }))
+    local_listeners && Object.entries(local_listeners).forEach(([datatype, listener]) => {
+      input_map[datatype] && listener(input_map[datatype])
+    })
+    return subs
   }
-  function on ({css, data}) {
-    return uses
-  }
-  function sub (name) {
-    return uses[name]
+  function get_sub (name) {
+    return subs[name]
   }
   async function add_admins (ids) {
     admins.push(...ids)
   }
-  function req_access(sid) {
+  function req_access (sid) {
     if (deny[sid]) throw new Error('access denied')
     const el = db.read(['state', s2i[sid]])
-    console.log(admins, sid)
     if(admins.includes(s2i[sid]) || admins.includes(el?.name))
       return admin
   }
-  function xget(id) {
+  function xget (id) {
     return db.read(['state', id])
   }
+  function get_all () {
+    return db.read(['state'])
+  }
+  function preprocess () {}
 }
 
+//
 //DUMP
+//
 async function pinit (url) {
   if (!STATE.init) throw new Error('already initialized')
   STATE.init = undefined
@@ -837,7 +696,7 @@ async function pinit (url) {
     await db.clear()
   }
 }
-function s () {
+function static () {
   const sdb = { get, req_access }
   const deny = {}
   return sdb
@@ -909,7 +768,7 @@ function s () {
     admins = ids
   }
 }
-},{"localdb":28}],7:[function(require,module,exports){
+},{"localdb":27}],6:[function(require,module,exports){
 const IO = require('io')
 const statedb = require('STATE')
 /******************************************************************************
@@ -999,7 +858,7 @@ async function content (opts) {
   }
 }
 
-},{"./data.json":8,"STATE":6,"io":26}],8:[function(require,module,exports){
+},{"./data.json":7,"STATE":5,"io":25}],7:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "content",
@@ -1009,7 +868,7 @@ module.exports={
     "url": "https://smartcontract-codes.github.io/play-ed/"
   }
 }
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 const Graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1108,7 +967,7 @@ async function contributor (opts) {
 
 
 
-},{"./data.json":10,"STATE":6,"graphic":23,"io":26}],10:[function(require,module,exports){
+},{"./data.json":9,"STATE":5,"graphic":22,"io":25}],9:[function(require,module,exports){
 module.exports={
   "0": {
     "name": "Nina",
@@ -1123,7 +982,7 @@ module.exports={
     "avatar": "./src/node_modules/assets/images/avatar-nina.png"  
   }
 }
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 const IO = require('io')
 const graphic = require('graphic')
 const statedb = require('STATE')
@@ -1234,7 +1093,7 @@ async function crystal_island(opts) {
 }
 
 
-},{"./data.json":12,"STATE":6,"graphic":23,"io":26}],12:[function(require,module,exports){
+},{"./data.json":11,"STATE":5,"graphic":22,"io":25}],11:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "crystal_island",
@@ -1243,7 +1102,7 @@ module.exports={
     "deco" : ["stone", "card", "tree1"]
   }
 }
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "datdot",
@@ -1256,7 +1115,7 @@ module.exports={
     }
   }
 }
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const content = require('content')
@@ -1365,7 +1224,7 @@ async function datdot (opts) {
     return theme_css
   }
 }
-},{"./data.json":13,"STATE":6,"content":7,"graphic":23,"io":26,"rellax":1}],15:[function(require,module,exports){
+},{"./data.json":12,"STATE":5,"content":6,"graphic":22,"io":25,"rellax":1}],14:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "editor",
@@ -1378,7 +1237,7 @@ module.exports={
     }
   }
 }
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -1504,7 +1363,7 @@ async function editor (opts) {
   }
 }
 
-},{"./data.json":15,"STATE":6,"content":7,"graphic":23,"io":26,"rellax":1}],17:[function(require,module,exports){
+},{"./data.json":14,"STATE":5,"content":6,"graphic":22,"io":25,"rellax":1}],16:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "footer",
@@ -1537,7 +1396,7 @@ module.exports={
     ]
   }
 }
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 const graphic = require('graphic')
 const IO = require('io')
 const statedb = require('STATE')
@@ -1642,7 +1501,7 @@ async function footer (opts) {
   }
 }
 
-},{"./data.json":17,"STATE":6,"graphic":23,"io":26}],19:[function(require,module,exports){
+},{"./data.json":16,"STATE":5,"graphic":22,"io":25}],18:[function(require,module,exports){
 /******************************************************************************
   STATE
 ******************************************************************************/
@@ -1651,7 +1510,7 @@ const name = 'graph_explorer'
 const statedb = STATE({ modulename: name })
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback (main_db) { main_db.populate(require('./module.json')) }
+function fallback () { return require('./module.json') }
 sdb.on({ css: css => {} })
 
 const IO = require('io')
@@ -1670,44 +1529,35 @@ async function graph_explorer (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await getdb(opts.sid, fallback)
-  const subs = await sdb.on({
-    css: function oncss (css) { },
-    args: function onargs (args) { },
-  })
   const hub_id = opts.hub[0]
   const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
   const on = {
     init,
     inject,
-    inject_all,
     scroll
   }
   const on_add = {
     entry: add_entry,
     menu: add_action
   }
-  const send = await IO({
-    id, 
-    name, 
-    type: 'comp', 
-    comp: name, 
-    hub: opts.hub, 
-    // css: main_data.css
-  }, on)
+  const send = await IO(id, name, on)
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
   const el = document.createElement('div')
   const shadow = el.attachShadow(shopts)
+  const style = document.createElement('style')
+  await sdb.on({
+    css: inject
+  })
   shadow.innerHTML = `
   <main>
 
-  </main>
-  `
+  </main>`
   const main = shadow.querySelector('main')
+  shadow.append(style)
   shadow.addEventListener('copy', oncopy)
 
-  init_css()
   return el
 
   /******************************************
@@ -1722,15 +1572,15 @@ async function graph_explorer (opts) {
     e.preventDefault()
   }
   async function init ({ data }) {
-    let id = Object.keys(data).length
+    let id = Object.keys(data).length + 1
 
-    add({ id, name: 'edit', type: 'action', hub: [] })
-    add({ id, name: 'link', type: 'action', hub: [] })
-    add({ id, name: 'unlink', type: 'action', hub: [] })
-    add({ id, name: 'drop', type: 'action', hub: [] })
+    add({ id, name: 'edit', type: 'action', hubs: [] })
+    add({ id, name: 'link', type: 'action', hubs: [] })
+    add({ id, name: 'unlink', type: 'action', hubs: [] })
+    add({ id, name: 'drop', type: 'action', hubs: [] })
 
     status.graph = data
-    const root_entries = Object.values(data).filter(entry => !entry.hub)
+    const root_entries = Object.values(data).filter(entry => !entry.hubs)
     root_entries.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
     function add (args){
       status.menu_ids.push(args.id)
@@ -1781,8 +1631,8 @@ async function graph_explorer (opts) {
     const element = html_template(data, last, space, pos)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
     ancestry = [...ancestry]
-    let lo_space = space + (last ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
-    let hi_space = space + (first ? '&emsp;&nbsp;' : '│&nbsp;&nbsp;')
+    let lo_space = space + (last ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
+    let hi_space = space + (first ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
     const space_handle = [], els = []
     let slot_no = 0, slot_on
 
@@ -1825,7 +1675,7 @@ async function graph_explorer (opts) {
     //Listeners
     type_emo.onclick = type_click
     name.onclick = () => send({ type: 'click', to: hub_id, data })
-    data.slot.forEach(handle_slot)
+    data.slotmap.forEach(handle_slot)
     menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
     if(getComputedStyle(type_emo, '::before').content === 'none')
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
@@ -2097,13 +1947,6 @@ async function graph_explorer (opts) {
   /******************************************
    Communication
   ******************************************/
-  async function init_css () {
-    const pref = JSON.parse(localStorage.pref)
-    const pref_shared = pref[name] || [{ id: name }]
-    const pref_uniq = pref[id] || []
-    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
-  }
   async function scroll () {
     el.scrollIntoView({behavior: 'smooth'})
     el.tabIndex = '0'
@@ -2113,34 +1956,19 @@ async function graph_explorer (opts) {
       el.onblur = null
     }
   }
-  async function inject_all ({ data }) {
-    const sheet = new CSSStyleSheet
-    sheet.replaceSync(data)
-    shadow.adoptedStyleSheets.push(sheet)
-  }
-  async function inject ({ data }){
-    const style = document.createElement('style')
-    style.innerHTML = data
-    shadow.append(style)
-  }
-  async function get_theme ({local = true, theme = 'default', id}) {
-    let theme_css
-    if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-    else
-      theme_css = JSON.parse(localStorage[theme])[id]
-    return theme_css
+  async function inject (data){
+    style.innerHTML = data.join('\n')
   }
 }
-},{"./instance.json":20,"./module.json":21,"STATE":6,"helper":22,"io":26}],20:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4}],21:[function(require,module,exports){
+},{"./instance.json":19,"./module.json":20,"STATE":5,"helper":21,"io":25}],19:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}],20:[function(require,module,exports){
 module.exports={ 
   "0": {
     "comp": "graph_explorer"
   }
 }
-},{}],22:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 function copy (selection) {
   const range = selection.getRangeAt(0)
   const selectedElements = []
@@ -2183,7 +2011,7 @@ function download_json (data) {
   link.click();
 }
 module.exports = {copy, get_color, download_json}
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -2200,14 +2028,14 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":27}],24:[function(require,module,exports){
+},{"loadSVG":26}],23:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "header",
     "title": "Infrastructure for the next-generation Internet"
   }
 }
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const IO = require('io')
@@ -2331,19 +2159,16 @@ async function header (opts) {
 }
 
 
-},{"./data.json":24,"STATE":6,"graphic":23,"io":26,"rellax":1}],26:[function(require,module,exports){
+},{"./data.json":23,"STATE":5,"graphic":22,"io":25,"rellax":1}],25:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
 module.exports = io
-async function io(data, on) {
+async function io(id, name, on) {
   const on_rx = {
     on: {init}
   }
-  const id = data.id
-  ports[id] = { id, name: data.name, on}
-  data.hub && graph[data.hub[0]].sub.push(id)
-  graph[id] = { id, ...data, sub: [], slot: [[data.hub && 'hub', 'sub'], ['input']]}
+  ports[id] = { id, name, on}
   timer && clearTimeout(timer)
   timer = setTimeout(init, 1000)
   return send
@@ -2356,10 +2181,10 @@ async function io(data, on) {
     return (Object.values(ports).filter(node => node.name === name)[0] || {id: undefined}).id
   }
   async function init() {
-    ports[await find_id('theme_widget')].on['refresh']({ data: graph})
+    ports[await find_id('theme_widget')].on['refresh']()
   }
 }
-},{}],27:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -2372,7 +2197,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],28:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -2419,7 +2244,6 @@ function localdb () {
    * @param {any} value 
    */
   function append (keys, value) {
-    console.error('hi')
     let data
     data = JSON.parse(localStorage[keys[0]])
     if(keys.length > 1) {
@@ -2476,7 +2300,7 @@ function localdb () {
     return result
   } 
 }
-},{}],29:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "our_contributors",
@@ -2490,7 +2314,7 @@ module.exports={
     }
   }
 }
-},{}],30:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const Content = require('content')
@@ -2621,7 +2445,7 @@ async function our_contributors (opts) {
     return theme_css
   }
 }
-},{"./data.json":29,"STATE":6,"content":7,"contributor":9,"graphic":23,"io":26,"rellax":1}],31:[function(require,module,exports){
+},{"./data.json":28,"STATE":5,"content":6,"contributor":8,"graphic":22,"io":25,"rellax":1}],30:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "smartcontract_codes",
@@ -2634,7 +2458,7 @@ module.exports={
     }
   }
 }
-},{}],32:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 const graphic = require('graphic')
 const Content = require('content')
 const IO = require('io')
@@ -2763,7 +2587,7 @@ async function smartcontract_codes (opts) {
   }
 }
 
-},{"./data.json":31,"STATE":6,"content":7,"graphic":23,"io":26}],33:[function(require,module,exports){
+},{"./data.json":30,"STATE":5,"content":6,"graphic":22,"io":25}],32:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "supporters",
@@ -2775,7 +2599,7 @@ module.exports={
     }
   }
 }
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 const graphic = require('graphic')
 const Rellax = require('rellax')
 const crystal_island = require('crystal_island')
@@ -2898,15 +2722,15 @@ async function supporters (opts) {
   }
 }
 
-},{"./data.json":33,"STATE":6,"crystal_island":11,"graphic":23,"io":26,"rellax":1}],35:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4}],36:[function(require,module,exports){
+},{"./data.json":32,"STATE":5,"crystal_island":10,"graphic":22,"io":25,"rellax":1}],34:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}],35:[function(require,module,exports){
 module.exports={ 
   "0": {
     "comp": "theme_editor"
   }
 }
-},{}],37:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 /******************************************************************************
   STATE
 ******************************************************************************/
@@ -2915,7 +2739,7 @@ const name = 'theme_editor'
 const statedb = STATE({ modulename: name })
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback (main_db) { main_db.populate(require('./module.json')) }
+function fallback () { return require('./module.json') }
 sdb.on({ css: css => {} })
 /******************************************************************************
   THEME_EDITOR COMPONENT
@@ -2931,10 +2755,6 @@ async function theme_editor (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
-  const subs = await sdb.on({
-    css: function oncss (css) { },
-    args: function onargs (args) { },
-  })
   const status = { tab_id: 0 }
   const db = await DB()
   const on = {
@@ -2942,27 +2762,22 @@ async function theme_editor (opts) {
     init_tab,
     hide
   }
-  console.log(opts)
   const {xget} = sdb.req_access(opts.sid)
-  const send = await IO({
-    id, 
-    name, 
-    type: 'comp', 
-    comp: name, 
-    hub: opts.hub, 
-    // css: css
-  }, on)
+  const send = await IO(id, name, on)
   
   status.themes = {
     builtin: Object.keys(opts.paths),
     saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
   }
-  const defaults = await(await (fetch('./data.json'))).json()
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
   const el = document.createElement('div')
   const shadow = el.attachShadow(shopts)
+  const style = document.createElement('style')
+  await sdb.on({
+    css: inject,
+  })
   shadow.innerHTML = `
   <main>
     <div class="content">
@@ -3008,8 +2823,7 @@ async function theme_editor (opts) {
       <div class="box"></div>
       <span class="plus">+</span>
     </div>
-  </main>
-  `
+  </main>`
   const main = shadow.querySelector('main')
   const inject_btn = shadow.querySelector('.inject')
   const load_btn = shadow.querySelector('.load')
@@ -3044,8 +2858,9 @@ async function theme_editor (opts) {
   upload.onchange = import_fn
   reset_btn.onclick = () => {localStorage.clear(), location.reload()}
   plus.onclick = () => add_tab('New')
+  shadow.append(style)
   update_select_theme()
-  init_css()
+  
   return el
 
   async function fallback() {
@@ -3330,36 +3145,14 @@ async function theme_editor (opts) {
     select_theme.innerHTML = ''
     select_theme.append(builtin, saved)
   }
-  async function init_css () {
-    const pref = db.read(['pref'])
-    const pref_shared = pref[name] || [{ id: name }]
-    const pref_uniq = pref[id] || []
-    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
-  }
-  async function inject_all ({ data }) {
-    const sheet = new CSSStyleSheet
-    sheet.replaceSync(data)
-    shadow.adoptedStyleSheets.push(sheet)
-  }
-  async function inject ({ data }){
-    const style = document.createElement('style')
-    style.innerHTML = data
-    shadow.append(style)
-  }
-  async function get_theme ({local = true, theme = 'default', id}) {
-    let theme_css
-    if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-    else
-      theme_css = db.read([theme, id])
-    return theme_css
+  async function inject (data){
+    style.innerHTML = data.join('\n')
   }
 }
 
-},{"./instance.json":35,"./module.json":36,"STATE":6,"io":26,"localdb":28}],38:[function(require,module,exports){
-arguments[4][4][0].apply(exports,arguments)
-},{"dup":4}],39:[function(require,module,exports){
+},{"./instance.json":34,"./module.json":35,"STATE":5,"io":25,"localdb":27}],37:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}],38:[function(require,module,exports){
 module.exports={
   "0": {
     "comp": "theme_widget",
@@ -3369,7 +3162,7 @@ module.exports={
     }
   }
 }
-},{}],40:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 /******************************************************************************
   STATE
 ******************************************************************************/
@@ -3379,7 +3172,7 @@ const statedb = STATE({ modulename: name })
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback (main_db) { main_db.populate(require('./module.json')) }
+function fallback () { return require('./module.json') }
 sdb.on({ css: css => {} })
 /******************************************************************************
   THEME_WIDGET COMPONENT
@@ -3395,26 +3188,16 @@ async function theme_widget (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
-  const subs = await sdb.on({
-    css: function oncss (css) { },
-    args: function onargs (args) { },
-  })
   const status = { tab_id: 0, init_check: true }
   const on = {
     refresh,
     get_select,
     inject,
-    inject_all,
     scroll,
     click
   }
-  const send = await IO({
-    id, 
-    name, 
-    type: 'comp', 
-    comp: name, 
-    hub: opts.hub, 
-  }, on)
+  const {get_all} = sdb.req_access(opts.sid)
+  const send = await IO(id, name, on)
 
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
@@ -3440,7 +3223,9 @@ async function theme_widget (opts) {
       <div class="editor">
       </div>
     </div>
-  </section>`
+  </section>
+  <style></style>`
+  const style = shadow.querySelector('style')
   const btn = shadow.querySelector('.btn')
   const popup = shadow.querySelector('.popup')
   const box = popup.querySelector('.box')
@@ -3450,11 +3235,13 @@ async function theme_widget (opts) {
   const select = box.querySelector('.select')
   const slider = box.querySelector('input')
 
+  const subs = await sdb.on({
+    css: inject
+  })
   editor.append(await theme_editor({ sid: subs.theme_editor?.[0], hub: [id], paths }))
   box.prepend(await graph_explorer({ sid: subs.graph_explorer?.[0], hub: [id] }))
   select.onclick = on_select
   slider.oninput = blur
-  init_css()
   return el
 
   async function fallback() {
@@ -3473,7 +3260,17 @@ async function theme_widget (opts) {
     inputs.forEach(el => el.checked && output.push(el.nextElementSibling.id))
     send({type: 'send', to: 'theme_editor', data: output})
   }
-  async function refresh ({ data }) {
+  async function refresh () {
+    const data = get_all()
+    status.tree = data
+    stats.innerHTML = `Entries: ${Object.keys(data).length}`
+    btn.onclick = () => {
+      popup.classList.toggle('active')
+      status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
+      status.init_check = false
+    }
+  }
+  function dump () {
     let id = Object.keys(data).length
     const themes_id = id++
     data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: [], slot: [['', 'sub']]}
@@ -3512,7 +3309,6 @@ async function theme_widget (opts) {
         node.input.push(id++)
       }
     })
-    console.log(data)
     status.tree = data
     stats.innerHTML = `Entries: ${Object.keys(data).length}`
     btn.onclick = () => {
@@ -3578,13 +3374,6 @@ async function theme_widget (opts) {
     }
     return el
   }
-  async function init_css () {
-    const pref = JSON.parse(localStorage.pref)
-    const pref_shared = pref[name] || [{ id: name }]
-    const pref_uniq = pref[id] || []
-    pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-    pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
-  }
   async function scroll () {
     el.scrollIntoView({behavior: 'smooth'})
     el.tabIndex = '0'
@@ -3594,27 +3383,14 @@ async function theme_widget (opts) {
       el.onblur = null
     }
   }
-  async function inject_all ({ data }) {
-    const sheet = new CSSStyleSheet
-    sheet.replaceSync(data)
-    shadow.adoptedStyleSheets.push(sheet)
-  }
-  async function inject ({ data }){
-    const style = document.createElement('style')
-    style.innerHTML = data
-    shadow.append(style)
-  }
-  async function get_theme ({local = true, theme = 'default', id}) {
-    let theme_css
-    if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-    else
-      theme_css = JSON.parse(localStorage[theme])[id]
-    return theme_css
+  async function inject (data){
+    style.innerHTML = data.join('\n')
   }
 }
 
-},{"./instance.json":38,"./module.json":39,"STATE":6,"graph_explorer":19,"io":26,"theme_editor":37}],41:[function(require,module,exports){
+},{"./instance.json":37,"./module.json":38,"STATE":5,"graph_explorer":18,"io":25,"theme_editor":36}],40:[function(require,module,exports){
+arguments[4][3][0].apply(exports,arguments)
+},{"dup":3}],41:[function(require,module,exports){
 module.exports={ 
   "0": {
     "comp": "topnav",
@@ -3648,13 +3424,22 @@ module.exports={
   }
 }
 },{}],42:[function(require,module,exports){
-const graphic = require('graphic')
-const IO = require('io')
-const statedb = require('STATE')
-const default_data = require('./data.json')
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'topnav'
+const statedb = STATE({ modulename: name })
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback () { return require('./module.json') }
+sdb.on({ css: css => {} })
+
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
 ******************************************************************************/
+const graphic = require('graphic')
+const IO = require('io')
 // ----------------------------------------
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -3664,24 +3449,14 @@ async function topnav (opts) {
 	// ----------------------------------------
 	// ID + JSON STATE
 	// ----------------------------------------
-	const name = 'topnav'
+	const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
 	const status = {}
 	const on = {
 		inject,
-		inject_all,
 		scroll
 	}
 
-	const sdb = statedb()
-	const data = await sdb.get(opts.sid, fallback)
-  const {send, css_id} = await IO({
-    id: data.id, 
-    name, 
-    type: 'comp', 
-    comp: name, 
-    hub: opts.hub, 
-    css: data.css
-  }, on)
+  const send = await IO(id, name, on)
 	// ----------------------------------------
 	// OPTS
 	// ----------------------------------------
@@ -3698,11 +3473,10 @@ async function topnav (opts) {
 				<nav class='menu'>
 				</nav>
 		</section>
-	`
-	// ----------------------------------------
+	<style></style>`
+  const style = shadow.querySelector('style')
 	const menu = shadow.querySelector('.menu')
 	const body = shadow.querySelector('section')
-	menu.append(...data.links.map(make_link))
 	const scrollUp = 'scrollUp'
 	const scrollDown = 'scrollDown'
 	let lastScroll = 0
@@ -3732,18 +3506,22 @@ async function topnav (opts) {
 			body.classList.remove(scrollDown)
 		}
 	})
-	init_css()
+	await sdb.on({
+    css: inject,
+    json: onjson,
+  })
+
 	return el
 
+	function onjson ([ opts ]) { 
+		menu.innerHTML = ''
+		menu.append(...opts.links.map(make_link))
+	}
 	async function fallback() {
-    return require('./data.json')
+    return require('./instance.json')
   }
 	function click(url) {
 		send({to:'index', type: 'jump', data: url })
-	}
-	async function inject ({ data }) {
-		sheet.replaceSync(data)
-		shadow.adoptedStyleSheets = [sheet]
 	}
 	function make_link(link){
 		const a = document.createElement('a')
@@ -3751,13 +3529,6 @@ async function topnav (opts) {
 		a.textContent = link.text
 		a.onclick = () => click(link.url)
 		return a
-	}
-	async function init_css () {
-		const pref = JSON.parse(localStorage.pref)
-		const pref_shared = pref[name] || data.shared || [{ id: name }]
-		const pref_uniq = pref[css_id] || data.uniq || []
-		pref_shared.forEach(async v => inject_all({ data: await get_theme(v)}))
-		pref_uniq.forEach(async v => inject({ data: await get_theme(v)}))
 	}
 	async function scroll () {
 		el.scrollIntoView({behavior: 'smooth'})
@@ -3768,24 +3539,84 @@ async function topnav (opts) {
 			el.onblur = null
 		}
 	}
-	async function inject_all ({ data }) {
-		const sheet = new CSSStyleSheet
-		sheet.replaceSync(data)
-		shadow.adoptedStyleSheets.push(sheet)
-	}
-	async function inject ({ data }){
-		const style = document.createElement('style')
-		style.innerHTML = data
-		shadow.append(style)
-	}
-	async function get_theme ({local = true, theme = 'default', id}) {
-		let theme_css
-		if(local)
-			theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}.css`)).text()
-		else
-			theme_css = JSON.parse(localStorage[theme])[id]
-		return theme_css
+	async function inject (data){
+		style.innerHTML = data.join('\n')
 	}
 }
 
-},{"./data.json":41,"STATE":6,"graphic":23,"io":26}]},{},[2]);
+},{"./instance.json":40,"./module.json":41,"STATE":5,"graphic":22,"io":25}],43:[function(require,module,exports){
+(function (__dirname){(function (){
+const STATE = require('../src/node_modules/STATE')
+/******************************************************************************
+  INITIALIZE PAGE
+******************************************************************************/
+const statedb = STATE({ modulename: '' }) // demo has no package.json
+statedb(fallback).then(({ id, sdb, getdb, admin }) => {
+	const [sid] = sdb.get_sub('index')
+	sdb.on({
+		css: inject,
+	})
+	config().then(() => boot({ sid }))	
+})
+async function fallback () { // -> set database defaults or load from database
+  const path = './snapshot.json' // page/snapshot.json
+	const data = await((await fetch(path)).json())
+	return data
+}
+/******************************************************************************
+  CSS & HTML Defaults
+******************************************************************************/
+const sheet = new CSSStyleSheet()
+async function config () {
+  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
+  const html = document.documentElement
+  const meta = document.createElement('meta')
+	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
+	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
+	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
+	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
+  const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
+	const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
+	html.setAttribute('lang', 'en')
+  meta.setAttribute('name', 'viewport')
+  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
+  // @TODO: use font api and cache to avoid re-downloading the font data every time
+  document.head.append(meta)
+  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest + loadFont
+	document.adoptedStyleSheets = [sheet]
+  await document.fonts.ready // @TODO: investigate why there is a FOUC
+}
+/******************************************************************************
+  PAGE BOOT
+******************************************************************************/
+async function boot (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const status = {}
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.body
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+	shadow.adoptedStyleSheets = [sheet]
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // desktop
+		const make_page = require('../') 
+    const element = await make_page(opts)
+    shadow.append(element)
+  }
+  // ----------------------------------------
+  // INIT
+  // ----------------------------------------
+
+  return
+}
+async function inject (data){
+	sheet.replaceSync(data.join('\n'))
+}
+}).call(this)}).call(this,"/web")
+},{"../":2,"../src/node_modules/STATE":5}]},{},[43]);

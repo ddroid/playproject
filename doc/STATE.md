@@ -1,12 +1,12 @@
-### `STATE` Module Documentation
+## `STATE` Module Documentation
 
 The `STATE` module is a database management system that enables managing state data across multiple modules or instances. It provides methods for setting up state databases, accessing state data, managing admins, and handling permissions.
 
 ---
 
-### Module Functions
+## Module Functions
 
-#### `STATE(...)`
+### `STATE(...)`
 Creates an instance of the state database for a specific module or initializes the root database. Returns methods for interacting with the state data.
 
 ```js
@@ -62,9 +62,9 @@ Initializes the root state database. This is called when no specific `modulename
 
 ---
 
-### Methods in `sdb`
+## Methods in `sdb`
 
-#### `getdb(...)`
+### `getdb(...)`
 Retrieves or initializes a state database for a given session ID (`sid`). If no state exists, it calls the provided fallback function to populate default data.
 
 ```js
@@ -83,7 +83,7 @@ Retrieves or initializes a state database for a given session ID (`sid`). If no 
 
 ---
 
-#### `sdb.on(...)`
+### `sdb.on(...)`
 Retrieves the current usage of components in the state. It tracks data for each component by its sub-module IDs.
 
 ```js
@@ -103,7 +103,7 @@ Retrieves the current usage of components in the state. It tracks data for each 
 
 ---
 
-#### `sdb.sub(...)`
+### `sdb.sub(...)`
 Returns all the sub-modules associated with the given component `name`.
 
 ```js
@@ -118,7 +118,7 @@ Returns all the sub-modules associated with the given component `name`.
 
 ---
 
-#### `sdb.req_access(...)`
+### `sdb.req_access(...)`
 Checks if a given session ID (`sid`) has admin-level access. If the session belongs to an admin, it returns the admin object.
 ```js
   const admin = sdb.req_access(sid)
@@ -132,9 +132,9 @@ Checks if a given session ID (`sid`) has admin-level access. If the session belo
 
 ---
 
-### Admin Methods
+## Admin Methods
 
-#### `admin.xget(...)`
+### `admin.xget(...)`
 Fetches state data for a given ID from the root database. This is an admin-only operation.
 
 ```js
@@ -149,7 +149,7 @@ Fetches state data for a given ID from the root database. This is an admin-only 
 
 ---
 
-#### `admin.add_admins(...)`
+### `admin.add_admins(...)`
 Adds new admin IDs to the list of authorized admins.
 
 ```js
@@ -164,9 +164,9 @@ Adds new admin IDs to the list of authorized admins.
 
 ---
 
-### Helper Methods
+## Helper Methods
 
-#### `populate(...)`
+### `populate(...)`
 Populates the state database with the given data. This is typically used to initialize or append new data to the state.
 
 ```js
@@ -178,7 +178,7 @@ Populates the state database with the given data. This is typically used to init
 
 ---
 
-#### `symbolfy(...)`
+### `symbolfy(...)`
 Converts the sub-module IDs into symbols and maps them for internal tracking. This is used to handle references between components and modules.
 
 ```js
@@ -193,7 +193,7 @@ Converts the sub-module IDs into symbols and maps them for internal tracking. Th
 
 ---
 
-### Internal Data Structures
+## Internal Data Structures
 
 - `s2i`: *Object*  
   Maps symbols to instance IDs.

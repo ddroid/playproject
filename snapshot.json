@@ -2,82 +2,214 @@
   "1": {
     "id": 1,
     "name": "demo",
-    "code": "page/demo.js",
-    "data": {
-      "admins": ["theme_editor"]
-    },
-    "node": [2],
-    "uses": {
-      "main": {"2": [3]}
-    }
+    "type": "module",
+    "xtype": "demo",
+    "file": "page/demo.js",
+    "subs": [6],
+    "inputs": [21],
+    "admins": ["theme_editor", "theme_widget"],
+    "slotmap": [["", "subs"], ["inputs"]]
+  },
+  "21": {
+    "id": 21,
+    "name": "demo.css",
+    "type": "css",
+    "hubs": [3, 1],
+    "file": "src/node_modules/css/default/demo.css",
+    "slotmap": [["hub"]]
   },
   "2": {
-    "name": "index",
     "id": 2,
-    "code": "src/index.js",
-    "data": {},
-    "node": [3]
+    "name": "modules",
+    "type": "folder",
+    "subs": [5, 7, 9, 11, 13],
+    "slotmap": [["", "subs"]]
   },
   "3": {
     "id": 3,
-    "name": "index",
-    "user": 2,
-    "data": {},
-    "uses": {
-      "theme_widget": {
-        "4": [5]
-      }
-    }
+    "name": "css",
+    "type": "folder",
+    "subs": [],
+    "slotmap": [["", "subs"]]
   },
   "4": {
     "id": 4,
-    "name": "theme_widget",
-    "code": "src/node_modules/theme_widget/theme_widget.js",
-    "data": {},
-    "node": [5]
+    "name": "content",
+    "type": "folder",
+    "subs": [15],
+    "slotmap": [["", "subs"]]
   },
   "5": {
     "id": 5,
-    "name": "theme_widget",
-    "user": 4,
-    "data": {},
-    "uses": {
-      "theme_editor": {
-        "6": [7]
-      },
-      "graph_explorer": {
-        "8": [9]
-      }
-    }
+    "name": "index",
+    "type": "module",
+    "xtype": "index",
+    "file": "src/index.js",
+    "hubs": [2],
+    "subs": [6],
+    "slotmap": [["hubs", "subs"]]
   },
   "6": {
     "id": 6,
-    "name": "theme_editor",
-    "code": "src/node_modules/theme_editor/theme_editor.js",
-    "data": {},
-    "node": [7]
+    "name": "index",
+    "type": "instance",
+    "xtype": "index",
+    "hubs": [1, 5],
+    "subs": [8, 14],
+    "inputs": [16],
+    "slotmap": [["hubs", "subs"], ["inputs"]]
+  },
+  "16": {
+    "id": 16,
+    "name": "index.css",
+    "type": "css",
+    "hubs": [3, 6],
+    "file": "src/node_modules/css/default/index.css",
+    "slotmap": [["hub"]]
   },
   "7": {
     "id": 7,
-    "name": "theme_editor",
-    "user": 6,
-    "data": {},
-    "uses": {
-    }
+    "name": "theme_widget",
+    "type": "module",
+    "xtype": "theme_widget",
+    "file": "src/node_modules/theme_widget/theme_widget.js",
+    "hubs": [2],
+    "subs": [8],
+    "slotmap": [["hubs", "subs"]]
   },
   "8": {
     "id": 8,
-    "name": "graph_explorer",
-    "code": "src/node_modules/graph_explorer/graph_explorer.js",
-    "data": {},
-    "node": [9]
+    "name": "theme_widget",
+    "type": "instance",
+    "xtype": "theme_widget",
+    "hubs": [6, 7],
+    "subs": [10, 12],
+    "inputs": [17],
+    "slotmap": [["hubs", "subs"], ["inputs"]]
+  },
+  "17": {
+    "id": 17,
+    "name": "theme_widget.css",
+    "type": "css",
+    "hubs": [3, 8],
+    "file": "src/node_modules/css/default/theme_widget.css",
+    "slotmap": [["hub"]]
   },
   "9": {
     "id": 9,
+    "name": "theme_editor",
+    "type": "module",
+    "xtype": "theme_editor",
+    "file": "src/node_modules/theme_editor/theme_editor.js",
+    "hubs": [2],
+    "subs": [10],
+    "slotmap": [["hubs", "subs"]]
+  },
+  "10": {
+    "id": 10,
+    "name": "theme_editor",
+    "type": "instance",
+    "xtype": "theme_editor",
+    "hubs": [7, 8],
+    "inputs": [18],
+    "slotmap": [["hubs"], ["inputs"]]
+  },
+  "18": {
+    "id": 18,
+    "name": "theme_editor.css",
+    "type": "css",
+    "hubs": [3, 10],
+    "file": "src/node_modules/css/default/theme_editor.css",
+    "slotmap": [["hub"]]
+  },
+  "11": {
+    "id": 11,
     "name": "graph_explorer",
-    "user": 8,
-    "data": {},
-    "uses": {
-    }
+    "type": "module",
+    "xtype": "graph_explorer",
+    "file": "src/node_modules/graph_explorer/graph_explorer.js",
+    "hubs": [2],
+    "subs": [12],
+    "slotmap": [["hubs", "subs"]]
+  },
+  "12": {
+    "id": 12,
+    "name": "graph_explorer",
+    "type": "instance",
+    "xtype": "graph_explorer",
+    "hubs": [10, 11],
+    "inputs": [19],
+    "slotmap": [["hubs"], ["inputs"]]
+  },
+  "19": {
+    "id": 19,
+    "name": "graph_explorer.css",
+    "type": "css",
+    "hubs": [3, 12],
+    "file": "src/node_modules/css/default/graph_explorer.css",
+    "slotmap": [["hub"]]
+  },
+  "13": {
+    "id": 13,
+    "name": "topnav",
+    "type": "module",
+    "xtype": "topnav",
+    "file": "src/node_modules/topnav/topnav.js",
+    "hubs": [2],
+    "subs": [14],
+    "slotmap": [["hubs", "subs"]]
+  },
+  "14": {
+    "id": 14,
+    "name": "topnav",
+    "type": "instance",
+    "xtype": "topnav",
+    "hubs": [6, 13],
+    "inputs": [15, 20],
+    "slotmap": [["hubs"], ["inputs"]]
+  },
+  "20": {
+    "id": 20,
+    "name": "topnav.css",
+    "type": "css",
+    "hubs": [3, 14],
+    "file": "src/node_modules/css/default/topnav.css",
+    "slotmap": [["hub"]]
+  },
+  "15": {
+    "id": 15,
+    "name": "topnav.json",
+    "type": "json",
+    "data": {
+      "links": [
+      {
+        "id": "datdot",
+        "text": "DatDot",
+        "url": "datdot"
+      },
+      {
+        "id": "editor",
+        "text": "Play Editor",
+        "url": "editor"
+      },
+      {
+        "id": "smartcontract_files",
+        "text": "Smart Contract files",
+        "url": "smartcontract_files"
+      },
+      {
+        "id": "supporters",
+        "text": "Supporters",
+        "url": "supporters"
+      },
+      {
+        "id": "our_contributors",
+        "text": "Contributors",
+        "url": "our_contributors"
+      }
+      ]
+    },
+    "hubs": [4, 14],
+    "slotmap": [["hubs"]]
   }
 }
