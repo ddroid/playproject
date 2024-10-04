@@ -4,40 +4,40 @@
     "name": "demo",
     "type": "module",
     "xtype": "demo",
-    "file": "page/demo.js",
-    "subs": [6],
-    "inputs": [21],
+    "file": "web/demo.js",
     "admins": ["theme_editor", "theme_widget"],
-    "slotmap": [["", "subs"], ["inputs"]]
-  },
-  "21": {
-    "id": 21,
-    "name": "demo.css",
-    "type": "css",
-    "hubs": [3, 1],
-    "file": "src/node_modules/css/default/demo.css",
-    "slotmap": [["hub"]]
+    "slot": {
+      "": [["", "subs"], ["inputs"]],
+      "subs": [6],
+      "inputs": [8]
+    }
   },
   "2": {
     "id": 2,
     "name": "modules",
     "type": "folder",
-    "subs": [5, 7, 9, 11, 13],
-    "slotmap": [["", "subs"]]
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [9, 12, 16, 19]
+    }
   },
   "3": {
     "id": 3,
     "name": "css",
     "type": "folder",
-    "subs": [],
-    "slotmap": [["", "subs"]]
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [11, 14, 18, 21]
+    }
   },
   "4": {
     "id": 4,
     "name": "content",
     "type": "folder",
-    "subs": [15],
-    "slotmap": [["", "subs"]]
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [15, 22]
+    }
   },
   "5": {
     "id": 5,
@@ -45,171 +45,203 @@
     "type": "module",
     "xtype": "index",
     "file": "src/index.js",
-    "hubs": [2],
-    "subs": [6],
-    "slotmap": [["hubs", "subs"]]
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [6]
+    }
   },
   "6": {
     "id": 6,
     "name": "index",
     "type": "instance",
     "xtype": "index",
-    "hubs": [1, 5],
-    "subs": [8, 14],
-    "inputs": [16],
-    "slotmap": [["hubs", "subs"], ["inputs"]]
-  },
-  "16": {
-    "id": 16,
-    "name": "index.css",
-    "type": "css",
-    "hubs": [3, 6],
-    "file": "src/node_modules/css/default/index.css",
-    "slotmap": [["hub"]]
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [1, 5],
+      "inputs": [7],
+      "subs": [10, 20]
+    }
   },
   "7": {
     "id": 7,
+    "name": "index.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/index.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [3, 6]
+    }
+  },
+  "8": {
+    "id": 8,
+    "name": "demo.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/demo.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [3, 1]
+    }
+  },
+  "9": {
+    "id": 9,
     "name": "theme_widget",
     "type": "module",
     "xtype": "theme_widget",
     "file": "src/node_modules/theme_widget/theme_widget.js",
-    "hubs": [2],
-    "subs": [8],
-    "slotmap": [["hubs", "subs"]]
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [9]
+    }
   },
-  "8": {
-    "id": 8,
+  "10": {
+    "id": 10,
     "name": "theme_widget",
     "type": "instance",
     "xtype": "theme_widget",
-    "hubs": [6, 7],
-    "subs": [10, 12],
-    "inputs": [17],
-    "slotmap": [["hubs", "subs"], ["inputs"]]
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [9, null],
+      "inputs": [11],
+      "subs": [13, 17]
+    }
   },
-  "17": {
-    "id": 17,
+  "11": {
+    "id": 11,
     "name": "theme_widget.css",
     "type": "css",
-    "hubs": [3, 8],
+    "xtype": "css",
     "file": "src/node_modules/css/default/theme_widget.css",
-    "slotmap": [["hub"]]
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 10]
+    }
   },
-  "9": {
-    "id": 9,
+  "12": {
+    "id": 12,
+    "name": "graph_explorer",
+    "type": "module",
+    "xtype": "graph_explorer",
+    "file": "src/node_modules/graph_explorer/graph_explorer.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [12]
+    }
+  },
+  "13": {
+    "id": 13,
+    "name": "graph_explorer",
+    "type": "instance",
+    "xtype": "graph_explorer",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [12, 10],
+      "inputs": [14, 15]
+    }
+  },
+  "14": {
+    "id": 14,
+    "name": "graph_explorer.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/graph_explorer.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 13]
+    }
+  },
+  "15": {
+    "id": 15,
+    "name": "graph_explorer.json",
+    "type": "json",
+    "xtype": "content",
+    "file": "src/content/graph_explorer.json",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [4, 13]
+    }
+  },
+  "16": {
+    "id": 16,
     "name": "theme_editor",
     "type": "module",
     "xtype": "theme_editor",
     "file": "src/node_modules/theme_editor/theme_editor.js",
-    "hubs": [2],
-    "subs": [10],
-    "slotmap": [["hubs", "subs"]]
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [16]
+    }
   },
-  "10": {
-    "id": 10,
+  "17": {
+    "id": 17,
     "name": "theme_editor",
     "type": "instance",
     "xtype": "theme_editor",
-    "hubs": [7, 8],
-    "inputs": [18],
-    "slotmap": [["hubs"], ["inputs"]]
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [16, 10],
+      "inputs": [18]
+    }
   },
   "18": {
     "id": 18,
     "name": "theme_editor.css",
     "type": "css",
-    "hubs": [3, 10],
+    "xtype": "css",
     "file": "src/node_modules/css/default/theme_editor.css",
-    "slotmap": [["hub"]]
-  },
-  "11": {
-    "id": 11,
-    "name": "graph_explorer",
-    "type": "module",
-    "xtype": "graph_explorer",
-    "file": "src/node_modules/graph_explorer/graph_explorer.js",
-    "hubs": [2],
-    "subs": [12],
-    "slotmap": [["hubs", "subs"]]
-  },
-  "12": {
-    "id": 12,
-    "name": "graph_explorer",
-    "type": "instance",
-    "xtype": "graph_explorer",
-    "hubs": [10, 11],
-    "inputs": [19],
-    "slotmap": [["hubs"], ["inputs"]]
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 17]
+    }
   },
   "19": {
     "id": 19,
-    "name": "graph_explorer.css",
-    "type": "css",
-    "hubs": [3, 12],
-    "file": "src/node_modules/css/default/graph_explorer.css",
-    "slotmap": [["hub"]]
-  },
-  "13": {
-    "id": 13,
     "name": "topnav",
     "type": "module",
     "xtype": "topnav",
     "file": "src/node_modules/topnav/topnav.js",
-    "hubs": [2],
-    "subs": [14],
-    "slotmap": [["hubs", "subs"]]
-  },
-  "14": {
-    "id": 14,
-    "name": "topnav",
-    "type": "instance",
-    "xtype": "topnav",
-    "hubs": [6, 13],
-    "inputs": [15, 20],
-    "slotmap": [["hubs"], ["inputs"]]
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [19]
+    }
   },
   "20": {
     "id": 20,
+    "name": "topnav",
+    "type": "instance",
+    "xtype": "topnav",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [19, null],
+      "inputs": [21, 22]
+    }
+  },
+  "21": {
+    "id": 21,
     "name": "topnav.css",
     "type": "css",
-    "hubs": [3, 14],
+    "xtype": "css",
     "file": "src/node_modules/css/default/topnav.css",
-    "slotmap": [["hub"]]
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 20]
+    }
   },
-  "15": {
-    "id": 15,
+  "22": {
+    "id": 22,
     "name": "topnav.json",
     "type": "json",
-    "data": {
-      "links": [
-      {
-        "id": "datdot",
-        "text": "DatDot",
-        "url": "datdot"
-      },
-      {
-        "id": "editor",
-        "text": "Play Editor",
-        "url": "editor"
-      },
-      {
-        "id": "smartcontract_files",
-        "text": "Smart Contract files",
-        "url": "smartcontract_files"
-      },
-      {
-        "id": "supporters",
-        "text": "Supporters",
-        "url": "supporters"
-      },
-      {
-        "id": "our_contributors",
-        "text": "Contributors",
-        "url": "our_contributors"
-      }
-      ]
-    },
-    "hubs": [4, 14],
-    "slotmap": [["hubs"]]
+    "xtype": "content",
+    "file": "src/content/topnav.json",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [4, 20]
+    }
   }
 }

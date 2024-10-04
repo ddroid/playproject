@@ -4,14 +4,7 @@
     "id": "0",
     "sub": {
       "theme_widget": ["1"],
-      "topnav": ["2"],
-      "header": ["3"],
-      "datdot": ["4"],
-      "editor": ["5"],
-      "smartcontract_codes": ["6"],
-      "supporters": ["7"],
-      "our_contributors": ["8"],
-      "footer": ["9"]
+      "topnav": ["2"]
     },
     "admins": [
       "theme_editor"

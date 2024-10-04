@@ -582,12 +582,11 @@ arguments[4][3][0].apply(exports,arguments)
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
-if(db.read(['version']) != 0){
+if(db.read(['version']) != 1){
   localStorage.clear()
-  db.add(['version'], 0)
+  db.add(['version'], 1)
 }
 db.read(['state']) || db.add(['state'], {})
-db.read(['css']) || db.add(['css'], {})
 
 const listeners = {}
 const s2i = {}
@@ -621,7 +620,7 @@ function STATE({ modulename }) {
     return { id: data.id, sdb, getdb, admin }
   }
   function symbolfy (data){
-    data.subs && data.subs.forEach(sub => {
+    data.slot.subs && data.slot.subs.forEach(sub => {
       const substate = db.read(['state', sub])
       s2i[i2s[sub] = Symbol(sub)] = sub
       subs[substate.xtype]?.push(i2s[sub]) || (subs[substate.xtype] = [i2s[sub]])
@@ -641,15 +640,24 @@ function STATE({ modulename }) {
   async function on (local_listeners) {
     listeners[data.id] = local_listeners
     const input_map = {}
-    data.inputs && await Promise.all(data.inputs.map(async input => {
+    data.slot.inputs && await Promise.all(data.slot.inputs.map(async input => {
       const input_state = db.read(['state', input])
-      const input_data = input_state.data || await((await fetch(input_state.file))[input_state.type === 'json' ? 'json': 'text']())
-      input_map[input_state.type]?.push(input_data) || (input_map[input_state.type] = [input_data])
+      const input_data = await fetch_save(input_state)
+      input_map[input_state.xtype]?.push(input_data) || (input_map[input_state.xtype] = [input_data])
     }))
     local_listeners && Object.entries(local_listeners).forEach(([datatype, listener]) => {
       input_map[datatype] && listener(input_map[datatype])
     })
     return subs
+  }
+  async function fetch_save({ id, file, type, xtype }) {
+    let result = db.read([ xtype, id ])
+    if(!result){
+      result = await((await fetch(file))[type === 'json' ?'json' :'text']())
+      db.read([xtype]) || db.add([xtype], {})
+      db.add([xtype, id], result)
+    }
+    return result
   }
   function get_sub (name) {
     return subs[name]
@@ -1574,13 +1582,14 @@ async function graph_explorer (opts) {
   async function init ({ data }) {
     let id = Object.keys(data).length + 1
 
-    add({ id, name: 'edit', type: 'action', hubs: [] })
-    add({ id, name: 'link', type: 'action', hubs: [] })
-    add({ id, name: 'unlink', type: 'action', hubs: [] })
-    add({ id, name: 'drop', type: 'action', hubs: [] })
+    add({ id, name: 'edit', type: 'action', slot: {hubs: []} })
+    add({ id, name: 'link', type: 'action', slot: {hubs: []} })
+    add({ id, name: 'unlink', type: 'action', slot: {hubs: []} })
+    add({ id, name: 'drop', type: 'action', slot: {hubs: []} })
 
     status.graph = data
-    const root_entries = Object.values(data).filter(entry => !entry.hubs)
+    console.log(data)
+    const root_entries = Object.values(data).filter(entry => !entry.slot.hubs)
     root_entries.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
     function add (args){
       status.menu_ids.push(args.id)
@@ -1675,7 +1684,7 @@ async function graph_explorer (opts) {
     //Listeners
     type_emo.onclick = type_click
     name.onclick = () => send({ type: 'click', to: hub_id, data })
-    data.slotmap.forEach(handle_slot)
+    data.slot[''].forEach(handle_slot)
     menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
     if(getComputedStyle(type_emo, '::before').content === 'none')
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
@@ -1743,7 +1752,7 @@ async function graph_explorer (opts) {
             slot_emo.children[1].innerHTML = '─'
             slot_emo.classList.remove('on')
           }
-          handle_click({space: gap, pos, el: entries, data: data[x], ancestry })
+          handle_click({space: gap, pos, el: entries, data: data.slot[x], ancestry })
         }
       })
       if(getComputedStyle(slot_emo, '::before').content === 'none')
@@ -2759,7 +2768,6 @@ async function theme_editor (opts) {
   const db = await DB()
   const on = {
     init,
-    init_tab,
     hide
   }
   const {xget} = sdb.req_access(opts.sid)
@@ -3027,16 +3035,10 @@ async function theme_editor (opts) {
     title.innerHTML = data.id
     status.title = data.type
     status.instance_id = data.id
-    add_tab(data.name, JSON.stringify(xget(data.hub[0]), null, 2),  '.json')
+    const value = db.read([data.xtype, data.id])
+    add_tab(data.name, data.type === 'json' ? JSON.stringify(value, null, 2) : value)
   }
-  async function init_css_tab ({id, comp, uniq, shared}) {
-    const pref = db.read(['pref'])
-    const pref_shared = pref[comp] || shared || [{ id: comp }]
-    const pref_uniq = pref[id] || uniq || []
-    await Promise.all(pref_shared.map(async v => await add_tab(v.id, await get_css(v), 'shared', v.theme)))
-    await Promise.all(pref_uniq.map(async v => await add_tab(v.id, await get_css(v), 'uniq', v.theme)))
-  }
-  async function add_tab (id, css = '', ext = '', access = 'uniq', theme = 'default') {
+  async function add_tab (id, value = '', access = 'uniq', theme = 'default') {
     if(id === 'New' && status.themes.builtin.includes(theme)){
       theme += '*'
       add(theme)
@@ -3048,12 +3050,10 @@ async function theme_editor (opts) {
     tabs.append(tab)
     const btn = document.createElement('span')
     btn.innerHTML = index[id] || id
-    btn.innerHTML += ext
     tab.dataset.id = id
     tab.dataset.name = btn.innerHTML
     tab.dataset.theme = theme
     tab.dataset.access = access
-    tab.dataset.ext = ext
     btn.onclick = () => switch_tab(tab.id)
     btn.ondblclick = rename
     const btn_x = document.createElement('span')
@@ -3068,7 +3068,7 @@ async function theme_editor (opts) {
       tab.focus()
     }
     const textarea = document.createElement('textarea')
-    textarea.value = css
+    textarea.value = value
     textarea.id = tab_id
     content.append(textarea)
     btn_x.onclick = () => close_tab(tab)
@@ -3091,18 +3091,6 @@ async function theme_editor (opts) {
     status.active_tab.classList.add('active')
     status.active_tab.focus()
     input.value = status.active_tab.dataset.theme
-  }
-  async function init_tab({ data }) {
-    status.node_data = data
-    add_tab(data.id, await get_css(data), '', '', data.theme)
-  }
-  async function get_css ({ local = true, theme = 'default', id }) {
-    let theme_css
-    if(local)
-      theme_css = await (await fetch(`./src/node_modules/css/${theme}/${id}`)).text()
-    else
-      theme_css = db.read([theme, id])
-    return theme_css
   }
   async function rename (e) {
     const btn = e.target
@@ -3199,6 +3187,7 @@ async function theme_widget (opts) {
   const {get_all} = sdb.req_access(opts.sid)
   const send = await IO(id, name, on)
 
+  status.clickables = ['css', 'json']
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
@@ -3270,58 +3259,9 @@ async function theme_widget (opts) {
       status.init_check = false
     }
   }
-  function dump () {
-    let id = Object.keys(data).length
-    const themes_id = id++
-    data[themes_id] = {id: themes_id, name: 'themes', type: 'themes', sub: [], slot: [['', 'sub']]}
-    Object.entries(paths).forEach(entry => {
-      const theme_id = id
-      data[id] = {id, name: entry[0], hubx: [themes_id], type: 'theme', subx: [], inpx: [], outx: [], slot: [['hubx', 'subx'],['inpx', 'outx']]}
-      data[themes_id].sub.push(id++)
-      entry[1].forEach(name => {
-        data[id] = {id, name, type: 'css', local: true, hub: [theme_id], slot: [['hub']]}
-        data[theme_id].inpx.push(id)
-        data[theme_id].outx.push(id)
-        data[theme_id].subx.push(id++)
-      })
-    })
-    Object.entries(JSON.parse(localStorage.index)).forEach(entry => {
-      const theme_id = id
-      data[id] = {id, name: entry[0], hub: [themes_id], type: 'theme', sub: [], slot: [['hub', 'sub']]}
-      data[themes_id].sub.push(id++)
-      entry[1].forEach(name => {
-        data[id] = {id, name, type: 'css', hub: [theme_id], slot: [['hub']]}
-        data[theme_id].sub.push(id++)
-      })
-    })
-    status.tree = data
-    const data_id = id++
-    data[data_id] = {id: data_id, name: 'data', type: 'data', sub: [], slot: [['', 'sub']]}
-    Object.values(data).forEach(node => {
-      if(node.type === 'comp'){
-        node.input = []
-        const css = node.css || [{id: node.comp + '.css'}]
-        css.forEach(async file => {
-          node.input.push(await find_id(file.id, 'css'))
-        })
-        data[id] = {id, name: node.comp + '.json', type: 'json', hub: [node.id], slot: [['hub']]}
-        data[data_id].sub.push(id)
-        node.input.push(id++)
-      }
-    })
-    status.tree = data
-    stats.innerHTML = `Entries: ${Object.keys(data).length}`
-    btn.onclick = () => {
-      popup.classList.toggle('active')
-      status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
-      status.init_check = false
-    }
-  }
   async function click ({ data }) {
-    if(data.type === 'css')
-      send({to: 'theme_editor', type: 'init_tab', data: {id: data.name, local: data.local, hub_id: data.hub_id, theme: status.tree[data.hub[0]].name}})
-    else if(data.type === 'json')
-      send({ to: 'theme_editor', type: 'init', data })
+    if(status.clickables.includes(data.type))
+      send({ to: 'theme_editor', type: 'init', data})
     else
       return
     status.active_el && status.active_el.classList.remove('active')
@@ -3333,46 +3273,6 @@ async function theme_widget (opts) {
     }
     status.instance_id = data.id
     status.active_el = el
-  }
-  async function find_id(name, type) {
-    const node = Object.values(status.tree).filter(node => node.name === name && node.type === type)[0]
-    return node && node.id
-  }
-  function make_node (instance){
-    const el = document.createElement('div')
-    el.classList.add('item')
-    if(Object.keys(status.dirts).includes(instance.name)){
-     el.classList.add('dirty')
-    }
-    el.innerHTML = `<main><input type='checkbox' /><span class='pre'>➕</span> <span class='name'>${instance.name || instance.id}</span> <span class='post'>➡️</span></main> <div class="sub"></div>`
-    const pre_btn = el.querySelector('.pre')
-    pre_btn.id = instance.id
-    const post_btn = el.querySelector('.post')
-    const name_el = el.querySelector('.name')
-    const sub = el.querySelector('.sub')
-    pre_btn.onclick = () => {
-      pre_btn.innerHTML = pre_btn.innerHTML === '➕' ? '➖' : '➕'
-      if(sub.children.length)
-        sub.classList.toggle('hide')
-      else
-        sub.append(...status.tree.filter(node => node.hub == instance.id).map(make_node))
-    }
-    post_btn.onclick = () => {
-      port.postMessage({ type: 'scroll', to: instance.id })
-    }
-    name_el.onclick = async () => {
-      status.active_el && status.active_el.classList.remove('active')
-      if(status.instance_id === instance.id)
-        editor.classList.toggle('active')
-      else{
-        editor.classList.add('active')
-        el.classList.add('active')
-      }
-      status.instance_id = instance.id      
-      status.active_el = el
-      send({to: 'theme_editor', type: 'init', data: instance })
-    }
-    return el
   }
   async function scroll () {
     el.scrollIntoView({behavior: 'smooth'})
@@ -3508,12 +3408,12 @@ async function topnav (opts) {
 	})
 	await sdb.on({
     css: inject,
-    json: onjson,
+    content: oncontent,
   })
 
 	return el
 
-	function onjson ([ opts ]) { 
+	function oncontent ([ opts ]) { 
 		menu.innerHTML = ''
 		menu.append(...opts.links.map(make_link))
 	}
