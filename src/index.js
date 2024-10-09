@@ -3,7 +3,7 @@
 ******************************************************************************/
 const STATE = require('STATE')
 const name = 'index'
-const statedb = STATE({ modulename: name })
+const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)

@@ -2,23 +2,24 @@ const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
   INITIALIZE PAGE
 ******************************************************************************/
-const statedb = STATE({ modulename: '' }) // demo has no package.json
-statedb(fallback).then(({ id, sdb, getdb, admin }) => {
-	const [sid] = sdb.get_sub('index')
-	sdb.on({
-		css: inject,
-	})
-	config().then(() => boot({ sid }))	
+const statedb = STATE(__filename)
+const { id, sdb, getdb, admin } = statedb(fallback)
+const [sid] = sdb.get_sub('index')
+sdb.on({
+  css: inject,
 })
-async function fallback () { // -> set database defaults or load from database
-  const path = './snapshot.json' // page/snapshot.json
-	const data = await((await fetch(path)).json())
-	return data
+
+const make_page = require('../') 
+
+function fallback () { // -> set database defaults or load from database
+	return require('./snapshot.json')
 }
 /******************************************************************************
   CSS & HTML Defaults
 ******************************************************************************/
 const sheet = new CSSStyleSheet()
+config().then(() => boot({ sid }))
+
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
@@ -57,7 +58,6 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-		const make_page = require('../') 
     const element = await make_page(opts)
     shadow.append(element)
   }
