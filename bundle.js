@@ -1662,12 +1662,12 @@ async function graph_explorer (opts) {
     `
 
     //Unavoidable mix
+    hub_el.append(element)
     const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
     if(copies.length > 1){
       const color = get_color()
       copies.forEach(copy => copy.style.backgroundColor = color)
     }
-    hub_el.append(element)
     if(ancestry.includes(data.id))
       return
     ancestry.push(data.id)
@@ -3633,7 +3633,7 @@ module.exports={
     "xtype": "theme_widget",
     "slot": {
       "": [["hubs", "subs"], ["inputs"]],
-      "hubs": [9, null],
+      "hubs": [9, 6],
       "inputs": [11],
       "subs": [13, 17]
     }
@@ -3747,7 +3747,7 @@ module.exports={
     "xtype": "topnav",
     "slot": {
       "": [["hubs"], ["inputs"]],
-      "hubs": [19, null],
+      "hubs": [19, 6],
       "inputs": [21, 22]
     }
   },

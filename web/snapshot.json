@@ -104,7 +104,7 @@
     "xtype": "theme_widget",
     "slot": {
       "": [["hubs", "subs"], ["inputs"]],
-      "hubs": [9, null],
+      "hubs": [9, 6],
       "inputs": [11],
       "subs": [13, 17]
     }
@@ -218,7 +218,7 @@
     "xtype": "topnav",
     "slot": {
       "": [["hubs"], ["inputs"]],
-      "hubs": [19, null],
+      "hubs": [19, 6],
       "inputs": [21, 22]
     }
   },
