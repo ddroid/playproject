@@ -3,7 +3,7 @@ const STATE = require('../src/node_modules/STATE')
   INITIALIZE PAGE
 ******************************************************************************/
 const statedb = STATE(__filename)
-const { id, sdb, getdb, admin } = statedb(fallback)
+const { sdb } = statedb(fallback)
 const [sid] = sdb.get_sub('index')
 sdb.on({
   css: inject,

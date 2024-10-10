@@ -500,12 +500,13 @@
 
 }).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],2:[function(require,module,exports){
+(function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
 const name = 'index'
-const statedb = STATE({ modulename: name })
+const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
@@ -574,6 +575,7 @@ async function index(opts) {
 }
 
 
+}).call(this)}).call(this,"/src/index.js")
 },{"./instance.json":3,"./module.json":4,"STATE":5,"datdot":13,"editor":15,"footer":17,"header":24,"io":25,"our_contributors":29,"smartcontract_codes":31,"supporters":33,"theme_widget":39,"topnav":42}],3:[function(require,module,exports){
 module.exports={}
 },{}],4:[function(require,module,exports){
@@ -594,30 +596,27 @@ const i2s = {}
 var admins = [0]
 
 module.exports = STATE
-function STATE({ modulename }) {
+function STATE(filename) {
+  const parts = filename.split('/node_modules/')
+  const last = parts.at(-1).split('/')
+  let modulename = last.at(-1).slice(0, -3)
   let data
   const deny = {}, subs = {}
   const sdb = { on, get_sub, req_access }
   const admin = { xget, get_all, add_admins }
-  return modulename ? statedb : statedb_root
+  return statedb
 
   function statedb (fallback) {
     data = db.get_by_value(['state'], 'name', modulename)
     if(!data){
       db.append(['state'], fallback())
-      data = db.read(['state'], 'name', modulename)
+      data = db.get_by_value(['state'], 'name', modulename)
+    }
+    if(data.id == 1){
+      symbolfy(data)
+      add_admins(data.admins)
     }
     return { id: data.id, sdb, getdb }
-  }
-  async function statedb_root (fallback) {
-    data = db.read(['state'])[1]
-    if(!data){
-      db.append(['state'], await fallback())
-      data = db.read(['state'])[1]
-    }
-    symbolfy(data)
-    add_admins(data.admins)
-    return { id: data.id, sdb, getdb, admin }
   }
   function symbolfy (data){
     data.slot.subs && data.slot.subs.forEach(sub => {
@@ -1510,12 +1509,13 @@ async function footer (opts) {
 }
 
 },{"./data.json":16,"STATE":5,"graphic":22,"io":25}],18:[function(require,module,exports){
+(function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
 const name = 'graph_explorer'
-const statedb = STATE({ modulename: name })
+const statedb = STATE(__filename)
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
 function fallback () { return require('./module.json') }
@@ -1969,6 +1969,7 @@ async function graph_explorer (opts) {
     style.innerHTML = data.join('\n')
   }
 }
+}).call(this)}).call(this,"/src/node_modules/graph_explorer/graph_explorer.js")
 },{"./instance.json":19,"./module.json":20,"STATE":5,"helper":21,"io":25}],19:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
 },{"dup":3}],20:[function(require,module,exports){
@@ -2740,12 +2741,13 @@ module.exports={
   }
 }
 },{}],36:[function(require,module,exports){
+(function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
 const name = 'theme_editor'
-const statedb = STATE({ modulename: name })
+const statedb = STATE(__filename)
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
 function fallback () { return require('./module.json') }
@@ -3138,6 +3140,7 @@ async function theme_editor (opts) {
   }
 }
 
+}).call(this)}).call(this,"/src/node_modules/theme_editor/theme_editor.js")
 },{"./instance.json":34,"./module.json":35,"STATE":5,"io":25,"localdb":27}],37:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
 },{"dup":3}],38:[function(require,module,exports){
@@ -3151,12 +3154,13 @@ module.exports={
   }
 }
 },{}],39:[function(require,module,exports){
+(function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
 const name = 'theme_widget'
-const statedb = STATE({ modulename: name })
+const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
@@ -3288,6 +3292,7 @@ async function theme_widget (opts) {
   }
 }
 
+}).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
 },{"./instance.json":37,"./module.json":38,"STATE":5,"graph_explorer":18,"io":25,"theme_editor":36}],40:[function(require,module,exports){
 arguments[4][3][0].apply(exports,arguments)
 },{"dup":3}],41:[function(require,module,exports){
@@ -3324,12 +3329,13 @@ module.exports={
   }
 }
 },{}],42:[function(require,module,exports){
+(function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
 const name = 'topnav'
-const statedb = STATE({ modulename: name })
+const statedb = STATE(__filename)
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
 function fallback () { return require('./module.json') }
@@ -3444,29 +3450,31 @@ async function topnav (opts) {
 	}
 }
 
+}).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
 },{"./instance.json":40,"./module.json":41,"STATE":5,"graphic":22,"io":25}],43:[function(require,module,exports){
-(function (__dirname){(function (){
+(function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
   INITIALIZE PAGE
 ******************************************************************************/
-const statedb = STATE({ modulename: '' }) // demo has no package.json
-statedb(fallback).then(({ id, sdb, getdb, admin }) => {
-	const [sid] = sdb.get_sub('index')
-	sdb.on({
-		css: inject,
-	})
-	config().then(() => boot({ sid }))	
+const statedb = STATE(__filename)
+const { sdb } = statedb(fallback)
+const [sid] = sdb.get_sub('index')
+sdb.on({
+  css: inject,
 })
-async function fallback () { // -> set database defaults or load from database
-  const path = './snapshot.json' // page/snapshot.json
-	const data = await((await fetch(path)).json())
-	return data
+
+const make_page = require('../') 
+
+function fallback () { // -> set database defaults or load from database
+	return require('./snapshot.json')
 }
 /******************************************************************************
   CSS & HTML Defaults
 ******************************************************************************/
 const sheet = new CSSStyleSheet()
+config().then(() => boot({ sid }))
+
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
@@ -3505,7 +3513,6 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-		const make_page = require('../') 
     const element = await make_page(opts)
     shadow.append(element)
   }
@@ -3518,5 +3525,254 @@ async function boot (opts) {
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
-}).call(this)}).call(this,"/web")
-},{"../":2,"../src/node_modules/STATE":5}]},{},[43]);
+}).call(this)}).call(this,"/web/demo.js","/web")
+},{"../":2,"../src/node_modules/STATE":5,"./snapshot.json":44}],44:[function(require,module,exports){
+module.exports={
+  "1": {
+    "id": 1,
+    "name": "demo",
+    "type": "module",
+    "xtype": "demo",
+    "file": "web/demo.js",
+    "admins": ["theme_editor", "theme_widget"],
+    "slot": {
+      "": [["", "subs"], ["inputs"]],
+      "subs": [6],
+      "inputs": [8]
+    }
+  },
+  "2": {
+    "id": 2,
+    "name": "modules",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [9, 12, 16, 19]
+    }
+  },
+  "3": {
+    "id": 3,
+    "name": "css",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [11, 14, 18, 21]
+    }
+  },
+  "4": {
+    "id": 4,
+    "name": "content",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [15, 22]
+    }
+  },
+  "5": {
+    "id": 5,
+    "name": "index",
+    "type": "module",
+    "xtype": "index",
+    "file": "src/index.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [6]
+    }
+  },
+  "6": {
+    "id": 6,
+    "name": "index",
+    "type": "instance",
+    "xtype": "index",
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [1, 5],
+      "inputs": [7],
+      "subs": [10, 20]
+    }
+  },
+  "7": {
+    "id": 7,
+    "name": "index.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/index.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [3, 6]
+    }
+  },
+  "8": {
+    "id": 8,
+    "name": "demo.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/demo.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [3, 1]
+    }
+  },
+  "9": {
+    "id": 9,
+    "name": "theme_widget",
+    "type": "module",
+    "xtype": "theme_widget",
+    "file": "src/node_modules/theme_widget/theme_widget.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [9]
+    }
+  },
+  "10": {
+    "id": 10,
+    "name": "theme_widget",
+    "type": "instance",
+    "xtype": "theme_widget",
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [9, null],
+      "inputs": [11],
+      "subs": [13, 17]
+    }
+  },
+  "11": {
+    "id": 11,
+    "name": "theme_widget.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/theme_widget.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 10]
+    }
+  },
+  "12": {
+    "id": 12,
+    "name": "graph_explorer",
+    "type": "module",
+    "xtype": "graph_explorer",
+    "file": "src/node_modules/graph_explorer/graph_explorer.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [12]
+    }
+  },
+  "13": {
+    "id": 13,
+    "name": "graph_explorer",
+    "type": "instance",
+    "xtype": "graph_explorer",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [12, 10],
+      "inputs": [14, 15]
+    }
+  },
+  "14": {
+    "id": 14,
+    "name": "graph_explorer.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/graph_explorer.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 13]
+    }
+  },
+  "15": {
+    "id": 15,
+    "name": "graph_explorer.json",
+    "type": "json",
+    "xtype": "content",
+    "file": "src/content/graph_explorer.json",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [4, 13]
+    }
+  },
+  "16": {
+    "id": 16,
+    "name": "theme_editor",
+    "type": "module",
+    "xtype": "theme_editor",
+    "file": "src/node_modules/theme_editor/theme_editor.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [16]
+    }
+  },
+  "17": {
+    "id": 17,
+    "name": "theme_editor",
+    "type": "instance",
+    "xtype": "theme_editor",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [16, 10],
+      "inputs": [18]
+    }
+  },
+  "18": {
+    "id": 18,
+    "name": "theme_editor.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/theme_editor.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 17]
+    }
+  },
+  "19": {
+    "id": 19,
+    "name": "topnav",
+    "type": "module",
+    "xtype": "topnav",
+    "file": "src/node_modules/topnav/topnav.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2],
+      "subs": [19]
+    }
+  },
+  "20": {
+    "id": 20,
+    "name": "topnav",
+    "type": "instance",
+    "xtype": "topnav",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [19, null],
+      "inputs": [21, 22]
+    }
+  },
+  "21": {
+    "id": 21,
+    "name": "topnav.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/topnav.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 20]
+    }
+  },
+  "22": {
+    "id": 22,
+    "name": "topnav.json",
+    "type": "json",
+    "xtype": "content",
+    "file": "src/content/topnav.json",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [4, 20]
+    }
+  }
+}
+
+},{}]},{},[43]);
