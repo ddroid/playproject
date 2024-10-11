@@ -52,7 +52,6 @@
     "name": "index",
     "type": "module",
     "xtype": "index",
-    "file": "src/index.js",
     "slot": {
       "": [["hubs", "subs"]],
       "hubs": [2, 9],

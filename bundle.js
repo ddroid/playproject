@@ -584,9 +584,9 @@ arguments[4][3][0].apply(exports,arguments)
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
-if(db.read(['version']) != 2){
+if(db.read(['version']) != 3){
   localStorage.clear()
-  db.add(['version'], 2)
+  db.add(['version'], 3)
 }
 db.read(['state']) || db.add(['state'], {})
 
@@ -3589,7 +3589,6 @@ module.exports={
     "name": "index",
     "type": "module",
     "xtype": "index",
-    "file": "src/index.js",
     "slot": {
       "": [["hubs", "subs"]],
       "hubs": [2, 9],
