@@ -584,9 +584,9 @@ arguments[4][3][0].apply(exports,arguments)
 // STATE.js
 const localdb = require('localdb')
 const db = localdb()
-if(db.read(['version']) != 1){
+if(db.read(['version']) != 2){
   localStorage.clear()
-  db.add(['version'], 1)
+  db.add(['version'], 2)
 }
 db.read(['state']) || db.add(['state'], {})
 
@@ -616,7 +616,16 @@ function STATE(filename) {
       symbolfy(data)
       add_admins(data.admins)
     }
+    data.slot.hubs && add_source(data.slot.hubs)
     return { id: data.id, sdb, getdb }
+  }
+  function add_source(hubs){
+    hubs.forEach(id => {
+      const data = db.read(['state', id])
+      if(data.type === 'js'){
+        fetch_save(data)
+      }
+    })
   }
   function symbolfy (data){
     data.slot.subs && data.slot.subs.forEach(sub => {
@@ -2306,7 +2315,7 @@ function localdb () {
       delete(localStorage[keys[0]])
   }
   function get_by_value (keys, search_key, value) {
-    const result = Object.values(read(keys)).filter(v => v[search_key]?.includes(value))[0]
+    const result = Object.values(read(keys)).filter(v => v[search_key] === value)[0]
     return result
   } 
 }
@@ -3037,8 +3046,10 @@ async function theme_editor (opts) {
     title.innerHTML = data.id
     status.title = data.type
     status.instance_id = data.id
-    const value = db.read([data.xtype, data.id])
-    add_tab(data.name, data.type === 'json' ? JSON.stringify(value, null, 2) : value)
+    let value = data.file ? db.read([data.xtype, data.id]) : data
+    if(data.type === 'json' || !data.file)
+      value = JSON.stringify(value, null, 2)
+    add_tab(data.name, value)
   }
   async function add_tab (id, value = '', access = 'uniq', theme = 'default') {
     if(id === 'New' && status.themes.builtin.includes(theme)){
@@ -3191,7 +3202,7 @@ async function theme_widget (opts) {
   const {get_all} = sdb.req_access(opts.sid)
   const send = await IO(id, name, on)
 
-  status.clickables = ['css', 'json']
+  status.clickables = ['css', 'json', 'js']
   status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
   localStorage.pref || (localStorage.pref = '{}')
   const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
@@ -3264,10 +3275,7 @@ async function theme_widget (opts) {
     }
   }
   async function click ({ data }) {
-    if(status.clickables.includes(data.type))
-      send({ to: 'theme_editor', type: 'init', data})
-    else
-      return
+    send({ to: 'theme_editor', type: 'init', data})
     status.active_el && status.active_el.classList.remove('active')
     if(status.instance_id === data.id)
       editor.classList.toggle('active')
@@ -3533,12 +3541,11 @@ module.exports={
     "name": "demo",
     "type": "module",
     "xtype": "demo",
-    "file": "web/demo.js",
     "admins": ["theme_editor", "theme_widget"],
     "slot": {
       "": [["", "subs"], ["inputs"]],
-      "subs": [6],
-      "inputs": [8]
+      "subs": [7],
+      "inputs": [10]
     }
   },
   "2": {
@@ -3547,7 +3554,7 @@ module.exports={
     "type": "folder",
     "slot": {
       "": [["", "subs"]],
-      "subs": [9, 12, 16, 19]
+      "subs": [6, 12, 16, 21, 25]
     }
   },
   "3": {
@@ -3556,7 +3563,7 @@ module.exports={
     "type": "folder",
     "slot": {
       "": [["", "subs"]],
-      "subs": [11, 14, 18, 21]
+      "subs": [14, 18, 23, 27]
     }
   },
   "4": {
@@ -3565,46 +3572,67 @@ module.exports={
     "type": "folder",
     "slot": {
       "": [["", "subs"]],
-      "subs": [15, 22]
+      "subs": [19, 28]
     }
   },
   "5": {
     "id": 5,
+    "name": "source",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [9, 11, 15, 20, 24]
+    }
+  },
+  "6": {
+    "id": 6,
     "name": "index",
     "type": "module",
     "xtype": "index",
     "file": "src/index.js",
     "slot": {
       "": [["hubs", "subs"]],
-      "hubs": [2],
-      "subs": [6]
+      "hubs": [2, 9],
+      "subs": [7]
     }
   },
-  "6": {
-    "id": 6,
+  "7": {
+    "id": 7,
     "name": "index",
     "type": "instance",
     "xtype": "index",
     "slot": {
       "": [["hubs", "subs"], ["inputs"]],
-      "hubs": [1, 5],
-      "inputs": [7],
-      "subs": [10, 20]
+      "hubs": [1, 6, 9],
+      "inputs": [8],
+      "subs": [13, 26]
     }
   },
-  "7": {
-    "id": 7,
+  "8": {
+    "id": 8,
     "name": "index.css",
     "type": "css",
     "xtype": "css",
     "file": "src/node_modules/css/default/index.css",
     "slot": {
       "": [["hub"]],
-      "hubs": [3, 6]
+      "hubs": [3, 7]
     }
   },
-  "8": {
-    "id": 8,
+  "9": {
+    "id": 9,
+    "name": "index.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/index.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [6, 7]
+    }
+  },
+  "10": {
+    "id": 10,
     "name": "demo.css",
     "type": "css",
     "xtype": "css",
@@ -3614,70 +3642,47 @@ module.exports={
       "hubs": [3, 1]
     }
   },
-  "9": {
-    "id": 9,
-    "name": "theme_widget",
-    "type": "module",
-    "xtype": "theme_widget",
+  "11": {
+    "id": 11,
+    "name": "theme_widget.js",
+    "type": "js",
+    "xtype": "js",
     "file": "src/node_modules/theme_widget/theme_widget.js",
     "slot": {
       "": [["hubs", "subs"]],
-      "hubs": [2],
-      "subs": [9]
+      "hubs": [5],
+      "subs": [12, 13]
     }
   },
-  "10": {
-    "id": 10,
+  "12": {
+    "id": 12,
+    "name": "theme_widget",
+    "type": "module",
+    "xtype": "theme_widget",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 11],
+      "subs": [13]
+    }
+  },
+  "13": {
+    "id": 13,
     "name": "theme_widget",
     "type": "instance",
     "xtype": "theme_widget",
     "slot": {
       "": [["hubs", "subs"], ["inputs"]],
-      "hubs": [9, 6],
-      "inputs": [11],
-      "subs": [13, 17]
-    }
-  },
-  "11": {
-    "id": 11,
-    "name": "theme_widget.css",
-    "type": "css",
-    "xtype": "css",
-    "file": "src/node_modules/css/default/theme_widget.css",
-    "slot": {
-      "": [["hubs"]],
-      "hubs": [3, 10]
-    }
-  },
-  "12": {
-    "id": 12,
-    "name": "graph_explorer",
-    "type": "module",
-    "xtype": "graph_explorer",
-    "file": "src/node_modules/graph_explorer/graph_explorer.js",
-    "slot": {
-      "": [["hubs", "subs"]],
-      "hubs": [2],
-      "subs": [12]
-    }
-  },
-  "13": {
-    "id": 13,
-    "name": "graph_explorer",
-    "type": "instance",
-    "xtype": "graph_explorer",
-    "slot": {
-      "": [["hubs"], ["inputs"]],
-      "hubs": [12, 10],
-      "inputs": [14, 15]
+      "hubs": [12, 7, 11],
+      "inputs": [14],
+      "subs": [17, 22]
     }
   },
   "14": {
     "id": 14,
-    "name": "graph_explorer.css",
+    "name": "theme_widget.css",
     "type": "css",
     "xtype": "css",
-    "file": "src/node_modules/css/default/graph_explorer.css",
+    "file": "src/node_modules/css/default/theme_widget.css",
     "slot": {
       "": [["hubs"]],
       "hubs": [3, 13]
@@ -3685,44 +3690,44 @@ module.exports={
   },
   "15": {
     "id": 15,
-    "name": "graph_explorer.json",
-    "type": "json",
-    "xtype": "content",
-    "file": "src/content/graph_explorer.json",
+    "name": "graph_explorer.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/graph_explorer/graph_explorer.js",
     "slot": {
-      "": [["hubs"]],
-      "hubs": [4, 13]
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [16, 17]
     }
   },
   "16": {
     "id": 16,
-    "name": "theme_editor",
+    "name": "graph_explorer",
     "type": "module",
-    "xtype": "theme_editor",
-    "file": "src/node_modules/theme_editor/theme_editor.js",
+    "xtype": "graph_explorer",
     "slot": {
       "": [["hubs", "subs"]],
-      "hubs": [2],
-      "subs": [16]
+      "hubs": [2, 15],
+      "subs": [17]
     }
   },
   "17": {
     "id": 17,
-    "name": "theme_editor",
+    "name": "graph_explorer",
     "type": "instance",
-    "xtype": "theme_editor",
+    "xtype": "graph_explorer",
     "slot": {
       "": [["hubs"], ["inputs"]],
-      "hubs": [16, 10],
-      "inputs": [18]
+      "hubs": [16, 13, 15],
+      "inputs": [18, 19]
     }
   },
   "18": {
     "id": 18,
-    "name": "theme_editor.css",
+    "name": "graph_explorer.css",
     "type": "css",
     "xtype": "css",
-    "file": "src/node_modules/css/default/theme_editor.css",
+    "file": "src/node_modules/css/default/graph_explorer.css",
     "slot": {
       "": [["hubs"]],
       "hubs": [3, 17]
@@ -3730,47 +3735,114 @@ module.exports={
   },
   "19": {
     "id": 19,
-    "name": "topnav",
-    "type": "module",
-    "xtype": "topnav",
-    "file": "src/node_modules/topnav/topnav.js",
+    "name": "graph_explorer.json",
+    "type": "json",
+    "xtype": "content",
+    "file": "src/content/graph_explorer.json",
     "slot": {
-      "": [["hubs", "subs"]],
-      "hubs": [2],
-      "subs": [19]
+      "": [["hubs"]],
+      "hubs": [4, 17]
     }
   },
   "20": {
     "id": 20,
+    "name": "theme_editor.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/theme_editor/theme_editor.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [21, 22]
+    }
+  },
+  "21": {
+    "id": 21,
+    "name": "theme_editor",
+    "type": "module",
+    "xtype": "theme_editor",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 20],
+      "subs": [22]
+    }
+  },
+  "22": {
+    "id": 22,
+    "name": "theme_editor",
+    "type": "instance",
+    "xtype": "theme_editor",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [21, 13, 20],
+      "inputs": [23]
+    }
+  },
+  "23": {
+    "id": 23,
+    "name": "theme_editor.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/theme_editor.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 22]
+    }
+  },
+  "24": {
+    "id": 24,
+    "name": "topnav.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/topnav/topnav.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [25, 26]
+    }
+  },
+  "25": {
+    "id": 25,
+    "name": "topnav",
+    "type": "module",
+    "xtype": "topnav",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 24],
+      "subs": [26]
+    }
+  },
+  "26": {
+    "id": 26,
     "name": "topnav",
     "type": "instance",
     "xtype": "topnav",
     "slot": {
       "": [["hubs"], ["inputs"]],
-      "hubs": [19, 6],
-      "inputs": [21, 22]
+      "hubs": [25, 7, 24],
+      "inputs": [27, 28]
     }
   },
-  "21": {
-    "id": 21,
+  "27": {
+    "id": 27,
     "name": "topnav.css",
     "type": "css",
     "xtype": "css",
     "file": "src/node_modules/css/default/topnav.css",
     "slot": {
       "": [["hubs"]],
-      "hubs": [3, 20]
+      "hubs": [3, 26]
     }
   },
-  "22": {
-    "id": 22,
+  "28": {
+    "id": 28,
     "name": "topnav.json",
     "type": "json",
     "xtype": "content",
     "file": "src/content/topnav.json",
     "slot": {
       "": [["hubs"]],
-      "hubs": [4, 20]
+      "hubs": [4, 26]
     }
   }
 }
