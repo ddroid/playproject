@@ -478,7 +478,7 @@ function STATE(filename) {
 
   function statedb (fallback) {
     data = db.get_by_value(['state'], {'name': modulename, type: 'module'})
-    if(status.snapshot || !data){
+    if(status.snapshot){
       if (status.root_module){
         status.snapshot = !snapshot
         snapshot ? db.append(['state'], snapshot) : preprocess(fallback())
@@ -491,7 +491,7 @@ function STATE(filename) {
     if(data.id == 0){
       data.admins && add_admins(data.admins)
     }
-    // data.slot.hubs && add_source(data.slot.hubs)
+    data.slot.hubs && add_source(data.slot.hubs)
     return { id: data.id, sdb, getdb }
   }
   function add_source(hubs){
@@ -512,7 +512,7 @@ function STATE(filename) {
   function getdb (sid, fallback){
     const id = s2i[sid]
     data = db.read(['state', id])
-    if(status.snapshot || !data){
+    if(status.snapshot){
       preprocess_instance(fallback(), id)
       data = db.read(['state', id])
     }
@@ -587,6 +587,7 @@ function STATE(filename) {
 
     function clean_instance (entry_id) {
       const entry = raw_data[entry_id]
+      console.log(entry, modulename)
       entry.id = entry_id ? count++ : new_id
       entry.name = entry.name || modulename
       entry.type = 'instance'
