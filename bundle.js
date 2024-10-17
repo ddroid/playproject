@@ -338,7 +338,7 @@ sdb.on(css => {})
 ******************************************************************************/
 const IO = require('io')
 const modules = {
-//  theme_widget : require('theme_widget'),
+ theme_widget : require('theme_widget'),
  topnav : require('topnav'),
 //  header : require('header'),
 //  datdot : require('datdot'),
@@ -398,7 +398,7 @@ async function index(opts) {
 
 
 }).call(this)}).call(this,"/src/index.js")
-},{"./instance.json":3,"./module.json":4,"STATE":5,"io":7,"topnav":12}],3:[function(require,module,exports){
+},{"./instance.json":3,"./module.json":4,"STATE":5,"io":11,"theme_widget":19,"topnav":22}],3:[function(require,module,exports){
 module.exports={
   "0": {
     "slot": {
@@ -713,7 +713,520 @@ function static () {
     admins = ids
   }
 }
-},{"../../snapshot.json":1,"localdb":9}],6:[function(require,module,exports){
+},{"../../snapshot.json":1,"localdb":13}],6:[function(require,module,exports){
+(function (__filename){(function (){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'graph_explorer'
+const statedb = STATE(__filename)
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback () { return require('./module.json') }
+sdb.on({ css: css => {} })
+
+const IO = require('io')
+const {copy, get_color, download_json} = require('helper')
+/******************************************************************************
+  GRAPH COMPONENT
+******************************************************************************/
+// ----------------------------------------
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+
+module.exports = graph_explorer
+
+async function graph_explorer (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await getdb(opts.sid, fallback)
+  const hub_id = opts.hub[0]
+  const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
+  const on = {
+    init,
+    inject,
+    scroll
+  }
+  const on_add = {
+    entry: add_entry,
+    menu: add_action
+  }
+  const send = await IO(id, name, on)
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  const style = document.createElement('style')
+  await sdb.on({
+    css: inject
+  })
+  shadow.innerHTML = `
+  <main>
+
+  </main>`
+  const main = shadow.querySelector('main')
+  shadow.append(style)
+  shadow.addEventListener('copy', oncopy)
+
+  return el
+
+  /******************************************
+   Mix
+  ******************************************/
+  async function fallback() {
+    return require('./instance.json')
+  }
+  async function oncopy(e) {
+    const selection = shadow.getSelection()
+    e.clipboardData.setData('text/plain', copy(selection))
+    e.preventDefault()
+  }
+  async function init ({ data }) {
+    let id = Object.keys(data).length + 1
+
+    add({ id, name: 'edit', type: 'action', slot: {hubs: []} })
+    add({ id, name: 'link', type: 'action', slot: {hubs: []} })
+    add({ id, name: 'unlink', type: 'action', slot: {hubs: []} })
+    add({ id, name: 'drop', type: 'action', slot: {hubs: []} })
+
+    status.graph = data
+    console.log(data)
+    const root_entries = Object.values(data).filter(entry => !entry.slot.hubs)
+    root_entries.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
+    function add (args){
+      status.menu_ids.push(args.id)
+      data[id++] = args
+    }
+  }
+  function html_template (data, space, pos){
+    const element = document.createElement('div')
+    element.classList.add(data.type, 'entry', 'a'+data.id)
+    element.tabIndex = '0'
+    element.dataset.space = space
+    element.dataset.pos = pos
+    return element
+  }
+  /******************************************
+   Addition Operation
+  ******************************************/
+  // function add_el ({ data, parent, space, grand_last, type }){
+  //   const is_single = parent.children.length ? false : true
+  //   if(data.root){
+  //     parent.prepend(add_root({ data, last: false}))
+  //     return
+  //   }
+  //   //hub or sub node check
+  //   if(type === 'inputs')
+  //     parent.append(on_add[type]({ data, space, grand_last, first: is_single}))
+  //   else
+  //     parent.prepend(on_add[type]({ data, space, grand_last, last: is_single}))
+  // }
+
+  function add_action ({ hub_el, data, last, space = '' }) {
+    const element = html_template(data, last, space)
+    hub_el.append(element)
+    !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
+
+    element.innerHTML = `
+    <div class="slot_list">
+      <span class="odd">${space}</span>
+      <span class="type_emo odd"></span>
+      <span class="name odd">${data.name}</span>
+    </div>`
+    const name = element.querySelector('.slot_list > .name')
+    name.onclick = () => send({ type: 'click', to: hub_id, data })
+
+  }
+  function add_entry ({ hub_el, data, first, last, space = '', pos, ancestry }) {
+    //Init
+    const element = html_template(data, last, space, pos)
+    !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
+    ancestry = [...ancestry]
+    let lo_space = space + (last ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
+    let hi_space = space + (first ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
+    const space_handle = [], els = []
+    let slot_no = 0, slot_on
+
+    //HTML
+    element.innerHTML = `
+      <div class="entries hi_row">${space}${first ? '&nbsp;' : '│'}</div>
+      <div class="slot_list">
+        <span class="space odd"><!--
+        -->${space}<span>${last ? '└' : first ? "┌" : '├'}</span><!--
+        --><span class='on'>${last ? '┗' : first ? "┏" : '┠'}</span>
+        </span><!--
+        --><span class="menu_emo"></span><!--
+        --><span class="type_emo odd"></span><!--
+        --><span class="name odd">${data.name}</span>
+      </div>
+      <div class="entries lo_row">${space}${last ? '&nbsp;' : '│'}</div>
+      <div class="menu entries"></div>
+    `
+
+    //Unavoidable mix
+    hub_el.append(element)
+    const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
+    if(copies.length > 1){
+      const color = get_color()
+      copies.forEach(copy => copy.style.backgroundColor = color)
+    }
+    if(ancestry.includes(data.id))
+      return
+    ancestry.push(data.id)
+
+    //Elements
+    const slot_list = element.querySelector('.slot_list')
+    const name = element.querySelector('.slot_list > .name')
+    const menu_emo = element.querySelector('.slot_list > .menu_emo')
+    const type_emo = element.querySelector('.slot_list > .type_emo')
+    const menu = element.querySelector('.menu')
+    const hi_row = element.querySelector('.hi_row')
+    const lo_row = element.querySelector('.lo_row')
+
+    //Listeners
+    type_emo.onclick = type_click
+    name.onclick = () => send({ type: 'click', to: hub_id, data })
+    data.slot[''].forEach(handle_slot)
+    menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
+    if(getComputedStyle(type_emo, '::before').content === 'none')
+      type_emo.innerHTML = `[${status.entry_types[data.type]}]`
+
+    //Procedures
+    async function handle_slot (pair, i) {
+      const slot_check = [false, false]
+      const slot_emo = document.createElement('span')
+      slot_emo.innerHTML = '<span></span><span>─</span>'
+      menu_emo.before(slot_emo)
+      slot_no++
+
+      pair.forEach((x, j) => {
+        let gap, mode, emo_on, arrow_gap
+        const pos = !j
+        const count = status.count++
+        const entries = document.createElement('div')
+        const arrow = document.createElement('span')
+        const style = document.createElement('style')
+        
+        entries.classList.add('entries')
+        element.append(style)
+        if(pos){
+          hi_row.before(entries)
+          hi_row.append(arrow)
+          mode= 'hi'
+          gap = hi_space
+          hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span>${x ? '<span class="xhi">│</span>' : ''}&nbsp;&nbsp;</span>`
+          arrow_gap = `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span></span>`
+        }
+        else{
+          menu.after(entries)
+          lo_row.append(arrow)
+          mode = 'lo'
+          gap = lo_space
+          lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span>${x ? '<span class="xlo">│</span>' : ''}&nbsp;&nbsp;</span>`
+          arrow_gap = `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span></span>`
+        }
+        style.innerHTML = `.space${count} > .x${mode}{display: none;}`
+        els.push(slot_emo)
+        space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
+        if(!x){
+          const space = document.createElement('span')
+          space.innerHTML = '&nbsp;&nbsp;&nbsp;'
+          j ? lo_row.append(space) : hi_row.append(space)
+          return
+        }
+        slot_emo.classList.add(x)
+        arrow.classList.add(mode+'_emo')
+        arrow.innerHTML = arrow_gap
+
+        arrow.onclick = () => {
+          arrow.classList.toggle('on')
+          slot_emo.classList.add('on')
+          style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
+          // emo_on && space_handle[i]()
+          slot_check[j] = emo_on = !emo_on
+          if(slot_check[0] && slot_check[1])
+            slot_emo.children[1].innerHTML = '┼'
+          else if(slot_check[0] && !slot_check[1])
+            slot_emo.children[1].innerHTML = '┴'
+          else if(!slot_check[0] && slot_check[1])
+            slot_emo.children[1].innerHTML = '┬'
+          else{
+            slot_emo.children[1].innerHTML = '─'
+            slot_emo.classList.remove('on')
+          }
+          handle_click({space: gap, pos, el: entries, data: data.slot[x], ancestry })
+        }
+      })
+      if(getComputedStyle(slot_emo, '::before').content === 'none')
+        slot_emo.innerHTML = `<span>${slot_no}─</span><span>─</span>`
+    }
+    async function type_click() {
+      slot_on = !slot_on
+      if(status.xentry === type_emo)
+        status.xentry = null
+      else{
+        status.xentry?.click()
+        status.xentry = type_emo
+      }
+      slot_list.classList.toggle('on')
+      hi_row.classList.toggle('show')
+      lo_row.classList.toggle('show')
+      let temp = element
+      //Find path to root
+      while(temp.tagName !== 'MAIN'){
+        if(temp.classList.contains('entry')){
+          slot_on ? temp.classList.add('on') : temp.classList.remove('on')
+          while(temp.previousElementSibling){
+            temp = temp.previousElementSibling
+            slot_on ? temp.classList.add('on') : temp.classList.remove('on')
+          }
+        }
+        temp = temp.parentElement
+      }
+      els.forEach((emo, i) => {
+        if(!emo.classList.contains('on')){
+          space_handle[i]()
+        }
+      })
+    }
+    async function menu_click({ emo, emo_on, ...rest }, i) {
+      emo.onclick = () => {
+        emo.classList.toggle('on')
+        emo_on = !emo_on
+        handle_click({space: lo_space, ...rest })
+      }
+    }
+  }
+  // async function add_node_data (name, type, parent_id, users, author){
+  //   const node_id = status.graph.length
+  //   status.graph.push({ id: node_id, name, type: state.code_words[type], room: {}, users })
+  //   if(parent_id){
+  //     save_msg({
+  //         head: [id],
+  //         type: 'save_msg',
+  //         data: {username: 'system', content: author + ' added ' + type.slice(0,-1)+': '+name, chat_id: parent_id}
+  //       })
+  //     //Add a message in the chat
+  //     if(state.chat_task && parent_id === state.chat_task.id.slice(1))
+  //       channel_up.send({
+  //         head: [id, channel_up.send.id, channel_up.mid++],
+  //         type: 'render_msg',
+  //         data: {username: 'system', content: author+' added '+type.slice(0,-1)+': '+name}
+  //       })
+  //     const sub_nodes = graph[parent_id][state.add_words[type]]
+  //     sub_nodes ? sub_nodes.push(node_id) : graph[parent_id][state.add_words[type]] = [node_id]
+  //   }
+  //   else{
+  //     graph[node_id].root = true
+  //     graph[node_id].users = [opts.host]
+  //   }
+  //   save_msg({
+  //     head: [id],
+  //     type: 'save_msg',
+  //     data: {username: 'system', content: author + ' created ' + type.slice(0,-1)+': '+name, chat_id: node_id}
+  //   })
+  //   const channel = state.net[state.aka.taskdb]
+  //   channel.send({
+  //     head: [id, channel.send.id, channel.mid++],
+  //     type: 'set',
+  //     data: graph
+  //   })
+    
+  // }
+  // async function on_add_node (data) {
+  //   const node = data.id ? shadow.querySelector('#a' + data.id + ' > .'+data.type) : main
+  //   node && node.children.length && add_el({ data: { name: data.name, id: status.graph.length, type: state.code_words[data.type] }, parent: node, grand_last: data.grand_last, type: data.type, space: data.space })
+  //   add_node_data(data.name, data.type, data.id, data.users, data.user)
+  // }
+  /******************************************
+   Event handlers
+  ******************************************/
+  function handle_focus (e) {
+    state.xtask = e.target
+    state.xtask.classList.add('focus')
+    state.xtask.addEventListener('blur', e => {
+      if(e.relatedTarget && e.relatedTarget.classList.contains('noblur'))
+        return
+      state.xtask.classList.remove('focus')
+      state.xtask = undefined
+    }, { once: true })
+  }
+  function handle_popup (e) {
+    const el = e.target
+    el.classList.add('show')
+    popup.style.top = el.offsetTop - 20 + 'px'
+    popup.style.left = el.offsetLeft - 56 + 'px'
+    popup.focus()
+    popup.addEventListener('blur', () => {
+      el.classList.remove('show')
+    }, { once: true })
+  }
+  function handle_click ({ el, data, pos, hub_id, type = 'entry', ...rest }) {
+    el.classList.toggle('show')
+    if(data && el.children.length < 1){
+      length = data.length - 1
+      data.forEach((value, i) => on_add[type]({ hub_el: el, data: {...status.graph[value], hub_id}, first: pos ? 0 === i : false, last: pos ? false : length === i, pos, ...rest }))
+    }
+  }
+  async function handle_export () {
+    const data = await traverse( state.xtask.id.slice(1) )
+    download_json(data)
+  }
+  async function handle_add (data) {
+    data = data.slice(2).trim().toLowerCase() + 's'
+    const input = document.createElement('input')
+    let node, task_id, space = '', grand_last = true, root = true
+    //expand other siblings
+    if(state.xtask){
+      node = state.xtask.querySelector('.' + data)
+      task_id = state.xtask.id.slice(1)
+      const before = state.xtask.querySelector('.' + data.slice(0,3))
+      before.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
+      node.classList.add('show')
+      grand_last = state.xtask.dataset.grand_last
+      space = state.xtask.dataset.space
+      state.xtask.classList.remove('focus')
+      state.xtask = undefined
+      root = false
+    }
+    else{
+      node = main
+      task_id = ''
+    }
+    node.prepend(input)
+    input.onkeydown = async (event) => {
+      if (event.key === 'Enter') {
+        input.blur()
+        add_el({ data : { name: input.value, id: status.graph.length, type: state.code_words[data], root }, space, grand_last, type: data, parent: node })
+        const users = task_id ? graph[task_id].users : [host]
+        add_node_data(input.value, data, task_id, users, host)
+        //sync with other users
+        if(users.length > 1)
+          channel_up.send({
+            head: [id, channel_up.send.id, channel_up.mid++],
+            type: 'send',
+            data: {to: 'task_explorer', route: ['up', 'task_explorer'], users: graph[task_id].users.filter(user => user !== host), type: 'on_add_node', data: {name: input.value, id: task_id, type: data, users, grand_last, space, user: host} }
+          })
+      }
+    }
+    input.focus()
+    input.onblur = () => input.remove()
+  }
+  /******************************************
+   Tree traversal
+  ******************************************/
+  async function jump (e){
+    let target_id = e.currentTarget.dataset.id
+    const el = main.querySelector('#a'+target_id)
+    if(el)
+      el.focus()
+    else{
+      const path = []
+      let temp
+      for(temp = status.graph[target_id]; temp.hub; temp = status.graph[temp.hub[0]])
+        path.push(temp.id)
+      temp = main.querySelector('#a'+temp.id)
+      target_id = 'a'+target_id
+      while(temp.id !== target_id){
+        const sub_emo = temp.querySelector('.sub_emo')
+        sub_emo.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable: true, view: window}))
+        temp.classList.add('show')
+        temp = temp.querySelector('#a'+path.pop())
+      }
+      temp.focus()
+    }
+      
+  }
+  async function traverse (id) {
+    state.result = []
+    state.track = []
+    recurse(id)
+    return state.result
+  }
+  function recurse (id){
+    if(state.track.includes(id))
+      return
+    state.result.push(graph[id])
+    state.track.push(id)
+    for(temp = 0; graph[id].sub && temp < graph[id].sub.length; temp++)
+      recurse(graph[id].sub[temp])
+    for(temp = 0; graph[id].inputs && temp < graph[id].inputs.length; temp++)
+      recurse(graph[id].inputs[temp])
+    for(temp = 0; graph[id].outputs && temp < graph[id].outputs.length; temp++)
+      recurse(graph[id].outputs[temp])
+  }
+  /******************************************
+   Communication
+  ******************************************/
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+}
+}).call(this)}).call(this,"/src/node_modules/graph_explorer/graph_explorer.js")
+},{"./instance.json":7,"./module.json":8,"STATE":5,"helper":9,"io":11}],7:[function(require,module,exports){
+module.exports={}
+},{}],8:[function(require,module,exports){
+module.exports={ 
+  "0": {
+    "comp": "graph_explorer"
+  }
+}
+},{}],9:[function(require,module,exports){
+function copy (selection) {
+  const range = selection.getRangeAt(0)
+  const selectedElements = []
+  const walker = document.createTreeWalker(
+    range.commonAncestorContainer,
+    NodeFilter.SHOW_ELEMENT,
+    {
+        acceptNode: function(node) {
+            return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+        }
+    },
+    false
+  )
+
+  while (walker.nextNode()) {
+      walker.currentNode.tagName === 'SPAN' && selectedElements.push(walker.currentNode)
+  }
+  let text = ''
+  selectedElements.forEach(el => {
+    const before = getComputedStyle(el, '::before').content
+    text += (before === 'none' ? '' : before.slice(1, -1)) + el.textContent
+    text += el.classList.contains('name') ? '\n' : ''
+  })
+  return text
+}
+function get_color () {
+  const letters = 'CDEF89'
+  let color = '#'
+  for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * letters.length)]
+  }
+  return color;
+}
+function download_json (data) {
+  const json_string = JSON.stringify(data, null, 2);
+  const blob = new Blob([json_string], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'data.json';
+  link.click();
+}
+module.exports = {copy, get_color, download_json}
+},{}],10:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -730,7 +1243,7 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":8}],7:[function(require,module,exports){
+},{"loadSVG":12}],11:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -755,7 +1268,7 @@ async function io(id, name, on) {
     ports[await find_id('theme_widget')].on['refresh']()
   }
 }
-},{}],8:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -768,7 +1281,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -864,7 +1377,567 @@ function localdb () {
     return target_key && JSON.parse(localStorage[target_key])
   } 
 }
-},{}],10:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
+arguments[4][7][0].apply(exports,arguments)
+},{"dup":7}],15:[function(require,module,exports){
+module.exports={ 
+  "0": {
+    "comp": "theme_editor"
+  }
+}
+},{}],16:[function(require,module,exports){
+(function (__filename){(function (){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'theme_editor'
+const statedb = STATE(__filename)
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback () { return require('./module.json') }
+sdb.on({ css: css => {} })
+/******************************************************************************
+  THEME_EDITOR COMPONENT
+******************************************************************************/
+const DB = require('localdb')
+const IO = require('io')
+// ----------------------------------------
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = theme_editor
+async function theme_editor (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const status = { tab_id: 0 }
+  const db = await DB()
+  const on = {
+    init,
+    hide
+  }
+  const {xget} = sdb.req_access(opts.sid)
+  const send = await IO(id, name, on)
+  
+  status.themes = {
+    builtin: Object.keys(opts.paths),
+    saved: Object.keys(JSON.parse(localStorage.index || (localStorage.index = '{}')))
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  const style = document.createElement('style')
+  await sdb.on({
+    css: inject,
+  })
+  shadow.innerHTML = `
+  <main>
+    <div class="content">
+    </div>
+    <div class="relative">
+      <input list="themes" class="theme" placeholder='Enter theme' />
+      <div id="themes" class="theme"></div>
+    </div>
+    <button class="load single">
+      Load
+    </button>
+    <button class="inject">
+      Inject
+    </button>
+    <button class="save_file single">
+      Save file
+    </button>
+    <button class="save_pref">
+      Save pref
+    </button>
+    <button class="drop_theme single">
+      Drop theme
+    </button>
+    <button class="drop_file single">
+      Drop file
+    </button>
+    <button class="reset single">
+      Reset
+    </button>
+    <button class="export single">
+      Export
+    </button>
+    <button class="import single">
+      Import
+    </button>
+    <input style="display: none;" class="upload" type='file' />
+    <button class="add">
+      Add
+    </button>
+    <h3>
+    </h3>
+    <div class="tabs">
+      <div class="box"></div>
+      <span class="plus">+</span>
+    </div>
+  </main>`
+  const main = shadow.querySelector('main')
+  const inject_btn = shadow.querySelector('.inject')
+  const load_btn = shadow.querySelector('.load')
+  const save_file_btn = shadow.querySelector('.save_file')
+  const save_pref_btn = shadow.querySelector('.save_pref')
+  const add_btn = shadow.querySelector('.add')
+  const drop_theme_btn = shadow.querySelector('.drop_theme')
+  const drop_file_btn = shadow.querySelector('.drop_file')
+  const reset_btn = shadow.querySelector('.reset')
+  const upload = shadow.querySelector('.upload')
+  const import_btn = shadow.querySelector('.import')
+  const export_btn = shadow.querySelector('.export')
+  const title = shadow.querySelector('h3')
+  const content = shadow.querySelector('.content')
+  const tabs = shadow.querySelector('.tabs > .box')
+  const plus = shadow.querySelector('.plus')
+  const select_theme = shadow.querySelector('div.theme')
+  const input = shadow.querySelector('input.theme')
+
+  input.onfocus = () => select_theme.classList.add('active')
+  input.onblur = () => setTimeout(() => select_theme.classList.remove('active'), 200)
+  input.oninput = update_select_theme
+  inject_btn.onclick = on_inject
+  load_btn.onclick = () => load(input.value, false)
+  save_file_btn.onclick = save_file
+  save_pref_btn.onclick = save_pref
+  add_btn.onclick = () => add(input.value)
+  drop_theme_btn.onclick = drop_theme
+  drop_file_btn.onclick = drop_file
+  export_btn.onclick = export_fn
+  import_btn.onclick = () => upload.click()
+  upload.onchange = import_fn
+  reset_btn.onclick = () => {localStorage.clear(), location.reload()}
+  plus.onclick = () => add_tab('New')
+  shadow.append(style)
+  update_select_theme()
+  
+  return el
+
+  async function fallback() {
+    return require('./instance.json')
+  }
+  async function hide () {
+    main.classList.toggle('select')
+    status.select = !status.select
+  }
+  async function export_fn () {
+    const theme = db.read([ input.value ])
+    const index = db.read([ 'index', input.value ])
+    const blob = new Blob([JSON.stringify({theme, index}, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = input.value
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+  async function import_fn () {
+    const file = upload.files[0]
+    const name = file.name.split('.')[0]
+    await add(name)
+    const reader = new FileReader()
+    reader.onload = e => {
+      const blob = JSON.parse(e.target.result)
+      db.add([name], blob.theme)
+      db.add(['index', name], blob.index)
+      load(name)
+    }
+    reader.readAsText(file)
+  }
+  async function add (theme) {
+    db.add([theme], [])
+    status.themes.saved.push(theme)
+    db.add(['index', theme], [])
+    update_select_theme()
+  }
+  async function drop_theme () {
+    db.drop([input.value])
+    db.drop(['index', input.value])
+    status.themes.saved = status.themes.saved.filter(v => v != input.value)
+    update_select_theme()
+    input.value = 'default'
+    load('default')
+  }
+  async function drop_file () {
+    db.drop([status.active_tab.dataset.theme, status.active_tab.dataset.id])
+    db.drop(['index', status.active_tab.dataset.theme, status.active_tab.dataset.id])
+    close_tab(status.active_tab)
+  }
+  async function forget_changes () {
+    status.active_el.classList.remove('dirty')
+    const dirt = JSON.parse(localStorage.dirt)
+    delete(dirt[status.title])
+    localStorage.dirt = JSON.stringify(dirt)
+  }
+  async function save_file () {
+    // forget_changes()
+    if(db.read([input.value])){
+      db.push(['index', input.value], status.active_tab.dataset.name)
+      db.push([input.value], status.textarea.value)
+    }
+  }
+  async function save_pref () {
+    const pref = db.read(['pref'])
+    if(status.select){
+      var ids = await get_select()
+      ids.forEach(id => pref[id] = [])
+    }
+    pref[status.instance_id] = []
+    pref[status.title] = []
+    Array.from(tabs.children).forEach(tab => {
+      if(tab.dataset.access === "uniq"){
+        if(ids)
+          ids.forEach(id => 
+          pref[id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme)})
+        )
+        else
+          pref[status.instance_id].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme)})
+      }
+      else
+        pref[status.title].push({theme: tab.dataset.theme, id: tab.dataset.id, local: status.themes.builtin.includes(tab.dataset.theme) })
+    })
+    db.add(['pref'], pref)
+  }
+  async function unsave () {
+    status.active_el.classList.add('dirty')
+    let theme = localStorage[input.value] && JSON.parse(localStorage[input.value])
+    if(theme){
+      theme.css[status.title] = textarea.value
+      localStorage[input.value] = JSON.stringify(theme)
+      const dirt = JSON.parse(localStorage.dirt)
+      dirt[status.title] = input.value
+      localStorage.dirt = JSON.stringify(dirt)
+    }
+    else{
+      const name = input.value + '*'
+      theme = localStorage[name] && JSON.parse(localStorage[name])
+      if(theme){
+        theme.css[status.title] = textarea.value
+        localStorage[name] = JSON.stringify(theme)
+        const dirt = JSON.parse(localStorage.dirt)
+        dirt[status.title] = name
+        localStorage.dirt = JSON.stringify(dirt)
+      }
+      else{
+        theme = { theme: true, css: {} }
+        theme.css[status.title] = textarea.value
+        localStorage[name] = JSON.stringify(theme)
+        status.themes.saved.push(name)
+        const dirt = JSON.parse(localStorage.dirt)
+        dirt[status.title] = name
+        localStorage.dirt = JSON.stringify(dirt)
+        update_select_theme()
+        input.value = name
+      }
+    }
+  }
+  async function on_inject () {
+    if(status.active_tab.dataset.type === 'json'){
+      const id = add_data(status.textarea.value)
+      const hub = xget(xget(id).hub).id
+      send({type: 'refresh', to: hub})
+    }
+    else{
+      if(status.select){
+        const ids = await get_select()
+        ids.forEach(id => {
+          send({ type: 'inject', to: id, data: status.textarea.value })
+        })
+      }
+      else
+        send({ type: 'inject', to: status.node_data.hub_id, data: status.textarea.value })
+    }
+  }
+  async function get_select () {
+    return await send({ type: 'get_select', to: 'theme_widget'})
+  }
+  async function load (theme, clear = true) {
+    if(clear){
+      content.innerHTML = ''
+      tabs.innerHTML = ''
+    }
+    if(status.themes.builtin.includes(theme)){
+      const index = opts.paths[theme].length
+      for(let i = 0; i < index; i++){
+        const temp = await fetch(`./src/node_modules/css/${theme}/${i}.css`)
+        add_tab(i, await temp.text(), '', theme, status.title)
+      }
+    }
+    else{
+      const temp = db.read([theme])
+      temp.forEach((file, i) => {
+          add_tab(i, file, '', theme, status.title)
+      })
+    }
+    // forget_changes()
+  }
+  async function init ({ data }) {
+    title.innerHTML = data.id
+    status.title = data.type
+    status.instance_id = data.id
+    let value = data.file ? db.read([data.xtype, data.id]) : data
+    if(data.type === 'json' || !data.file)
+      value = JSON.stringify(value, null, 2)
+    add_tab(data.name, value)
+  }
+  async function add_tab (id, value = '', access = 'uniq', theme = 'default') {
+    if(id === 'New' && status.themes.builtin.includes(theme)){
+      theme += '*'
+      add(theme)
+    }
+    const tab = document.createElement('span')
+    const tab_id = '_' + status.tab_id++
+    tab.id = tab_id
+    const index = opts.paths[theme] || db.read(['index', theme])
+    tabs.append(tab)
+    const btn = document.createElement('span')
+    btn.innerHTML = index[id] || id
+    tab.dataset.id = id
+    tab.dataset.name = btn.innerHTML
+    tab.dataset.theme = theme
+    tab.dataset.access = access
+    btn.onclick = () => switch_tab(tab.id)
+    btn.ondblclick = rename
+    const btn_x = document.createElement('span')
+    btn_x.innerHTML = 'x'
+    tab.append(btn, btn_x)
+    tab.tabIndex = '0'
+    tab.onkeydown = e => {
+      if(e.key === 'ArrowRight' && tab.nextElementSibling)
+        tab.nextElementSibling.after(tab)
+      else if(e.key === 'ArrowLeft' && tab.previousElementSibling)
+        tab.previousElementSibling.before(tab)
+      tab.focus()
+    }
+    const textarea = document.createElement('textarea')
+    textarea.value = value
+    textarea.id = tab_id
+    content.append(textarea)
+    btn_x.onclick = () => close_tab(tab)
+    switch_tab(tab_id)
+  }
+  async function close_tab (tab) {
+    content.querySelector('#' + tab.id).remove()
+    tab.remove()
+    if(tabs.children.length)
+      switch_tab(tabs.children[tabs.children.length - 1].id)
+    else
+      add_tab('New')
+  }
+  async function switch_tab (tab_id) {
+    status.textarea && status.textarea.classList.remove('active')
+    status.textarea = content.querySelector('#' + tab_id)
+    status.textarea.classList.add('active')
+    status.active_tab && status.active_tab.classList.remove('active')
+    status.active_tab = tabs.querySelector('#' + tab_id)
+    status.active_tab.classList.add('active')
+    status.active_tab.focus()
+    input.value = status.active_tab.dataset.theme
+  }
+  async function rename (e) {
+    const btn = e.target
+    const hub = btn.parentElement
+    const input = document.createElement('input')
+    input.value = btn.innerHTML
+    btn.innerHTML = ''
+    btn.append(input)
+    input.onkeydown = e => {
+      if(e.key === 'Enter'){
+        btn.innerHTML = input.value
+        db.add([hub.dataset.theme, hub.dataset.id], input.value)
+      }
+    }
+    input.onblur = e => {
+      if(e.relatedTarget)
+        btn.innerHTML = hub.dataset.name
+    }
+    input.focus()
+  }
+  async function update_select_theme () {
+    const builtin = document.createElement('div')
+    builtin.classList.add('cat')
+    status.themes.builtin.forEach(theme => {
+      const el = document.createElement('div')
+      el.innerHTML = theme
+      el.onclick = () => input.value = theme
+      theme.includes(input.value) && builtin.append(el)
+    })
+    builtin.innerHTML && builtin.insertAdjacentHTML('afterbegin', '<b>builtin</b>')
+    const saved = document.createElement('div')
+    saved.classList.add('cat')
+    status.themes.saved.forEach(theme => {
+      const el = document.createElement('div')
+      el.innerHTML = theme
+      el.onclick = () => input.value = theme
+      theme.includes(input.value) && saved.append(el)
+    })
+    saved.innerHTML && saved.insertAdjacentHTML('afterbegin', '<b>saved</b>')
+    select_theme.innerHTML = ''
+    select_theme.append(builtin, saved)
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+}
+
+}).call(this)}).call(this,"/src/node_modules/theme_editor/theme_editor.js")
+},{"./instance.json":14,"./module.json":15,"STATE":5,"io":11,"localdb":13}],17:[function(require,module,exports){
+arguments[4][7][0].apply(exports,arguments)
+},{"dup":7}],18:[function(require,module,exports){
+module.exports={
+  "0": {
+    "comp": "theme_widget",
+    "sub": {
+      "theme_editor": ["x"],
+      "graph_explorer": ["x"]
+    }
+  }
+}
+},{}],19:[function(require,module,exports){
+(function (__filename){(function (){
+/******************************************************************************
+  STATE
+******************************************************************************/
+const STATE = require('STATE')
+const name = 'theme_widget'
+const statedb = STATE(__filename)
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+const { id, sdb, getdb } = statedb(fallback)
+function fallback () { return require('./module.json') }
+sdb.on({ css: css => {} })
+/******************************************************************************
+  THEME_WIDGET COMPONENT
+******************************************************************************/
+const theme_editor = require('theme_editor')
+const graph_explorer = require('graph_explorer')
+const IO = require('io')
+// ----------------------------------------
+module.exports = theme_widget
+
+async function theme_widget (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const status = { tab_id: 0, init_check: true }
+  const on = {
+    refresh,
+    get_select,
+    inject,
+    scroll,
+    click
+  }
+  const {get_all} = sdb.req_access(opts.sid)
+  const send = await IO(id, name, on)
+
+  status.clickables = ['css', 'json', 'js']
+  status.dirts = JSON.parse(localStorage.dirt || (localStorage.dirt = '{}'))
+  localStorage.pref || (localStorage.pref = '{}')
+  const paths =  JSON.parse(await(await fetch('./src/node_modules/css/index.json')).text())
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <section>
+    <div class="btn">
+      ⚙️
+    </div>
+    <div class="popup">
+      <div class="box">
+        <span class="stats">
+          Entries: 
+        </span>
+        <button class="select">Select</button>
+        <input min="0" max="100" value="75" type="range"/>
+      </div>
+      <div class="editor">
+      </div>
+    </div>
+  </section>
+  <style></style>`
+  const style = shadow.querySelector('style')
+  const btn = shadow.querySelector('.btn')
+  const popup = shadow.querySelector('.popup')
+  const box = popup.querySelector('.box')
+  const list = box.querySelector('.list')
+  const editor = popup.querySelector('.editor')
+  const stats = box.querySelector('.stats')
+  const select = box.querySelector('.select')
+  const slider = box.querySelector('input')
+
+  const subs = await sdb.on({
+    css: inject
+  })
+  editor.append(await theme_editor({ sid: subs.theme_editor?.[0], hub: [id], paths }))
+  box.prepend(await graph_explorer({ sid: subs.graph_explorer?.[0], hub: [id] }))
+  select.onclick = on_select
+  slider.oninput = blur
+  return el
+
+  async function fallback() {
+    return require('./instance.json')
+  }
+  async function blur(e) {
+    popup.style.opacity = e.target.value/100
+  }
+  async function on_select () {
+    list.classList.toggle('active')
+    send({to: 'theme_editor', type: 'hide'})
+  }
+  async function get_select () {
+    const inputs = list.querySelectorAll('input')
+    const output = []
+    inputs.forEach(el => el.checked && output.push(el.nextElementSibling.id))
+    send({type: 'send', to: 'theme_editor', data: output})
+  }
+  async function refresh () {
+    const data = get_all()
+    status.tree = data
+    stats.innerHTML = `Entries: ${Object.keys(data).length}`
+    btn.onclick = () => {
+      popup.classList.toggle('active')
+      status.init_check && send({type: 'init', to: 'graph_explorer' , data:status.tree})
+      status.init_check = false
+    }
+  }
+  async function click ({ data }) {
+    send({ to: 'theme_editor', type: 'init', data})
+    status.active_el && status.active_el.classList.remove('active')
+    if(status.instance_id === data.id)
+      editor.classList.toggle('active')
+    else{
+      editor.classList.add('active')
+      el.classList.add('active')
+    }
+    status.instance_id = data.id
+    status.active_el = el
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+}
+
+}).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
+},{"./instance.json":17,"./module.json":18,"STATE":5,"graph_explorer":6,"io":11,"theme_editor":16}],20:[function(require,module,exports){
 module.exports={
   "0": {
     "slot": {
@@ -916,7 +1989,7 @@ module.exports={
     }
   }
 }
-},{}],11:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 module.exports={
   "0": {
       "slot": {
@@ -931,7 +2004,7 @@ module.exports={
     }
   }
 }
-},{}],12:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1055,7 +2128,7 @@ async function topnav (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
-},{"./instance.json":10,"./module.json":11,"STATE":5,"graphic":6,"io":7}],13:[function(require,module,exports){
+},{"./instance.json":20,"./module.json":21,"STATE":5,"graphic":10,"io":11}],23:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
@@ -1135,7 +2208,7 @@ async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
 }).call(this)}).call(this,"/web/demo.js","/web")
-},{"../":2,"../src/node_modules/STATE":5,"./instance.json":14,"./module.json":15}],14:[function(require,module,exports){
+},{"../":2,"../src/node_modules/STATE":5,"./instance.json":24,"./module.json":25}],24:[function(require,module,exports){
 module.exports={
   "0": {
     "id": 0,
@@ -1168,7 +2241,7 @@ module.exports={
     }
   }
 }
-},{}],15:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports={
   "0": {
       "slot": {
@@ -1183,4 +2256,4 @@ module.exports={
     }
   }
 }
-},{}]},{},[13]);
+},{}]},{},[23]);

@@ -14,7 +14,7 @@ sdb.on(css => {})
 ******************************************************************************/
 const IO = require('io')
 const modules = {
-//  theme_widget : require('theme_widget'),
+ theme_widget : require('theme_widget'),
  topnav : require('topnav'),
 //  header : require('header'),
 //  datdot : require('datdot'),
