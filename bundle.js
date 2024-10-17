@@ -1,4 +1,326 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+module.exports={
+  "0": {
+    "id": 0,
+    "name": "demo",
+    "type": "module",
+    "xtype": "demo",
+    "admins": ["theme_editor", "theme_widget"],
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [1]
+    }
+  },
+  "1": {
+    "id": 1,
+    "name": "demo",
+    "type": "instance",
+    "xtype": "demo",
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [0],
+      "subs": [7],
+      "inputs": [10]
+    }
+  },
+  "2": {
+    "id": 2,
+    "name": "modules",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [6, 12, 16, 21, 25]
+    }
+  },
+  "3": {
+    "id": 3,
+    "name": "css",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [14, 18, 23, 27]
+    }
+  },
+  "4": {
+    "id": 4,
+    "name": "content",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [19, 28]
+    }
+  },
+  "5": {
+    "id": 5,
+    "name": "source",
+    "type": "folder",
+    "slot": {
+      "": [["", "subs"]],
+      "subs": [9, 11, 15, 20, 24]
+    }
+  },
+  "6": {
+    "id": 6,
+    "name": "index",
+    "type": "module",
+    "xtype": "index",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 9],
+      "subs": [7]
+    }
+  },
+  "7": {
+    "id": 7,
+    "name": "index",
+    "type": "instance",
+    "xtype": "index",
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [1, 6, 9],
+      "inputs": [8],
+      "subs": [13, 26]
+    }
+  },
+  "8": {
+    "id": 8,
+    "name": "index.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/index.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [3, 7]
+    }
+  },
+  "9": {
+    "id": 9,
+    "name": "index.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/index.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [6, 7]
+    }
+  },
+  "10": {
+    "id": 10,
+    "name": "demo.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/demo.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [3, 1]
+    }
+  },
+  "11": {
+    "id": 11,
+    "name": "theme_widget.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/theme_widget/theme_widget.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [12, 13]
+    }
+  },
+  "12": {
+    "id": 12,
+    "name": "theme_widget",
+    "type": "module",
+    "xtype": "theme_widget",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 11],
+      "subs": [13]
+    }
+  },
+  "13": {
+    "id": 13,
+    "name": "theme_widget",
+    "type": "instance",
+    "xtype": "theme_widget",
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [12, 7, 11],
+      "inputs": [14],
+      "subs": [17, 22]
+    }
+  },
+  "14": {
+    "id": 14,
+    "name": "theme_widget.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/theme_widget.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 13]
+    }
+  },
+  "15": {
+    "id": 15,
+    "name": "graph_explorer.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/graph_explorer/graph_explorer.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [16, 17]
+    }
+  },
+  "16": {
+    "id": 16,
+    "name": "graph_explorer",
+    "type": "module",
+    "xtype": "graph_explorer",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 15],
+      "subs": [17]
+    }
+  },
+  "17": {
+    "id": 17,
+    "name": "graph_explorer",
+    "type": "instance",
+    "xtype": "graph_explorer",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [16, 13, 15],
+      "inputs": [18, 19]
+    }
+  },
+  "18": {
+    "id": 18,
+    "name": "graph_explorer.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/graph_explorer.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 17]
+    }
+  },
+  "19": {
+    "id": 19,
+    "name": "graph_explorer.json",
+    "type": "json",
+    "xtype": "content",
+    "file": "src/content/graph_explorer.json",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [4, 17]
+    }
+  },
+  "20": {
+    "id": 20,
+    "name": "theme_editor.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/theme_editor/theme_editor.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [21, 22]
+    }
+  },
+  "21": {
+    "id": 21,
+    "name": "theme_editor",
+    "type": "module",
+    "xtype": "theme_editor",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 20],
+      "subs": [22]
+    }
+  },
+  "22": {
+    "id": 22,
+    "name": "theme_editor",
+    "type": "instance",
+    "xtype": "theme_editor",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [21, 13, 20],
+      "inputs": [23]
+    }
+  },
+  "23": {
+    "id": 23,
+    "name": "theme_editor.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/theme_editor.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 22]
+    }
+  },
+  "24": {
+    "id": 24,
+    "name": "topnav.js",
+    "type": "js",
+    "xtype": "js",
+    "file": "src/node_modules/topnav/topnav.js",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [5],
+      "subs": [25, 26]
+    }
+  },
+  "25": {
+    "id": 25,
+    "name": "topnav",
+    "type": "module",
+    "xtype": "topnav",
+    "slot": {
+      "": [["hubs", "subs"]],
+      "hubs": [2, 24],
+      "subs": [26]
+    }
+  },
+  "26": {
+    "id": 26,
+    "name": "topnav",
+    "type": "instance",
+    "xtype": "topnav",
+    "slot": {
+      "": [["hubs"], ["inputs"]],
+      "hubs": [25, 7, 24],
+      "inputs": [27, 28]
+    }
+  },
+  "27": {
+    "id": 27,
+    "name": "topnav.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/topnav.css",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [3, 26]
+    }
+  },
+  "28": {
+    "id": 28,
+    "name": "topnav.json",
+    "type": "content",
+    "file": "src/content/topnav.json",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [4, 26]
+    }
+  }
+}
+
+},{}],2:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -76,7 +398,7 @@ async function index(opts) {
 
 
 }).call(this)}).call(this,"/src/index.js")
-},{"./instance.json":2,"./module.json":3,"STATE":4,"io":6,"topnav":11}],2:[function(require,module,exports){
+},{"./instance.json":3,"./module.json":4,"STATE":5,"io":7,"topnav":12}],3:[function(require,module,exports){
 module.exports={
   "0": {
     "slot": {
@@ -108,7 +430,7 @@ module.exports={
     }
   }
 }
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 module.exports={
   "0": {
       "slot": {
@@ -123,10 +445,10 @@ module.exports={
     }
   }
 }
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 // STATE.js
 
-const snapshot = null
+const snapshot = require('../../snapshot.json')
 const localdb = require('localdb')
 const db = localdb()
 const status = {root_module: true, root_instance: true}
@@ -391,7 +713,7 @@ function static () {
     admins = ids
   }
 }
-},{"localdb":8}],5:[function(require,module,exports){
+},{"../../snapshot.json":1,"localdb":9}],6:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -408,7 +730,7 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":7}],6:[function(require,module,exports){
+},{"loadSVG":8}],7:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -433,7 +755,7 @@ async function io(id, name, on) {
     ports[await find_id('theme_widget')].on['refresh']()
   }
 }
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -446,7 +768,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -542,7 +864,7 @@ function localdb () {
     return target_key && JSON.parse(localStorage[target_key])
   } 
 }
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 module.exports={
   "0": {
     "slot": {
@@ -594,7 +916,7 @@ module.exports={
     }
   }
 }
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports={
   "0": {
       "slot": {
@@ -609,7 +931,7 @@ module.exports={
     }
   }
 }
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -733,7 +1055,7 @@ async function topnav (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
-},{"./instance.json":9,"./module.json":10,"STATE":4,"graphic":5,"io":6}],12:[function(require,module,exports){
+},{"./instance.json":10,"./module.json":11,"STATE":5,"graphic":6,"io":7}],13:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
@@ -813,7 +1135,7 @@ async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
 }).call(this)}).call(this,"/web/demo.js","/web")
-},{"../":1,"../src/node_modules/STATE":4,"./instance.json":13,"./module.json":14}],13:[function(require,module,exports){
+},{"../":2,"../src/node_modules/STATE":5,"./instance.json":14,"./module.json":15}],14:[function(require,module,exports){
 module.exports={
   "0": {
     "id": 0,
@@ -846,7 +1168,7 @@ module.exports={
     }
   }
 }
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 module.exports={
   "0": {
       "slot": {
@@ -861,4 +1183,4 @@ module.exports={
     }
   }
 }
-},{}]},{},[12]);
+},{}]},{},[13]);
