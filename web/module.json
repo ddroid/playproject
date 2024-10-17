@@ -2,10 +2,10 @@
   "0": {
       "slot": {
         "": [["hubs"]],
-        "hubs": ["topnav.js"]
+        "hubs": ["demo.js"]
       }
     },
-  "topnav.js": {
+  "demo.js": {
     "slot": {
       "": [["", "subs"]],
       "subs": [0]

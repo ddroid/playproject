@@ -1,12 +1,23 @@
 {
-  "1": {
-    "id": 1,
+  "0": {
+    "id": 0,
     "name": "demo",
     "type": "module",
     "xtype": "demo",
     "admins": ["theme_editor", "theme_widget"],
     "slot": {
-      "": [["", "subs"], ["inputs"]],
+      "": [["", "subs"]],
+      "subs": [1]
+    }
+  },
+  "1": {
+    "id": 1,
+    "name": "demo",
+    "type": "instance",
+    "xtype": "demo",
+    "slot": {
+      "": [["hubs", "subs"], ["inputs"]],
+      "hubs": [0],
       "subs": [7],
       "inputs": [10]
     }
@@ -299,8 +310,7 @@
   "28": {
     "id": 28,
     "name": "topnav.json",
-    "type": "json",
-    "xtype": "content",
+    "type": "content",
     "file": "src/content/topnav.json",
     "slot": {
       "": [["hubs"]],

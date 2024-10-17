@@ -1,0 +1,32 @@
+{
+  "0": {
+    "id": 0,
+    "name": "demo",
+    "type": "instance",
+    "xtype": "demo",
+    "admins": ["theme_editor", "theme_widget"],
+    "slot": {
+      "": [["", "subs"], ["inputs"]],
+      "subs": [1],
+      "inputs": ["demo.css"]
+    }
+  },
+  "demo.css": {
+    "id": "demo.css",
+    "name": "demo.css",
+    "type": "css",
+    "xtype": "css",
+    "file": "src/node_modules/css/default/demo.css",
+    "slot": {
+      "": [["hub"]],
+      "hubs": [0]
+    }
+  },
+  "1": {
+    "name": "index",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [0]
+    }
+  }
+}

@@ -1,1 +1,31 @@
-{}
+{
+  "0": {
+    "slot": {
+      "": [["", "subs"], ["inputs"]],
+      "subs": [1],
+      "inputs": ["index.css", "index.json"]
+    }
+  },
+  "index.css": {
+    "data": " ",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [0]
+    }
+  },
+  "index.json": {
+    "type": "content",
+    "data": {},
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [0]
+    }
+  },
+  "1": {
+    "name": "topnav",
+    "slot": {
+      "": [["hubs"]],
+      "hubs": [0]
+    }
+  }
+}

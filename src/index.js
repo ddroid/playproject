@@ -14,15 +14,15 @@ sdb.on(css => {})
 ******************************************************************************/
 const IO = require('io')
 const modules = {
- theme_widget : require('theme_widget'),
+//  theme_widget : require('theme_widget'),
  topnav : require('topnav'),
- header : require('header'),
- datdot : require('datdot'),
- editor : require('editor'),
- smartcontract_codes : require('smartcontract_codes'),
- supporters : require('supporters'),
- our_contributors : require('our_contributors'),
- footer : require('footer'),
+//  header : require('header'),
+//  datdot : require('datdot'),
+//  editor : require('editor'),
+//  smartcontract_codes : require('smartcontract_codes'),
+//  supporters : require('supporters'),
+//  our_contributors : require('our_contributors'),
+//  footer : require('footer'),
 }
 module.exports = index
 
@@ -50,6 +50,7 @@ async function index(opts) {
   const subs = await sdb.on({
     css: inject
   })
+  console.log(subs)
   main.append(...await Promise.all(
     Object.entries(subs).map(async ([name, sids]) => {
       const el = document.createElement('div')

@@ -3,22 +3,18 @@ const STATE = require('../src/node_modules/STATE')
   INITIALIZE PAGE
 ******************************************************************************/
 const statedb = STATE(__filename)
-const { sdb } = statedb(fallback)
-const [sid] = sdb.get_sub('index')
-sdb.on({
-  css: inject,
-})
+const { id, sdb, getdb } = statedb(fallback)
 
 const make_page = require('../') 
 
 function fallback () { // -> set database defaults or load from database
-	return require('./snapshot.json')
+	return require('./module.json')
 }
 /******************************************************************************
   CSS & HTML Defaults
 ******************************************************************************/
 const sheet = new CSSStyleSheet()
-config().then(() => boot({ sid }))
+config().then(() => boot({ }))
 
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
@@ -46,6 +42,11 @@ async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
+  const { id, sdb } = await getdb('', fallback) // hub is "parent's" io "id" to send/receive messages
+  const [sid] = sdb.get_sub('index')
+  sdb.on({
+    css: inject,
+  })
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -58,7 +59,7 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    const element = await make_page(opts)
+    const element = await make_page({sid})
     shadow.append(element)
   }
   // ----------------------------------------
@@ -66,6 +67,10 @@ async function boot (opts) {
   // ----------------------------------------
 
   return
+
+  function fallback () { // -> set database defaults or load from database
+    return require('./instance.json')
+  }
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
