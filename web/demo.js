@@ -38,15 +38,19 @@ async function config () {
 /******************************************************************************
   PAGE BOOT
 ******************************************************************************/
-async function boot (opts) {
+async function boot () {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await getdb('', fallback) // hub is "parent's" io "id" to send/receive messages
-  const [sid] = sdb.get_sub('index')
-  sdb.on({
+  const [opts] = sdb.get_sub('index')
+  const on = {
     css: inject,
-  })
+  }
+  sdb.watch(onbatch)
+  function onbatch(batch){
+    Object.entries(batch).forEach(([input, data]) => on[input](data))
+  }
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -59,7 +63,7 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    const element = await make_page({sid})
+    const element = await make_page(opts)
     shadow.append(element)
   }
   // ----------------------------------------

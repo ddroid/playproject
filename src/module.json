@@ -1,14 +1,11 @@
 {
   "0": {
-      "slot": {
-        "": [["hubs"]],
-        "hubs": ["index.js"]
-      }
-    },
-  "index.js": {
-    "slot": {
-      "": [["", "subs"]],
-      "subs": [0]
-    }
+    "subs": [1, 2]
+  },
+  "1": {
+    "type": "theme_widget"
+  },
+  "2": {
+    "type": "topnav"
   }
 }

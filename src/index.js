@@ -8,7 +8,6 @@ const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
 function fallback () { return require('./module.json') }
-sdb.on(css => {})
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -33,8 +32,9 @@ async function index(opts) {
   const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
   const on = {
     jump,
-    inject,
+    css: inject,
   }
+  
   const send = await IO(id, name, on)
   // ----------------------------------------
   // TEMPLATE
@@ -47,20 +47,22 @@ async function index(opts) {
   const style = shadow.querySelector('style')
   const main = shadow.querySelector('div')
 
-  const subs = await sdb.on({
-    css: inject
-  })
+  const subs = await sdb.watch(onbatch)
+  
   console.log(subs)
   main.append(...await Promise.all(
-    Object.entries(subs).map(async ([name, sids]) => {
+    Object.entries(subs).map(async ([name, opts]) => {
       const el = document.createElement('div')
       el.name = name
       const shadow = el.attachShadow(shopts)
-      shadow.append(await modules[name]({ sid: sids[0], hub: [id] }))
+      shadow.append(await modules[name]({ sid: opts[0].sid, hub: [id] }))
       return el
   })))
   return el
   
+  function onbatch(batch) {
+    Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
+  }
   function fallback() {
     return require('./instance.json')
   }
