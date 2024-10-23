@@ -83,23 +83,19 @@ Retrieves or initializes a state database for a given session ID (`sid`). If no 
 
 ---
 
-### `sdb.on(...)`
-Retrieves the current usage of components in the state. It tracks data for each component by its sub-module IDs.
+### `sdb.watch(...)`
+Retrieves the current usage of components in the state. It tracks data for each component by its ID.
 
 ```js
-  const subs = await sdb.on({
-  css: function oncss (css) { },
-  args: function onargs (args) { },
-})
+  const subs = await sdb.watch(onbatch)
+  function onbatch (batch) { }
 ```
 - **Params:**
-  - `css`: *String* (optional)  
-    CSS properties tied to the state data.
-  - `data`: *Object* (optional)  
-    Any associated data passed along.
+  - `onbatch`: *Function*  
+    A function handles an changes to input.
 
 - **Returns:**  
-  `Object` — Returns the `uses` object that stores component and module mappings.
+  `Object` — Returns the sub-instance object that stores component and module mappings.
 
 ---
 

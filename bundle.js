@@ -27,7 +27,7 @@ const modules = {
 }
 module.exports = index
 
-async function index(opts) {
+async function index (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -66,7 +66,30 @@ async function index(opts) {
     Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
   }
   function fallback() {
-    return require('./instance.json')
+    return {
+      "0": {
+        "subs": [3, 4],
+        "inputs": ["index.css"]
+      },
+      "index.css": {
+        "file": "src/node_modules/css/default/index.css"
+      },
+      "3": {
+        "idx": 1
+      },
+      "4": {
+        "idx": 2,
+        fallback: {index: fallback_topnav}
+      }
+    }
+  }
+  function fallback_topnav (data) {
+    data['topnav.json'].data.links.push({
+      "id": "index",
+      "text": "Index",
+      "url": "index"
+    })
+    return data
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
@@ -78,23 +101,7 @@ async function index(opts) {
 
 
 }).call(this)}).call(this,"/src/index.js")
-},{"./instance.json":2,"./module.json":3,"STATE":4,"io":10,"theme_widget":18,"topnav":21}],2:[function(require,module,exports){
-module.exports={
-  "0": {
-    "subs": [3, 4],
-    "inputs": ["index.css"]
-  },
-  "index.css": {
-    "file": "src/node_modules/css/default/index.css"
-  },
-  "3": {
-    "idx": 1
-  },
-  "4": {
-    "idx": 2
-  }
-}
-},{}],3:[function(require,module,exports){
+},{"./module.json":2,"STATE":3,"io":9,"theme_widget":17,"topnav":20}],2:[function(require,module,exports){
 module.exports={
   "0": {
     "subs": [1, 2]
@@ -106,13 +113,13 @@ module.exports={
     "type": "topnav"
   }
 }
-},{}],4:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 // STATE.js
 
 const snapshot = null
 const localdb = require('localdb')
 const db = localdb()
-const status = {root_module: true, root_instance: true, module_index: {}}
+const status = {root_module: true, root_instance: true, module_index: {}, fallback_handlers: []}
 const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
 
 
@@ -146,11 +153,11 @@ function STATE(filename) {
     if (status.fallback_check) {
       if (status.root_module) {
         status.fallback_check = !snapshot
-        snapshot ? db.append(['state'], snapshot) : preprocess(fallback(), 0, 'module')
+        snapshot ? db.append(['state'], snapshot) : preprocess(fallback(), 'module', {id: 0})
         status.root_module = false
       }
       else
-        preprocess(fallback(), data.id, 'module', data.hubs, data.idx)
+        preprocess(fallback(), 'module', data)
       data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
     }
     if(data.id == 0){
@@ -181,7 +188,7 @@ function STATE(filename) {
     const id = s2i[sid]
     data = db.read(['state', id])
     if(status.fallback_check){
-      preprocess(fallback(), id, 'instance', data?.hubs)
+      preprocess(fallback(), 'instance', data)
       data = db.read(['state', id])
     }
     if(status.root_instance){
@@ -231,10 +238,13 @@ function STATE(filename) {
   function get_all () {
     return db.read_all(['state'])
   }
-  function preprocess (raw_data, new_id, xtype, hubs, idx) {
-    let count = db.length(['state']), module
-    if(xtype === 'instance')
-      module = db.read(['state', local_status.module_id])
+  function preprocess (host_data, xtype, super_data = {}) {
+    let {id: super_id, idx, hubs, fallback} = super_data
+    fallback?.forEach(handler_id => {
+      host_data = status.fallback_handlers[handler_id](host_data)
+    })
+    let count = db.length(['state'])
+    
     const on = {
       subs: clean_node,
       inputs: clean_file,
@@ -242,160 +252,71 @@ function STATE(filename) {
     }
     clean_node(0)
 
-    function clean_node (entry_id, hub_id) {
-      const entry = raw_data[entry_id]
+    function clean_node (local_id, hub_entry, hub_module) {
+      const entry = host_data[local_id]
+      let module
+
       if(xtype === 'module'){
-        entry.idx = entry_id || idx
-        if(!entry_id){
+        entry.idx = local_id || idx
+        if(!local_id){
           const file_id = local_status.name+'.js'
-          let file = db.read(['state', filename])?.id
-          if(!file){
-            raw_data[file_id] = { file: filename }
-            clean_file(file_id, hub_id)
-          }
+          host_data[file_id] = { file: filename }
           hubs?.push(file_id) || (hubs = [file_id])
         }
       }
-      if(entry_id){
-        entry.hubs = [hub_id]
-        module?.subs && module.subs.forEach(id => {
+      if(local_id){
+        entry.hubs = [hub_entry.id]
+        xtype === 'instance' && hub_module?.subs && hub_module.subs.forEach(id => {
           const module_data = db.read(['state', id])
           if(module_data.idx == entry.idx){
             entry.name = module_data.name
+            module = module_data
+            return
           }
         })
       }
-      else
+      else{
         hubs && (entry.hubs = hubs)
-      entry.id = entry_id ? count : new_id || count
+        if(xtype === 'instance')
+          module = db.read(['state', local_status.module_id])
+      }
+
+      entry.id = local_id ? count : super_id || count
       entry.name = entry.name || entry.type || local_status.name
       entry.xtype = xtype
       entry.type = entry.name
-      
+      entry.idx = entry.idx || idx || 0
+      if(entry.fallback){
+        const new_fallback = []
+        Object.values(entry.fallback).forEach(handler => {
+          new_fallback.push(status.fallback_handlers.length)
+          status.fallback_handlers.push(handler)
+        })
+        entry.fallback = new_fallback
+      }
       count++
       default_slots.forEach(slot => {
         if(entry[slot] && on[slot])
-          entry[slot] = entry[slot].map(id => on[slot](id, entry.id))
+          entry[slot] = entry[slot].map(id => on[slot](id, entry, module))
       })
       db.add(['state', entry.id], entry)
       return entry.id
     }
-    function clean_file (file_id, hub_id){
+    function clean_file (file_id, hub_entry){
       if(!isNaN(Number(file_id)))
         return file_id
-      const file = raw_data[file_id]
+      const file = host_data[file_id]
       file.id = file_id
       file.name = file.name || file_id
       file.type = file.type || file.id.split('.').at(-1)
-      file[file.type === 'js' ? 'subs' : 'hubs' ] = [hub_id]
+      file[file.type === 'js' ? 'subs' : 'hubs' ] = [hub_entry.id]
       db.add(['state', file_id], file)
       return file_id
     }
   }
   
 }
-
-
-
-
-
-//
-//DUMP
-//
-async function pinit (url) {
-  if (!STATE.init) throw new Error('already initialized')
-  STATE.init = undefined
-  Object.freeze(STATE)
-  let data = db.read(['state'])
-  if(!data){
-    const res = await fetch(url)
-    data = res.ok && await (res).json()
-    db.add(['state'], data || {
-      "0": {
-        id: "0"
-      }
-    })
-  }
-  const length = db.length(['state'])
-  for (var id = 0; id < length; id++) s2i[i2s[id] = Symbol(id)] = id
-  return i2s[0]
-  async function reset () {
-    await db.clear()
-  }
-}
-function static () {
-  const sdb = { get, req_access }
-  const deny = {}
-  return sdb
-
-  function symbolfy (data) {
-    data?.sub && Object.entries(data.sub).forEach(assign)
-    return data
-
-    function assign([comp, ids]){
-      if(typeof(ids) === 'object'){
-        data.sub[comp] = []
-        ids.forEach(id => {
-          data.sub[comp].push(i2s[id])
-          deny[i2s[id]] = true
-        })
-      }
-      else{
-        data.sub[comp] = i2s[ids]
-        deny[i2s[ids]] = true
-      }
-    }
-  }
-  async function get (sid, fallback) {
-    if (deny[sid]) throw new Error('access denied')
-    const id = s2i[sid]
-    let xnode = db.read(['state', id])
-    if(Object.keys(xnode).length < 2)
-      xnode = preprocess(await fallback())[id]
-    return symbolfy(xnode)
-  }
-  function preprocess (local_data) {
-    let count = db.length(['state'])
-      Object.values(local_data)[0].id = id
-      local_data[id] = Object.values(local_data)[0]
-      id && delete(local_data[0])
-
-      Object.values(local_data).forEach(node => {
-        node.sub && Object.entries(node.sub).forEach(([comp, list]) => {
-          node.sub[comp] = []
-          list.forEach(id => {
-            if(Number(id) > count){
-              s2i[i2s[id] = Symbol(id)] = id
-              local_data[id].id = id
-              node.sub[comp].push(id)
-            }
-            else{
-              s2i[i2s[count] = Symbol(count)] = count
-              local_data[count] = local_data[id] || {}
-              local_data[count].id = count
-              id.includes('x') && delete(local_data[id])
-              node.sub[comp].push(count++)
-            }
-          })
-        })
-      })
-      db.append(['state'], local_data)
-      return local_data
-  }
-  function req_access(sid) {
-    if (deny[sid]) throw new Error('access denied')
-    const el = db.read(['state', s2i[sid]])
-    if(admins.includes(s2i[sid]) || admins.includes(el?.comp))
-      return { xget, set_admins }
-  }
-  function xget(id) {
-    return db.read(['state', id])
-  }
-  async function set_admins(ids) {
-    admins = ids
-  }
-}
-},{"localdb":12}],5:[function(require,module,exports){
+},{"localdb":11}],4:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -874,7 +795,7 @@ async function graph_explorer (opts) {
   }
 }
 }).call(this)}).call(this,"/src/node_modules/graph_explorer/graph_explorer.js")
-},{"./instance.json":6,"./module.json":7,"STATE":4,"helper":8,"io":10}],6:[function(require,module,exports){
+},{"./instance.json":5,"./module.json":6,"STATE":3,"helper":7,"io":9}],5:[function(require,module,exports){
 module.exports={
   "0": {
     "inputs": ["graph_explorer.css"]
@@ -883,12 +804,12 @@ module.exports={
     "file": "src/node_modules/css/default/graph_explorer.css"
   }
 }
-},{}],7:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 module.exports={
   "0": {
   }
 }
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 function copy (selection) {
   const range = selection.getRangeAt(0)
   const selectedElements = []
@@ -931,7 +852,7 @@ function download_json (data) {
   link.click();
 }
 module.exports = {copy, get_color, download_json}
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -948,7 +869,7 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":11}],10:[function(require,module,exports){
+},{"loadSVG":10}],9:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -973,7 +894,7 @@ async function io(id, name, on) {
     ports[await find_id('theme_widget')]?.on['refresh']()
   }
 }
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -986,7 +907,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -1086,7 +1007,7 @@ function localdb () {
     return target_key && JSON.parse(localStorage[target_key])
   } 
 }
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports={
   "0": {
     "inputs": ["theme_editor.css"]
@@ -1095,9 +1016,9 @@ module.exports={
     "file": "src/node_modules/css/default/theme_editor.css"
   }
 }
-},{}],14:[function(require,module,exports){
-arguments[4][7][0].apply(exports,arguments)
-},{"dup":7}],15:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
+arguments[4][6][0].apply(exports,arguments)
+},{"dup":6}],14:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1502,7 +1423,7 @@ async function theme_editor (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/theme_editor/theme_editor.js")
-},{"./instance.json":13,"./module.json":14,"STATE":4,"io":10,"localdb":12}],16:[function(require,module,exports){
+},{"./instance.json":12,"./module.json":13,"STATE":3,"io":9,"localdb":11}],15:[function(require,module,exports){
 module.exports={
   "0": {
     "subs": [3, 4],
@@ -1518,7 +1439,7 @@ module.exports={
     "idx": 2
   }
 }
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports={
   "0": {
     "subs": [1, 2]
@@ -1530,7 +1451,7 @@ module.exports={
     "type": "graph_explorer"
   }
 }
-},{}],18:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1668,7 +1589,7 @@ async function theme_widget (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
-},{"./instance.json":16,"./module.json":17,"STATE":4,"graph_explorer":5,"io":10,"theme_editor":15}],19:[function(require,module,exports){
+},{"./instance.json":15,"./module.json":16,"STATE":3,"graph_explorer":4,"io":9,"theme_editor":14}],18:[function(require,module,exports){
 module.exports={
   "0": {
     "inputs": ["topnav.css", "topnav.json"]
@@ -1709,9 +1630,9 @@ module.exports={
     }
   }
 }
-},{}],20:[function(require,module,exports){
-arguments[4][7][0].apply(exports,arguments)
-},{"dup":7}],21:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
+arguments[4][6][0].apply(exports,arguments)
+},{"dup":6}],20:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1834,7 +1755,7 @@ async function topnav (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
-},{"./instance.json":19,"./module.json":20,"STATE":4,"graphic":9,"io":10}],22:[function(require,module,exports){
+},{"./instance.json":18,"./module.json":19,"STATE":3,"graphic":8,"io":9}],21:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
@@ -1911,34 +1832,55 @@ async function boot () {
   return
 
   function fallback () { // -> set database defaults or load from database
-    return require('./instance.json')
+    const data = require('./instance.json')
+    data[4].fallback = {
+      demo: fallback_topnav,
+      index: null
+    }
+    return data
+  }
+  function fallback_topnav (data) {
+    data['topnav.json'].data.links.push({
+      "id": "demo",
+      "text": "Demo",
+      "url": "demo"
+    })
+    return data
   }
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
 }).call(this)}).call(this,"/web/demo.js","/web")
-},{"../":1,"../src/node_modules/STATE":4,"./instance.json":23,"./module.json":24}],23:[function(require,module,exports){
+},{"../":1,"../src/node_modules/STATE":3,"./instance.json":22,"./module.json":23}],22:[function(require,module,exports){
 module.exports={
   "0": {
-    "subs": [2],
+    "subs": [3],
     "inputs": ["demo.css"]
   },
   "demo.css": {
     "file": "src/node_modules/css/default/demo.css"
   },
-  "2": {
-    "idx": 1
+  "3": {
+    "idx": 1,
+    "subs": [4]
+  },
+  "4": {
+    "idx": 2
   }
 }
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 module.exports={
   "0": {
     "admins": ["theme_editor", "theme_widget"],
     "subs": [1]
   },
   "1": {
-    "type": "index"
+    "type": "index",
+    "subs": [2]
+  },
+  "2": {
+    "type": "topnav"
   }
 }
-},{}]},{},[22]);
+},{}]},{},[21]);

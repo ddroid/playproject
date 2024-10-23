@@ -25,7 +25,7 @@ const modules = {
 }
 module.exports = index
 
-async function index(opts) {
+async function index (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -64,7 +64,30 @@ async function index(opts) {
     Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
   }
   function fallback() {
-    return require('./instance.json')
+    return {
+      "0": {
+        "subs": [3, 4],
+        "inputs": ["index.css"]
+      },
+      "index.css": {
+        "file": "src/node_modules/css/default/index.css"
+      },
+      "3": {
+        "idx": 1
+      },
+      "4": {
+        "idx": 2,
+        fallback: {index: fallback_topnav}
+      }
+    }
+  }
+  function fallback_topnav (data) {
+    data['topnav.json'].data.links.push({
+      "id": "index",
+      "text": "Index",
+      "url": "index"
+    })
+    return data
   }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})

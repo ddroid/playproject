@@ -73,7 +73,20 @@ async function boot () {
   return
 
   function fallback () { // -> set database defaults or load from database
-    return require('./instance.json')
+    const data = require('./instance.json')
+    data[4].fallback = {
+      demo: fallback_topnav,
+      index: null
+    }
+    return data
+  }
+  function fallback_topnav (data) {
+    data['topnav.json'].data.links.push({
+      "id": "demo",
+      "text": "Demo",
+      "url": "demo"
+    })
+    return data
   }
 }
 async function inject (data){
