@@ -5,7 +5,7 @@ Modules and instances are entities created to have their behavior dictated by th
 **Rules**:
 - Each entity (module/instance) has a unique ID in a component except for ID `0`.
 - ID `0` is reserved for the root module/instance and is responsible for managing the primary state and possible sub-instances `subs`.
-- Sub-instances use IDs `n`, and the system ensures that the same ID is not re-used between module and instance fallbacks for a given `n`.
+- Sub-instances use IDs `n`, which needs to be unique within the fallbacks inside a component.
 - Fallbacks allow for cascading behavior, where higher-level modules or instances can define behaviors or structures which can override default behaviors of lower-level elements.
 
 ### Format
