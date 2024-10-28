@@ -121,10 +121,15 @@ async function index (opts) {
 const snapshot = null
 const localdb = require('localdb')
 const db = localdb()
-const status = {root_module: true, root_instance: true, module_index: {}, fallback_handlers: []}
+const status = {
+  root_module: true, 
+  root_instance: true, 
+  module_index: {}, 
+  fallback_handlers: []
+}
 const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
 
-const version = 5
+const version = 6
 if(db.read(['playproject_version']) != version){
   localStorage.clear()
   status.fallback_check = true
@@ -1906,6 +1911,7 @@ async function boot () {
         idx: 2,
         fallback: {
           demo: fallback_topnav,
+          index: null
         }
       }
     }

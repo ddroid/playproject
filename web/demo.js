@@ -103,6 +103,7 @@ async function boot () {
         idx: 2,
         fallback: {
           demo: fallback_topnav,
+          index: null
         }
       }
     }

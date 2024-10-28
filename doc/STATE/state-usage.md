@@ -108,7 +108,7 @@ function fallback_<module2_name>_module(data){
   return data
 }
 ```
-- **Overriding an **: When an entity overrides a sub-sub-entity through a sub-entity.
+- **Overriding an override**: When an entity overrides a sub-sub-entity through a sub-entity.
 ```js
 function fallback_module(){
   return {
