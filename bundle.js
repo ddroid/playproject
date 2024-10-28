@@ -8,15 +8,27 @@ const name = 'index'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { id, sdb, getdb } = statedb(fallback)
-function fallback () { return require('./module.json') }
+const { id, sdb, getdb, sub_modules } = statedb(fallback)
+function fallback () { 
+  return {
+    "0": {
+      "subs": [1, 2]
+    },
+    "1": {
+      "type": "theme_widget"
+    },
+    "2": {
+      "type": "topnav"
+    }
+  } 
+}
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
 const IO = require('io')
 const modules = {
- theme_widget : require('theme_widget'),
- topnav : require('topnav'),
+ [sub_modules['theme_widget']] : require('theme_widget'),
+ [sub_modules['topnav']] : require('topnav'),
 //  header : require('header'),
 //  datdot : require('datdot'),
 //  editor : require('editor'),
@@ -53,17 +65,19 @@ async function index (opts) {
   
   console.log(subs)
   main.append(...await Promise.all(
-    Object.entries(subs).map(async ([name, opts]) => {
+    subs.map(async ({sid, idx, type}) => {
       const el = document.createElement('div')
-      el.name = name
+      el.name = type
       const shadow = el.attachShadow(shopts)
-      shadow.append(await modules[name]({ sid: opts[0].sid, hub: [id] }))
+      shadow.append(await modules[idx]({ sid, hub: [id] }))
       return el
   })))
   return el
   
   function onbatch(batch) {
-    Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }  
   }
   function fallback() {
     return {
@@ -72,7 +86,7 @@ async function index (opts) {
         "inputs": ["index.css"]
       },
       "index.css": {
-        "file": "src/node_modules/css/default/index.css"
+        $ref: new URL('src/node_modules/css/default/index.css', location).href
       },
       "3": {
         "idx": 1
@@ -101,19 +115,7 @@ async function index (opts) {
 
 
 }).call(this)}).call(this,"/src/index.js")
-},{"./module.json":2,"STATE":3,"io":9,"theme_widget":17,"topnav":20}],2:[function(require,module,exports){
-module.exports={
-  "0": {
-    "subs": [1, 2]
-  },
-  "1": {
-    "type": "theme_widget"
-  },
-  "2": {
-    "type": "topnav"
-  }
-}
-},{}],3:[function(require,module,exports){
+},{"STATE":2,"io":6,"theme_widget":10,"topnav":12}],2:[function(require,module,exports){
 // STATE.js
 
 const snapshot = null
@@ -122,11 +124,11 @@ const db = localdb()
 const status = {root_module: true, root_instance: true, module_index: {}, fallback_handlers: []}
 const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
 
-
-if(db.read(['playproject_version']) != 5){
+const version = 5
+if(db.read(['playproject_version']) != version){
   localStorage.clear()
   status.fallback_check = true
-  db.add(['playproject_version'], 5)
+  db.add(['playproject_version'], version)
 }
 // db.read(['state']) || db.add(['state'], {})
 
@@ -141,14 +143,14 @@ function STATE(filename) {
   const last = parts.at(-1).split('/')
   const local_status = {
     name: last.at(-1).slice(0, -3),
-    deny: {}, subs: {}
+    deny: {}, subs: []
   }
   const sdb = { watch, get_sub, req_access }
   const admin = { xget, get_all, add_admins }
   return statedb
 
   function statedb (fallback) {
-    const search_filters = {'name': local_status.name, xtype: 'module'}
+    const search_filters = {'type': local_status.name}
     data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
     if (status.fallback_check) {
       if (status.root_module) {
@@ -166,7 +168,11 @@ function STATE(filename) {
     local_status.id = data.id
     local_status.module_id = data.id
     // data.hubs && add_source(data.hubs)
-    return { id: data.id, sdb, getdb }
+    const sub_modules = {}
+    data.subs && data.subs.forEach(id => {
+      sub_modules[db.read(['state', id]).type] = id
+    })
+    return { id: data.id, sdb, getdb, sub_modules }
   }
   function add_source(hubs){
     hubs.forEach(id => {
@@ -180,8 +186,8 @@ function STATE(filename) {
     data.subs && data.subs.forEach(sub => {
       const substate = db.read(['state', sub])
       s2i[i2s[sub] = Symbol(sub)] = sub
-      local_status.subs[substate.type]?.push({ sid: i2s[sub], type: substate.type, idx: substate.idx }) || 
-      (local_status.subs[substate.type] = [{ sid: i2s[sub], type: substate.type, idx: substate.idx }])
+      const dad = db.read(['state', substate.idx])
+      local_status.subs.push({ sid: i2s[sub], type: dad.type, idx: substate.idx })
     })
   }
   function getdb (sid, fallback){
@@ -192,7 +198,7 @@ function STATE(filename) {
       data = db.read(['state', id])
     }
     if(status.root_instance){
-      data = db.get_by_value(['state'], {'name': local_status.name, xtype: 'instance'})
+      data = db.get_by_value(['state'], {'idx': 0})
       status.root_instance = false
     }
     local_status.id = data.id
@@ -202,26 +208,29 @@ function STATE(filename) {
   async function watch (listener) {
     const data = db.read(['state', local_status.id])
     listeners[data.id] = listener
-    const input_map = {}
+    const input_map = []
     data.inputs && await Promise.all(data.inputs.map(async input => {
       const input_state = db.read(['state', input])
       const input_data = await fetch_save(input_state)
-      input_map[input_state.type]?.push(input_data) || (input_map[input_state.type] = [input_data])
+      input_map.push({ type: input_state.type, data: [input_data] })
     }))
     listener(input_map)
     return local_status.subs
   }
-  async function fetch_save({ id, name, file, type, data }) {
+  async function fetch_save({ id, name, $ref, type, data }) {
     const xtype = (typeof(id) === "number" ? name : id).split('.').at(-1)
     let result = db.read([ type, id ])
     if(!result){
-      result = data || await((await fetch(file))[xtype === 'json' ?'json' :'text']())
+      result = data || await((await fetch($ref))[xtype === 'json' ?'json' :'text']())
       db.add([type, id], result)
     }
     return result
   }
-  function get_sub (name) {
-    return local_status.subs[name]
+  function get_sub (type) {
+    return local_status.subs.filter(sub => {
+      const dad = db.read(['state', sub.idx])
+      return dad.type === type
+    })
   }
   async function add_admins (ids) {
     admins.push(...ids)
@@ -239,11 +248,19 @@ function STATE(filename) {
     return db.read_all(['state'])
   }
   function preprocess (host_data, xtype, super_data = {}) {
-    let {id: super_id, idx, hubs, fallback} = super_data
-    fallback?.forEach(handler_id => {
+    let count = db.length(['state'])
+    let {id: super_id, idx, hubs, fallback, subs} = super_data
+    let subs_data = {}, subs_types, id_map = {}
+    if(subs){
+      subs.forEach(id => subs_data[id] = db.read(['state', id]))
+      subs_types = new Set(Object.values(subs_data).map(sub => {
+        const dad = db.read(['state', sub.idx])
+        return dad.type
+      }))
+    }
+    fallback && Object.values(fallback).forEach(handler_id => {
       host_data = status.fallback_handlers[handler_id](host_data)
     })
-    let count = db.length(['state'])
     
     const on = {
       subs: clean_node,
@@ -253,14 +270,15 @@ function STATE(filename) {
     clean_node(0)
 
     function clean_node (local_id, hub_entry, hub_module) {
-      const entry = host_data[local_id]
+      let entry = host_data[local_id]
       let module
 
       if(xtype === 'module'){
         entry.idx = local_id || idx
+        entry.type = entry.type || local_status.name
         if(!local_id){
           const file_id = local_status.name+'.js'
-          host_data[file_id] = { file: filename }
+          host_data[file_id] = { $ref: new URL(filename, location).href }
           hubs?.push(file_id) || (hubs = [file_id])
         }
       }
@@ -269,28 +287,45 @@ function STATE(filename) {
         xtype === 'instance' && hub_module?.subs && hub_module.subs.forEach(id => {
           const module_data = db.read(['state', id])
           if(module_data.idx == entry.idx){
-            entry.name = module_data.name
+            entry.idx = module_data.id
             module = module_data
             return
           }
         })
+        const type = entry.type || module.type
+        if(subs_types && subs_types.has(type)){
+          const super_entry = Object.values(subs_data).find(sub => {
+            const dad = db.read(['state', sub.idx])
+            return dad.type === type
+          })
+          console.log(xtype, type, super_entry)
+          if(super_entry.fallback){
+            super_entry.fallback[hub_module.type] = status.fallback_handlers.length
+            status.fallback_handlers.push(entry.fallback[hub_module.type])
+            db.add(['state', super_entry.id], super_entry)
+          }
+          return super_entry.id
+        }
       }
       else{
         hubs && (entry.hubs = hubs)
-        if(xtype === 'instance')
+        if(xtype === 'instance'){
           module = db.read(['state', local_status.module_id])
+          entry.idx = module.id
+        }
       }
-
       entry.id = local_id ? count : super_id || count
       entry.name = entry.name || entry.type || local_status.name
-      entry.xtype = xtype
-      entry.type = entry.name
-      entry.idx = entry.idx || idx || 0
+
       if(entry.fallback){
-        const new_fallback = []
-        Object.values(entry.fallback).forEach(handler => {
-          new_fallback.push(status.fallback_handlers.length)
-          status.fallback_handlers.push(handler)
+        const new_fallback = {}
+        Object.entries(entry.fallback).forEach(([type, handler]) => {
+          if(handler){
+            new_fallback[type] = status.fallback_handlers.length
+            status.fallback_handlers.push(handler)
+          }
+          else
+            new_fallback[type] = null
         })
         entry.fallback = new_fallback
       }
@@ -316,7 +351,7 @@ function STATE(filename) {
   }
   
 }
-},{"localdb":11}],4:[function(require,module,exports){
+},{"localdb":8}],3:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -327,7 +362,12 @@ const statedb = STATE(__filename)
 const default_slots = [['hubs', 'subs'], ['inputs', 'outputs']]
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback () { return require('./module.json') }
+function fallback () { 
+  return {
+    "0": {
+    }
+  } 
+}
 
 const IO = require('io')
 const {copy, get_color, download_json} = require('helper')
@@ -379,10 +419,19 @@ async function graph_explorer (opts) {
    Mix
   ******************************************/
   function onbatch(batch) {
-    Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }  
   }
   function fallback() {
-    return require('./instance.json')
+    return {
+      "0": {
+        "inputs": ["graph_explorer.css"]
+      },
+      "graph_explorer.css": {
+        $ref: new URL('src/node_modules/css/default/graph_explorer.css', location).href
+      }
+    }
   }
   async function oncopy(e) {
     const selection = shadow.getSelection()
@@ -795,21 +844,7 @@ async function graph_explorer (opts) {
   }
 }
 }).call(this)}).call(this,"/src/node_modules/graph_explorer/graph_explorer.js")
-},{"./instance.json":5,"./module.json":6,"STATE":3,"helper":7,"io":9}],5:[function(require,module,exports){
-module.exports={
-  "0": {
-    "inputs": ["graph_explorer.css"]
-  },
-  "graph_explorer.css": {
-    "file": "src/node_modules/css/default/graph_explorer.css"
-  }
-}
-},{}],6:[function(require,module,exports){
-module.exports={
-  "0": {
-  }
-}
-},{}],7:[function(require,module,exports){
+},{"STATE":2,"helper":4,"io":6}],4:[function(require,module,exports){
 function copy (selection) {
   const range = selection.getRangeAt(0)
   const selectedElements = []
@@ -852,7 +887,7 @@ function download_json (data) {
   link.click();
 }
 module.exports = {copy, get_color, download_json}
-},{}],8:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -869,7 +904,7 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":10}],9:[function(require,module,exports){
+},{"loadSVG":7}],6:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -894,7 +929,7 @@ async function io(id, name, on) {
     ports[await find_id('theme_widget')]?.on['refresh']()
   }
 }
-},{}],10:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -907,7 +942,7 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],11:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
@@ -1007,18 +1042,7 @@ function localdb () {
     return target_key && JSON.parse(localStorage[target_key])
   } 
 }
-},{}],12:[function(require,module,exports){
-module.exports={
-  "0": {
-    "inputs": ["theme_editor.css"]
-  },
-  "theme_editor.css": {
-    "file": "src/node_modules/css/default/theme_editor.css"
-  }
-}
-},{}],13:[function(require,module,exports){
-arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],14:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1028,7 +1052,12 @@ const name = 'theme_editor'
 const statedb = STATE(__filename)
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback () { return require('./module.json') }
+function fallback () { 
+  return {
+    "0": {
+    }
+  }
+}
 /******************************************************************************
   THEME_EDITOR COMPONENT
 ******************************************************************************/
@@ -1151,10 +1180,19 @@ async function theme_editor (opts) {
   return el
 
   function onbatch(batch){
-    Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }  
   }
   function fallback() {
-    return require('./instance.json')
+    return {
+      "0": {
+        "inputs": ["theme_editor.css"]
+      },
+      "theme_editor.css": {
+        $ref: new URL('src/node_modules/css/default/theme_editor.css', location).href
+      }
+    }
   }
   async function hide () {
     main.classList.toggle('select')
@@ -1423,35 +1461,7 @@ async function theme_editor (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/theme_editor/theme_editor.js")
-},{"./instance.json":12,"./module.json":13,"STATE":3,"io":9,"localdb":11}],15:[function(require,module,exports){
-module.exports={
-  "0": {
-    "subs": [3, 4],
-    "inputs": ["theme_widget.css"]
-  },
-  "theme_widget.css": {
-    "file": "src/node_modules/css/default/theme_widget.css"
-  },
-  "3": {
-    "idx": 1
-  },
-  "4": {
-    "idx": 2
-  }
-}
-},{}],16:[function(require,module,exports){
-module.exports={
-  "0": {
-    "subs": [1, 2]
-  },
-  "1": {
-    "type": "theme_editor"
-  },
-  "2": {
-    "type": "graph_explorer"
-  }
-}
-},{}],17:[function(require,module,exports){
+},{"STATE":2,"io":6,"localdb":8}],10:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1462,7 +1472,19 @@ const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback () { return require('./module.json') }
+function fallback () { 
+  return {
+    "0": {
+      "subs": [1, 2]
+    },
+    "1": {
+      "type": "theme_editor"
+    },
+    "2": {
+      "type": "graph_explorer"
+    }
+  }
+}
 /******************************************************************************
   THEME_WIDGET COMPONENT
 ******************************************************************************/
@@ -1525,19 +1547,37 @@ async function theme_widget (opts) {
   const select = box.querySelector('.select')
   const slider = box.querySelector('input')
 
-  const subs = await sdb.watch(onbatch)
+  const theme_editor_sub = sdb.get_sub('theme_editor')
+  const graph_explorer_sub = sdb.get_sub('graph_explorer')
+  await sdb.watch(onbatch)
 
-  editor.append(await theme_editor({ sid: subs.theme_editor?.[0].sid, hub: [id], paths }))
-  box.prepend(await graph_explorer({ sid: subs.graph_explorer?.[0].sid, hub: [id] }))
+  editor.append(await theme_editor({ sid: theme_editor_sub[0].sid, hub: [id], paths }))
+  box.prepend(await graph_explorer({ sid: graph_explorer_sub[0].sid, hub: [id] }))
   select.onclick = on_select
   slider.oninput = blur
   return el
 
   function onbatch(batch){
-    Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }  
   }
   function fallback() {
-    return require('./instance.json')
+    return {
+      "0": {
+        "subs": [3, 4],
+        "inputs": ["theme_widget.css"]
+      },
+      "theme_widget.css": {
+        $ref: new URL('src/node_modules/css/default/theme_widget.css', location).href
+      },
+      "3": {
+        "idx": 1
+      },
+      "4": {
+        "idx": 2
+      }
+    }
   }
   async function blur(e) {
     popup.style.opacity = e.target.value/100
@@ -1589,13 +1629,10 @@ async function theme_widget (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
-},{"./instance.json":15,"./module.json":16,"STATE":3,"graph_explorer":4,"io":9,"theme_editor":14}],18:[function(require,module,exports){
+},{"STATE":2,"graph_explorer":3,"io":6,"theme_editor":9}],11:[function(require,module,exports){
 module.exports={
   "0": {
     "inputs": ["topnav.css", "topnav.json"]
-  },
-  "topnav.css": {
-    "file": "src/node_modules/css/default/topnav.css"
   },
   "topnav.json": {
     "type": "content",
@@ -1630,9 +1667,7 @@ module.exports={
     }
   }
 }
-},{}],19:[function(require,module,exports){
-arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],20:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1642,7 +1677,11 @@ const name = 'topnav'
 const statedb = STATE(__filename)
 // ----------------------------------------
 const { id, sdb, getdb } = statedb(fallback)
-function fallback () { return require('./module.json') }
+function fallback () { 
+	return {
+		"0": {}
+	} 
+}
 
 /******************************************************************************
   OUR CONTRIBUTORS COMPONENT
@@ -1721,14 +1760,19 @@ async function topnav (opts) {
 	return el
 
 	function onbatch(batch){
-    Object.entries(batch).forEach(([input, data]) => on[input](data))
-  }
+		for (const {type, data} of batch) {
+      on[type](data)
+    }  
+	}
 	function fill ([ opts ]) { 
-		menu.innerHTML = ''
-		menu.append(...opts.links.map(make_link))
+		menu.replaceChildren(...opts.links.map(make_link))
 	}
 	function fallback() {
-    return require('./instance.json')
+		const data = require('./instance.json')
+		data['topnav.css'] = {
+			$ref: new URL('src/node_modules/css/default/topnav.css', location).href
+		}
+    return data 
   }
 	function click(url) {
 		send({to:'index', type: 'jump', data: url })
@@ -1755,7 +1799,7 @@ async function topnav (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
-},{"./instance.json":18,"./module.json":19,"STATE":3,"graphic":8,"io":9}],21:[function(require,module,exports){
+},{"./instance.json":11,"STATE":2,"graphic":5,"io":6}],13:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
@@ -1767,7 +1811,19 @@ const { id, sdb, getdb } = statedb(fallback)
 const make_page = require('../') 
 
 function fallback () { // -> set database defaults or load from database
-	return require('./module.json')
+	return {
+    "0": {
+      "admins": ["theme_editor", "theme_widget"],
+      "subs": [1]
+    },
+    "1": {
+      "type": "index",
+      "subs": [2]
+    },
+    "2": {
+      "type": "topnav"
+    }
+  }
 }
 /******************************************************************************
   CSS & HTML Defaults
@@ -1808,7 +1864,9 @@ async function boot () {
   }
   sdb.watch(onbatch)
   function onbatch(batch){
-    Object.entries(batch).forEach(([input, data]) => on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
   }
   const status = {}
   // ----------------------------------------
@@ -1832,12 +1890,25 @@ async function boot () {
   return
 
   function fallback () { // -> set database defaults or load from database
-    const data = require('./instance.json')
-    data[4].fallback = {
-      demo: fallback_topnav,
-      index: null
+    return {
+      0: {
+        subs: [3],
+        inputs: ["demo.css"]
+      },
+      "demo.css": {
+        $ref: new URL('src/node_modules/css/default/demo.css', location).href
+      },
+      3: {
+        idx: 1,
+        subs: [4]
+      },
+      4: {
+        idx: 2,
+        fallback: {
+          demo: fallback_topnav,
+        }
+      }
     }
-    return data
   }
   function fallback_topnav (data) {
     data['topnav.json'].data.links.push({
@@ -1852,35 +1923,4 @@ async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
 }).call(this)}).call(this,"/web/demo.js","/web")
-},{"../":1,"../src/node_modules/STATE":3,"./instance.json":22,"./module.json":23}],22:[function(require,module,exports){
-module.exports={
-  "0": {
-    "subs": [3],
-    "inputs": ["demo.css"]
-  },
-  "demo.css": {
-    "file": "src/node_modules/css/default/demo.css"
-  },
-  "3": {
-    "idx": 1,
-    "subs": [4]
-  },
-  "4": {
-    "idx": 2
-  }
-}
-},{}],23:[function(require,module,exports){
-module.exports={
-  "0": {
-    "admins": ["theme_editor", "theme_widget"],
-    "subs": [1]
-  },
-  "1": {
-    "type": "index",
-    "subs": [2]
-  },
-  "2": {
-    "type": "topnav"
-  }
-}
-},{}]},{},[21]);
+},{"../":1,"../src/node_modules/STATE":2}]},{},[13]);

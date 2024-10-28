@@ -77,18 +77,18 @@ function fallback_module(){
       slot1: [1],
       slot2: ['data.json']
     },
-    1: { type: '<module_name>', fallback: {
-      <host_module_name>: fallback_<module_name>_module
+    1: { type: '<module1_name>', fallback: {
+      <host_module_name>: fallback_<module1_name>_module
     }},
     'data.json': { data: {} || '' }
   }
 }
-function fallback_<module_name>_module(data){
+function fallback_<module1_name>_module(data){
   data[0]['new_field'] = 'new_value' //changes to data
   return data
 }
 ```
-- **Override level-2**: When an entity overrides the default data of a sub-sub-entity.
+- **Override level-2**: When an entity overrides the default data of a sub-sub-entity, leaving sub-entity untouched.
 ```js
 function fallback_module(){
   return {
@@ -96,19 +96,19 @@ function fallback_module(){
       slot1: [1],
       slot2: ['data.json']
     },
-    1: { type: '<module_name1>', slot1: [2] },
-    2: { type: '<module_name2>', fallback: {
-      <host_module_name>: fallback_<module_name2>_module
+    1: { type: '<module1_name>', slot1: [2] },
+    2: { type: '<module2_name>', fallback: {
+      <host_module_name>: fallback_<module2_name>_module
     }},
     'data.json': { data: {} || '' }
   }
 }
-function fallback_<module_name2>_module(data){
+function fallback_<module2_name>_module(data){
   data[0]['new_field'] = 'new_value' //changes to data
   return data
 }
 ```
-- **Overriding an override**: When an entity overrides the overriden data by a sub-entity of a sub-sub-entity.
+- **Overriding an **: When an entity overrides a sub-sub-entity through a sub-entity.
 ```js
 function fallback_module(){
   return {
@@ -116,9 +116,10 @@ function fallback_module(){
       slot1: [1],
       slot2: ['data.json']
     },
-    1: { type: '<module_name1>', slot1: [2] },
-    2: { type: '<module_name2>', fallback: {
-      <host_module_name>: fallback_<module_name2>_module, <module_name1>: null
+    1: { type: '<module1_name>', slot1: [2] },
+    2: { type: '<module2_name>', fallback: {
+      <host_module_name>: fallback_<module_name2>_module,
+      <module_name1>: null //module1 will fill this with its override
     }},
     'data.json': { data: {} || '' }
   }
@@ -132,170 +133,105 @@ function fallback_<module_name2>_module(data){
 
 ## Example
 ```js
-// -----------------------------------------------------------------
-// ## proposal: `version 4` (=draft)
-// -----------------------------------------------------------------
-// TASK: define scenario `page > app > header > menubar > button`
-// * with fallbacks and overrides for button in almost all modules and instances
+// EXAMPLE:
+// define scenario:
+// page>app>header>menubar>button
 //
-// RULE: for all state IDs
-// - 0: for module or instance state
-// - n: for possible sub modules/instances
-// - in every file, every number `n` across module & instance fallbacks must be unique
-// ------
+// with fallbacks and overrides for:
+// * button in almost all modules and instances
+// 
+// RULES:
+// every entity has an id:
+// - 0: is for module and or instance state
+// - n: is for possible sub instances
+// apart from `0:`, module and instance fallbacks are not allowed to re-use a number used in the other fallback for `n:`
+// --------------------------------
 // web/page.js
 function fallback_module () {
   return {
-    0: { subs: [1] },
+    0: { subs: [1], slotmap: ['inputs', 'output', 'subs', 'hubs'] },
     1: { type: 'app' },
-    2: { type: 1 },
   }
 }
-function fallback_instance () {} // no instances
-// ------
-// src/app.js
-const header1 = require('header')
-require.cache = undefined
-const header2 = require('header')
-const { sdb, getsdb } = statedb(fallback_module)
-function fallback_module () {
-  return {
-    0: { subs: [1, 2] },
-    1: { type: 'header' },
-    2: { type: 'header' },
-  }
-}
-module.exports = function app (opts) {
-  const { sdb } = getdb(opts.sid, fallback_instance)
-  const el = document.createElement('div')
-  const subs = sdb.onbatch(() => {})
-  const [sub1, sub2] = subs
-  console.log(sub1, sub2)
-  // { sid: Symbol(55), type: 'header', idx: 1 }
-  // { sid: Symbol(56), type: 'header', idx: 2 }
-  el.append( 
-    header1({ sid: sub1.sid }),
-    header2({ sid: sub2.sid }),
-  })
-  function fallback_instance () {
-    return {
-      0: { subs: [3, 4] },
-      3: { type: 1 },
-      4: { type: 2 },
-    }
-  }
-}
-// src/node_modules/header/index.js
-const menubar = require('menubar') // @TODO: BEFORE sdb
-const sdb = statedb(fallback_module) // @TODO: VS. ...how to count on sub fallbacks defined?
-const menubar = require('menubar') // @TODO: AFTER sdb
-function fallback_module () {
-  return {
-    0: { subs: [1] }, // not overrides
-    1: { type: "menubar", subs: [2] }, // @TODO: `sub: [2]` is an override in a way..
-    2: { type: 'button', fallback: fallback_button_module }, // @TODO: // we WANT to set menubars sub buttons
-    // when we know the menubar defaults and those of the buttons
-    // also because during development, it allows us to log menubar defaults to see
-    // => how they look to know what we can override in a component written by another dev
-  }
-}
-function fallback_button_module (data, fallbacks, sdb) {
-  return {
-    0: {
-      //
-    }, 
-    1: {
-      //
-    }
-  }
-}
-// ...
-module.exports = function header (sid) {
-const { sdb } = getsdb(sid, fallback_instance)
 function fallback_instance () {
   return {
-    0: { sub: [3], inputs: ["header.css", "header.json"] },
-    3: {
-      type: 1,
-      sub: [4, 5, 6, 7], // // @TODO: subs are also override
-      data: { title: 'welcome' }  // @TODO: data: { /* ... */ } // is an override?
-    },
-    "header.css": "div{ display: none;}",
-    "header.json": { some: "data" },
-    4: { type: 2, fallback: [
-      function fallback_button_instance (data, fallbacks, sdb) { //button instance!
-        // sdb.?  ...look up what module instances are available?
-        const state = data
-        return fallbacks.reduce((data, f) => f(data), {})
-        return state
-        return { 0: { data: { label: 'main' } }
-        }
-      }, 'menubar'
-    ] },
-    5: { type: 2, fallback: [
-      function fallback_button_instance (data, fallbacks, sdb) { //button instance!
-        // sdb.?  ...look up what module instances are available?
-        const state = data
-        return fallbacks.reduce((data, f) => f(data), {})
-        return state
-        return { 0: { data: { label: 'blog' } }
-        }
-      }, 'menubar'
-    ] },
-    6: { type: 2, fallback: [
-      function fallback_button_instance (data, fallbacks, sdb) { //button instance!
-        // sdb.?  ...look up what module instances are available?
-        const state = data
-        return fallbacks.reduce((data, f) => f(data), {})
-        return state
-        return { 0: { data: { label: 'plan' } }
-        }
-      }, 'menubar'
-    ] },
-    7: { type: 2, fallback: [
-      function fallback_button_instance (data, fallbacks, sdb) { //button instance!
-        // sdb.?  ...look up what module instances are available?
-        const state = data
-        return fallbacks.reduce((data, f) => f(data), {})
-        return state
-        return { 0: { data: { label: 'work' } }
-        }
-      }, 'menubar'
-    ] }
+    0: { subs: [2] },
+    2: { idx: 1 },
   }
 }
+// --------------------------------
+// src/app.js
+function fallback_module () {
+  return {
+    0: { subs: [1] },
+    1: { type: 'header' },
+  }
 }
+function fallback_instance () {
+  return {
+    0: { subs: [2] },
+    2: { idx: 1 },
+  }
+}
+// --------------------------------
+// ********************************
+// Overriding an override
+// ********************************
+// src/node_modules/header/index.js
+function fallback_module () {
+  return {
+    0: { subs: [1] },
+    1: { type: 'menubar', subs: [2] },
+    2: { type: 'button' }
+  }
+}
+function fallback_instance () {
+  return {
+    0: { subs: [3] },
+    3: { idx: 1, subs: [4] },
+    4: { idx: 2, fallback: {
+      header: fallback_button, menubar: null
+     } }
+  }
+}
+function fallback_button (data) {
+  return data.map(() => {})
+}
+// --------------------------------
+// ********************************
+// Override level-1
+// ********************************
 // src/node_modules/menubar/index.js
 function fallback_module () {
   return {
     0: { subs: [1] },
-    1: { type: 'button' },
+    1: { type: "button" },
   }
 }
 function fallback_instance () {
   return {
     0: { subs: [2, 3, 4, 5], inputs: ["menubar.css", "menubar.json"] },
-    2: { type: 1, fallback: fallback_button },
-    3: { type: 1, data: { label: 'news' } },
-    4: { type: 1, data: { label: 'docs' } },
-    5: { type: 1, data: { label: 'help' } },
-    "menubar.css": "div { display: none; }",
+    "menubar.css": "div{ display: none;}",
     "menubar.json": { some: "data" },
-  }
-  function fallback_button (data) {
-    return {
-      0: { data: { label: 'home' } }
-    }
+    2: { idx: 1, fallback: { menubar: fallback_button }},
+    3: { idx: 1, data: { label: 'news' } },
+    4: { idx: 1, data: { label: 'docs' } },
+    5: { idx: 1, data: { label: 'help' } },
   }
 }
+function fallback_button (data) {
+  return data.map(() => {})
+}
+// --------------------------------
 // src/node_modules/button/index.js
 function fallback_module () {
-  return { 0: { } }
+  return { 0: {} }
 }
 function fallback_instance () {
   return {
     0: { inputs: ["button.css", "button.json"] },
     "button.css": "div{ display: none;}",
-    "button.json": { label: "button" },
+    "button.json": { some: "data" },
   }
 }
+// --------------------------------

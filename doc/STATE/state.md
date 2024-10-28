@@ -1,17 +1,18 @@
 
 ## Helper Methods
 
-### `populate(...)`
-Populates the state database with the given data. This is typically used to initialize or append new data to the state.
+### `fetch_save(...)`
+Fetches content of a file entry and saves it into `DB`
 
 ```js
-  populate(data)
+  fetch_save(file_entry)
 ```
 - **Params:**
-  - `data`: *Object*  
-    The state data to be appended to the database.
-
----
+  - `file_entry`: *Object*  
+    A file's state from `DB`
+- **Returns**
+  - `result` : *Object* or *String*  
+    The content of the file
 
 ### `symbolfy(...)`
 Converts the sub-module IDs into symbols and maps them for internal tracking. This is used to handle references between components and modules.

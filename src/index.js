@@ -6,15 +6,27 @@ const name = 'index'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { id, sdb, getdb } = statedb(fallback)
-function fallback () { return require('./module.json') }
+const { id, sdb, getdb, sub_modules } = statedb(fallback)
+function fallback () { 
+  return {
+    "0": {
+      "subs": [1, 2]
+    },
+    "1": {
+      "type": "theme_widget"
+    },
+    "2": {
+      "type": "topnav"
+    }
+  } 
+}
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
 const IO = require('io')
 const modules = {
- theme_widget : require('theme_widget'),
- topnav : require('topnav'),
+ [sub_modules['theme_widget']] : require('theme_widget'),
+ [sub_modules['topnav']] : require('topnav'),
 //  header : require('header'),
 //  datdot : require('datdot'),
 //  editor : require('editor'),
@@ -51,17 +63,19 @@ async function index (opts) {
   
   console.log(subs)
   main.append(...await Promise.all(
-    Object.entries(subs).map(async ([name, opts]) => {
+    subs.map(async ({sid, idx, type}) => {
       const el = document.createElement('div')
-      el.name = name
+      el.name = type
       const shadow = el.attachShadow(shopts)
-      shadow.append(await modules[name]({ sid: opts[0].sid, hub: [id] }))
+      shadow.append(await modules[idx]({ sid, hub: [id] }))
       return el
   })))
   return el
   
   function onbatch(batch) {
-    Object.entries(batch).forEach(([input, data]) => on[input] && on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }  
   }
   function fallback() {
     return {
@@ -70,7 +84,7 @@ async function index (opts) {
         "inputs": ["index.css"]
       },
       "index.css": {
-        "file": "src/node_modules/css/default/index.css"
+        $ref: new URL('src/node_modules/css/default/index.css', location).href
       },
       "3": {
         "idx": 1

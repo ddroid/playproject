@@ -8,7 +8,19 @@ const { id, sdb, getdb } = statedb(fallback)
 const make_page = require('../') 
 
 function fallback () { // -> set database defaults or load from database
-	return require('./module.json')
+	return {
+    "0": {
+      "admins": ["theme_editor", "theme_widget"],
+      "subs": [1]
+    },
+    "1": {
+      "type": "index",
+      "subs": [2]
+    },
+    "2": {
+      "type": "topnav"
+    }
+  }
 }
 /******************************************************************************
   CSS & HTML Defaults
@@ -49,7 +61,9 @@ async function boot () {
   }
   sdb.watch(onbatch)
   function onbatch(batch){
-    Object.entries(batch).forEach(([input, data]) => on[input](data))
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
   }
   const status = {}
   // ----------------------------------------
@@ -73,12 +87,25 @@ async function boot () {
   return
 
   function fallback () { // -> set database defaults or load from database
-    const data = require('./instance.json')
-    data[4].fallback = {
-      demo: fallback_topnav,
-      index: null
+    return {
+      0: {
+        subs: [3],
+        inputs: ["demo.css"]
+      },
+      "demo.css": {
+        $ref: new URL('src/node_modules/css/default/demo.css', location).href
+      },
+      3: {
+        idx: 1,
+        subs: [4]
+      },
+      4: {
+        idx: 2,
+        fallback: {
+          demo: fallback_topnav,
+        }
+      }
     }
-    return data
   }
   function fallback_topnav (data) {
     data['topnav.json'].data.links.push({
