@@ -96,14 +96,14 @@ async function boot () {
         $ref: new URL('src/node_modules/css/default/demo.css', location).href
       },
       3: {
-        idx: 1,
+        type: 1,
         subs: [4]
       },
       4: {
-        idx: 2,
+        type: 2,
         fallback: {
-          demo: fallback_topnav,
-          index: null
+          0: fallback_topnav,
+          3: null,
         }
       }
     }

@@ -63,13 +63,13 @@ async function index (opts) {
 
   const subs = await sdb.watch(onbatch)
   
-  console.log(subs)
+  console.log(subs, modules)
   main.append(...await Promise.all(
-    subs.map(async ({sid, idx, type}) => {
+    subs.map(async ({sid, type}) => {
       const el = document.createElement('div')
       el.name = type
       const shadow = el.attachShadow(shopts)
-      shadow.append(await modules[idx]({ sid, hub: [id] }))
+      shadow.append(await modules[type]({ sid, hub: [id] }))
       return el
   })))
   return el
@@ -89,11 +89,11 @@ async function index (opts) {
         $ref: new URL('src/node_modules/css/default/index.css', location).href
       },
       "3": {
-        "idx": 1
+        "type": 1
       },
       "4": {
-        "idx": 2,
-        fallback: {index: fallback_topnav}
+        "type": 2,
+        fallback: {0: fallback_topnav}
       }
     }
   }
@@ -172,7 +172,7 @@ function STATE(filename) {
     }
     local_status.id = data.id
     local_status.module_id = data.id
-    // data.hubs && add_source(data.hubs)
+    data.hubs && add_source(data.hubs)
     const sub_modules = {}
     data.subs && data.subs.forEach(id => {
       sub_modules[db.read(['state', id]).type] = id
@@ -191,8 +191,7 @@ function STATE(filename) {
     data.subs && data.subs.forEach(sub => {
       const substate = db.read(['state', sub])
       s2i[i2s[sub] = Symbol(sub)] = sub
-      const dad = db.read(['state', substate.idx])
-      local_status.subs.push({ sid: i2s[sub], type: dad.type, idx: substate.idx })
+      local_status.subs.push({ sid: i2s[sub], type: substate.type })
     })
   }
   function getdb (sid, fallback){
@@ -203,7 +202,7 @@ function STATE(filename) {
       data = db.read(['state', id])
     }
     if(status.root_instance){
-      data = db.get_by_value(['state'], {'idx': 0})
+      data = db.get_by_value(['state'], {'type': 0})
       status.root_instance = false
     }
     local_status.id = data.id
@@ -233,7 +232,7 @@ function STATE(filename) {
   }
   function get_sub (type) {
     return local_status.subs.filter(sub => {
-      const dad = db.read(['state', sub.idx])
+      const dad = db.read(['state', sub.type])
       return dad.type === type
     })
   }
@@ -258,10 +257,7 @@ function STATE(filename) {
     let subs_data = {}, subs_types, id_map = {}
     if(subs){
       subs.forEach(id => subs_data[id] = db.read(['state', id]))
-      subs_types = new Set(Object.values(subs_data).map(sub => {
-        const dad = db.read(['state', sub.idx])
-        return dad.type
-      }))
+      subs_types = new Set(Object.values(subs_data).map(sub => sub.type))
     }
     fallback && Object.values(fallback).forEach(handler_id => {
       host_data = status.fallback_handlers[handler_id](host_data)
@@ -275,62 +271,62 @@ function STATE(filename) {
     clean_node(0)
 
     function clean_node (local_id, hub_entry, hub_module) {
-      let entry = host_data[local_id]
+      const entry = host_data[local_id]
       let module
 
-      if(xtype === 'module'){
-        entry.idx = local_id || idx
-        entry.type = entry.type || local_status.name
-        if(!local_id){
-          const file_id = local_status.name+'.js'
-          host_data[file_id] = { $ref: new URL(filename, location).href }
-          hubs?.push(file_id) || (hubs = [file_id])
-        }
-      }
       if(local_id){
         entry.hubs = [hub_entry.id]
-        xtype === 'instance' && hub_module?.subs && hub_module.subs.forEach(id => {
-          const module_data = db.read(['state', id])
-          if(module_data.idx == entry.idx){
-            entry.idx = module_data.id
-            module = module_data
-            return
-          }
-        })
-        const type = entry.type || module.type
-        if(subs_types && subs_types.has(type)){
-          const super_entry = Object.values(subs_data).find(sub => {
-            const dad = db.read(['state', sub.idx])
-            return dad.type === type
+        if(xtype === 'instance')
+          hub_module?.subs && hub_module.subs.forEach(id => {
+            const module_data = db.read(['state', id])
+            if(module_data.idx == entry.type){
+              entry.type = module_data.id
+              module = module_data
+              return
+            }
           })
-          console.log(xtype, type, super_entry)
-          if(super_entry.fallback){
-            super_entry.fallback[hub_module.type] = status.fallback_handlers.length
-            status.fallback_handlers.push(entry.fallback[hub_module.type])
+        else
+          entry.idx = local_id
+        //Check if sub-entries are already initialized by a super
+        if(subs_types && subs_types.has(entry.type)){
+          const super_entry = Object.values(subs_data).find(sub => sub.type == entry.type)
+          //continue a fallback chain
+          if(super_entry?.fallback?.[hub_entry.type] === null){
+            super_entry.fallback[hub_entry.type] = status.fallback_handlers.length
+            status.fallback_handlers.push(entry.fallback[0])
             db.add(['state', super_entry.id], super_entry)
           }
           return super_entry.id
         }
       }
       else{
-        hubs && (entry.hubs = hubs)
         if(xtype === 'instance'){
           module = db.read(['state', local_status.module_id])
-          entry.idx = module.id
+          entry.type = module.id
         }
+        else{
+          const file_id = local_status.name+'.js'
+          host_data[file_id] = { $ref: new URL(filename, location).href }
+          hubs?.push(file_id) || (hubs = [file_id])
+          entry.type = entry.type || local_status.name
+          entry.idx = super_data.idx
+        }
+        hubs && (entry.hubs = hubs)
       }
       entry.id = local_id ? count : super_id || count
-      entry.name = entry.name || entry.type || local_status.name
+      entry.name = entry.name || module?.type || entry.type || local_status.name
 
+      id_map[local_id] = entry.type
+      //start a fallback chain
       if(entry.fallback){
         const new_fallback = {}
-        Object.entries(entry.fallback).forEach(([type, handler]) => {
+        Object.entries(entry.fallback).forEach(([id, handler]) => {
           if(handler){
-            new_fallback[type] = status.fallback_handlers.length
+            new_fallback[id_map[id]] = status.fallback_handlers.length
             status.fallback_handlers.push(handler)
           }
           else
-            new_fallback[type] = null
+            new_fallback[id_map[id]] = null
         })
         entry.fallback = new_fallback
       }
@@ -1577,10 +1573,10 @@ async function theme_widget (opts) {
         $ref: new URL('src/node_modules/css/default/theme_widget.css', location).href
       },
       "3": {
-        "idx": 1
+        "type": 1
       },
       "4": {
-        "idx": 2
+        "type": 2
       }
     }
   }
@@ -1904,14 +1900,14 @@ async function boot () {
         $ref: new URL('src/node_modules/css/default/demo.css', location).href
       },
       3: {
-        idx: 1,
+        type: 1,
         subs: [4]
       },
       4: {
-        idx: 2,
+        type: 2,
         fallback: {
-          demo: fallback_topnav,
-          index: null
+          0: fallback_topnav,
+          3: null,
         }
       }
     }

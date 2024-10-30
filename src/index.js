@@ -61,13 +61,13 @@ async function index (opts) {
 
   const subs = await sdb.watch(onbatch)
   
-  console.log(subs)
+  console.log(subs, modules)
   main.append(...await Promise.all(
-    subs.map(async ({sid, idx, type}) => {
+    subs.map(async ({sid, type}) => {
       const el = document.createElement('div')
       el.name = type
       const shadow = el.attachShadow(shopts)
-      shadow.append(await modules[idx]({ sid, hub: [id] }))
+      shadow.append(await modules[type]({ sid, hub: [id] }))
       return el
   })))
   return el
@@ -87,11 +87,11 @@ async function index (opts) {
         $ref: new URL('src/node_modules/css/default/index.css', location).href
       },
       "3": {
-        "idx": 1
+        "type": 1
       },
       "4": {
-        "idx": 2,
-        fallback: {index: fallback_topnav}
+        "type": 2,
+        fallback: {0: fallback_topnav}
       }
     }
   }
