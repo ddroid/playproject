@@ -3,24 +3,50 @@ const STATE = require('../src/node_modules/STATE')
   INITIALIZE PAGE
 ******************************************************************************/
 const statedb = STATE(__filename)
-const { id, sdb, getdb } = statedb(fallback)
+const { sdb, subs: [get] } = statedb(fallback)
 
 const make_page = require('../') 
 
 function fallback () { // -> set database defaults or load from database
 	return {
-    "0": {
-      "admins": ["theme_editor", "theme_widget"],
-      "subs": [1]
+    0: {
+      admins: ["theme_editor", "theme_widget"],
+      subs: [2]
     },
-    "1": {
-      "type": "index",
-      "subs": [2]
+    2: {
+      type: "index",
+      subs: [3]
     },
-    "2": {
-      "type": "topnav"
+    3: {
+      type: "topnav"
+    },
+    1: {
+      subs: [4],
+      inputs: ["demo.css"]
+    },
+    "demo.css": {
+      $ref: new URL('src/node_modules/css/default/demo.css', location).href
+    },
+    4: {
+      type: 2,
+      subs: [5]
+    },
+    5: {
+      type: 3,
+      fallback: {
+        1: fallback_topnav,
+        4: null,
+      }
     }
   }
+}
+function fallback_topnav (data) {
+  data['topnav.json'].data.links.push({
+    "id": "demo",
+    "text": "Demo",
+    "url": "demo"
+  })
+  return data
 }
 /******************************************************************************
   CSS & HTML Defaults
@@ -54,7 +80,7 @@ async function boot () {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await getdb('', fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get('') // hub is "parent's" io "id" to send/receive messages
   const [opts] = sdb.get_sub('index')
   const on = {
     css: inject,
@@ -86,36 +112,6 @@ async function boot () {
 
   return
 
-  function fallback () { // -> set database defaults or load from database
-    return {
-      0: {
-        subs: [3],
-        inputs: ["demo.css"]
-      },
-      "demo.css": {
-        $ref: new URL('src/node_modules/css/default/demo.css', location).href
-      },
-      3: {
-        type: 1,
-        subs: [4]
-      },
-      4: {
-        type: 2,
-        fallback: {
-          0: fallback_topnav,
-          3: null,
-        }
-      }
-    }
-  }
-  function fallback_topnav (data) {
-    data['topnav.json'].data.links.push({
-      "id": "demo",
-      "text": "Demo",
-      "url": "demo"
-    })
-    return data
-  }
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))

@@ -8,20 +8,42 @@ const name = 'index'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { id, sdb, getdb, sub_modules } = statedb(fallback)
+const { sdb, subs: [get], sub_modules } = statedb(fallback)
 function fallback () { 
   return {
-    "0": {
-      "subs": [1, 2]
+    0: {
+      subs: [2, 3]
     },
-    "1": {
-      "type": "theme_widget"
+    2: {
+      type: "theme_widget"
     },
-    "2": {
-      "type": "topnav"
+    3: {
+      type: "topnav"
+    },
+    1: {
+      subs: [4, 5],
+      inputs: ["index.css"]
+    },
+    "index.css": {
+      $ref: new URL('src/node_modules/css/default/index.css', location).href
+    },
+    4: {
+      type: 2
+    },
+    5: {
+      type: 3,
+      fallback: {0: fallback_topnav}
     }
   } 
 }
+  function fallback_topnav (data) {
+    data['topnav.json'].data.links.push({
+      "id": "index",
+      "text": "Index",
+      "url": "index"
+    })
+    return data
+  }
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -43,7 +65,7 @@ async function index (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     jump,
     css: inject,
@@ -79,32 +101,6 @@ async function index (opts) {
       on[type](data)
     }  
   }
-  function fallback() {
-    return {
-      "0": {
-        "subs": [3, 4],
-        "inputs": ["index.css"]
-      },
-      "index.css": {
-        $ref: new URL('src/node_modules/css/default/index.css', location).href
-      },
-      "3": {
-        "type": 1
-      },
-      "4": {
-        "type": 2,
-        fallback: {0: fallback_topnav}
-      }
-    }
-  }
-  function fallback_topnav (data) {
-    data['topnav.json'].data.links.push({
-      "id": "index",
-      "text": "Index",
-      "url": "index"
-    })
-    return data
-  }
   async function jump ({ data }) {
     main.querySelector('#'+data).scrollIntoView({ behavior: 'smooth'})
   }
@@ -125,7 +121,8 @@ const status = {
   root_module: true, 
   root_instance: true, 
   module_index: {}, 
-  fallback_handlers: []
+  overrides: [],
+
 }
 const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
 
@@ -151,10 +148,12 @@ function STATE(filename) {
     deny: {}, subs: []
   }
   const sdb = { watch, get_sub, req_access }
+  const subs = [get]
   const admin = { xget, get_all, add_admins }
   return statedb
 
   function statedb (fallback) {
+    local_status.fallback = fallback
     const search_filters = {'type': local_status.name}
     data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
     if (status.fallback_check) {
@@ -177,7 +176,7 @@ function STATE(filename) {
     data.subs && data.subs.forEach(id => {
       sub_modules[db.read(['state', id]).type] = id
     })
-    return { id: data.id, sdb, getdb, sub_modules }
+    return { id: data.id, sdb, subs, sub_modules }
   }
   function add_source(hubs){
     hubs.forEach(id => {
@@ -194,11 +193,11 @@ function STATE(filename) {
       local_status.subs.push({ sid: i2s[sub], type: substate.type })
     })
   }
-  function getdb (sid, fallback){
+  function get (sid){
     const id = s2i[sid]
     data = db.read(['state', id])
     if(status.fallback_check){
-      preprocess(fallback(), 'instance', data)
+      preprocess(local_status.fallback(), 'instance', data)
       data = db.read(['state', id])
     }
     if(status.root_instance){
@@ -253,28 +252,28 @@ function STATE(filename) {
   }
   function preprocess (host_data, xtype, super_data = {}) {
     let count = db.length(['state'])
-    let {id: super_id, idx, hubs, fallback, subs} = super_data
+    let {id: super_id, hubs, fallback, subs} = super_data
     let subs_data = {}, subs_types, id_map = {}
     if(subs){
       subs.forEach(id => subs_data[id] = db.read(['state', id]))
       subs_types = new Set(Object.values(subs_data).map(sub => sub.type))
     }
     fallback && Object.values(fallback).forEach(handler_id => {
-      host_data = status.fallback_handlers[handler_id](host_data)
+      host_data = status.overrides[handler_id](host_data)
     })
-    
+
     const on = {
       subs: clean_node,
       inputs: clean_file,
       hubs: clean_file
     }
-    clean_node(0)
+    clean_node(xtype === 'module' ? 0 : 1)
 
     function clean_node (local_id, hub_entry, hub_module) {
       const entry = host_data[local_id]
       let module
 
-      if(local_id){
+      if(Number(local_id) > 1){
         entry.hubs = [hub_entry.id]
         if(xtype === 'instance')
           hub_module?.subs && hub_module.subs.forEach(id => {
@@ -292,8 +291,8 @@ function STATE(filename) {
           const super_entry = Object.values(subs_data).find(sub => sub.type == entry.type)
           //continue a fallback chain
           if(super_entry?.fallback?.[hub_entry.type] === null){
-            super_entry.fallback[hub_entry.type] = status.fallback_handlers.length
-            status.fallback_handlers.push(entry.fallback[0])
+            super_entry.fallback[hub_entry.type] = status.overrides.length
+            status.overrides.push(entry.fallback[0])
             db.add(['state', super_entry.id], super_entry)
           }
           return super_entry.id
@@ -313,7 +312,7 @@ function STATE(filename) {
         }
         hubs && (entry.hubs = hubs)
       }
-      entry.id = local_id ? count : super_id || count
+      entry.id = Number(local_id) > 1 ? count : super_id || count
       entry.name = entry.name || module?.type || entry.type || local_status.name
 
       id_map[local_id] = entry.type
@@ -322,8 +321,8 @@ function STATE(filename) {
         const new_fallback = {}
         Object.entries(entry.fallback).forEach(([id, handler]) => {
           if(handler){
-            new_fallback[id_map[id]] = status.fallback_handlers.length
-            status.fallback_handlers.push(handler)
+            new_fallback[id_map[id]] = status.overrides.length
+            status.overrides.push(handler)
           }
           else
             new_fallback[id_map[id]] = null
@@ -362,10 +361,15 @@ const name = 'graph_explorer'
 const statedb = STATE(__filename)
 const default_slots = [['hubs', 'subs'], ['inputs', 'outputs']]
 // ----------------------------------------
-const { id, sdb, getdb } = statedb(fallback)
+const { id, sdb, subs:[get] } = statedb(fallback)
 function fallback () { 
   return {
-    "0": {
+    0: {},
+    1: {
+      inputs: ["graph_explorer.css"]
+    },
+    "graph_explorer.css": {
+      $ref: new URL('src/node_modules/css/default/graph_explorer.css', location).href
     }
   } 
 }
@@ -385,7 +389,7 @@ async function graph_explorer (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await getdb(opts.sid, fallback)
+  const { id, sdb } = await get(opts.sid, fallback)
   const hub_id = opts.hub[0]
   const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
   const on = {
@@ -423,16 +427,6 @@ async function graph_explorer (opts) {
     for (const {type, data} of batch) {
       on[type](data)
     }  
-  }
-  function fallback() {
-    return {
-      "0": {
-        "inputs": ["graph_explorer.css"]
-      },
-      "graph_explorer.css": {
-        $ref: new URL('src/node_modules/css/default/graph_explorer.css', location).href
-      }
-    }
   }
   async function oncopy(e) {
     const selection = shadow.getSelection()
@@ -1052,10 +1046,15 @@ const STATE = require('STATE')
 const name = 'theme_editor'
 const statedb = STATE(__filename)
 // ----------------------------------------
-const { id, sdb, getdb } = statedb(fallback)
+const { id, sdb, subs: [get] } = statedb(fallback)
 function fallback () { 
   return {
-    "0": {
+    0: {},
+    1: {
+      inputs: ["theme_editor.css"]
+    },
+    "theme_editor.css": {
+      $ref: new URL('src/node_modules/css/default/theme_editor.css', location).href
     }
   }
 }
@@ -1072,7 +1071,7 @@ async function theme_editor (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
   const status = { tab_id: 0 }
   const db = DB()
   const on = {
@@ -1184,16 +1183,6 @@ async function theme_editor (opts) {
     for (const {type, data} of batch) {
       on[type](data)
     }  
-  }
-  function fallback() {
-    return {
-      "0": {
-        "inputs": ["theme_editor.css"]
-      },
-      "theme_editor.css": {
-        $ref: new URL('src/node_modules/css/default/theme_editor.css', location).href
-      }
-    }
   }
   async function hide () {
     main.classList.toggle('select')
@@ -1472,17 +1461,30 @@ const name = 'theme_widget'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { id, sdb, getdb } = statedb(fallback)
+const { id, sdb, subs: [get] } = statedb(fallback)
 function fallback () { 
   return {
-    "0": {
-      "subs": [1, 2]
+    0: {
+      subs: [2, 3]
     },
-    "1": {
-      "type": "theme_editor"
+    2: {
+      type: "theme_editor"
     },
-    "2": {
-      "type": "graph_explorer"
+    3: {
+      type: "graph_explorer"
+    },
+    1: {
+      subs: [4, 5],
+      inputs: ["theme_widget.css"]
+    },
+    "theme_widget.css": {
+      $ref: new URL('src/node_modules/css/default/theme_widget.css', location).href
+    },
+    4: {
+      type: 2
+    },
+    5: {
+      type: 3
     }
   }
 }
@@ -1499,7 +1501,7 @@ async function theme_widget (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
   const status = { tab_id: 0, init_check: true }
   const on = {
     refresh,
@@ -1563,23 +1565,6 @@ async function theme_widget (opts) {
       on[type](data)
     }  
   }
-  function fallback() {
-    return {
-      "0": {
-        "subs": [3, 4],
-        "inputs": ["theme_widget.css"]
-      },
-      "theme_widget.css": {
-        $ref: new URL('src/node_modules/css/default/theme_widget.css', location).href
-      },
-      "3": {
-        "type": 1
-      },
-      "4": {
-        "type": 2
-      }
-    }
-  }
   async function blur(e) {
     popup.style.opacity = e.target.value/100
   }
@@ -1632,7 +1617,8 @@ async function theme_widget (opts) {
 }).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
 },{"STATE":2,"graph_explorer":3,"io":6,"theme_editor":9}],11:[function(require,module,exports){
 module.exports={
-  "0": {
+  "0": {},
+  "1": {
     "inputs": ["topnav.css", "topnav.json"]
   },
   "topnav.json": {
@@ -1677,11 +1663,13 @@ const STATE = require('STATE')
 const name = 'topnav'
 const statedb = STATE(__filename)
 // ----------------------------------------
-const { id, sdb, getdb } = statedb(fallback)
+const { sdb, subs: [get] } = statedb(fallback)
 function fallback () { 
-	return {
-		"0": {}
-	} 
+	const data = require('./instance.json')
+	data['topnav.css'] = {
+		$ref: new URL('src/node_modules/css/default/topnav.css', location).href
+	}
+	return data 
 }
 
 /******************************************************************************
@@ -1698,7 +1686,7 @@ async function topnav (opts) {
 	// ----------------------------------------
 	// ID + JSON STATE
 	// ----------------------------------------
-	const { id, sdb } = await getdb(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+	const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
 	const status = {}
 	const on = {
 		css: inject,
@@ -1768,13 +1756,6 @@ async function topnav (opts) {
 	function fill ([ opts ]) { 
 		menu.replaceChildren(...opts.links.map(make_link))
 	}
-	function fallback() {
-		const data = require('./instance.json')
-		data['topnav.css'] = {
-			$ref: new URL('src/node_modules/css/default/topnav.css', location).href
-		}
-    return data 
-  }
 	function click(url) {
 		send({to:'index', type: 'jump', data: url })
 	}
@@ -1807,24 +1788,50 @@ const STATE = require('../src/node_modules/STATE')
   INITIALIZE PAGE
 ******************************************************************************/
 const statedb = STATE(__filename)
-const { id, sdb, getdb } = statedb(fallback)
+const { sdb, subs: [get] } = statedb(fallback)
 
 const make_page = require('../') 
 
 function fallback () { // -> set database defaults or load from database
 	return {
-    "0": {
-      "admins": ["theme_editor", "theme_widget"],
-      "subs": [1]
+    0: {
+      admins: ["theme_editor", "theme_widget"],
+      subs: [2]
     },
-    "1": {
-      "type": "index",
-      "subs": [2]
+    2: {
+      type: "index",
+      subs: [3]
     },
-    "2": {
-      "type": "topnav"
+    3: {
+      type: "topnav"
+    },
+    1: {
+      subs: [4],
+      inputs: ["demo.css"]
+    },
+    "demo.css": {
+      $ref: new URL('src/node_modules/css/default/demo.css', location).href
+    },
+    4: {
+      type: 2,
+      subs: [5]
+    },
+    5: {
+      type: 3,
+      fallback: {
+        1: fallback_topnav,
+        4: null,
+      }
     }
   }
+}
+function fallback_topnav (data) {
+  data['topnav.json'].data.links.push({
+    "id": "demo",
+    "text": "Demo",
+    "url": "demo"
+  })
+  return data
 }
 /******************************************************************************
   CSS & HTML Defaults
@@ -1858,7 +1865,7 @@ async function boot () {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await getdb('', fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get('') // hub is "parent's" io "id" to send/receive messages
   const [opts] = sdb.get_sub('index')
   const on = {
     css: inject,
@@ -1890,36 +1897,6 @@ async function boot () {
 
   return
 
-  function fallback () { // -> set database defaults or load from database
-    return {
-      0: {
-        subs: [3],
-        inputs: ["demo.css"]
-      },
-      "demo.css": {
-        $ref: new URL('src/node_modules/css/default/demo.css', location).href
-      },
-      3: {
-        type: 1,
-        subs: [4]
-      },
-      4: {
-        type: 2,
-        fallback: {
-          0: fallback_topnav,
-          3: null,
-        }
-      }
-    }
-  }
-  function fallback_topnav (data) {
-    data['topnav.json'].data.links.push({
-      "id": "demo",
-      "text": "Demo",
-      "url": "demo"
-    })
-    return data
-  }
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
