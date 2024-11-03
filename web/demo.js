@@ -14,7 +14,7 @@ function fallback () { // -> set database defaults or load from database
       subs: [2]
     },
     2: {
-      type: "index",
+      type: "app",
       subs: [3]
     },
     3: {
@@ -81,7 +81,7 @@ async function boot () {
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await get('') // hub is "parent's" io "id" to send/receive messages
-  const [opts] = sdb.get_sub('index')
+  const [opts] = sdb.get_sub('app')
   const on = {
     css: inject,
   }

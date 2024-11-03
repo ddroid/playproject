@@ -2,7 +2,7 @@
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
-const name = 'index'
+const name = 'app'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -20,10 +20,10 @@ function fallback () {
     },
     1: {
       subs: [4, 5],
-      inputs: ["index.css"]
+      inputs: ["app.css"]
     },
-    "index.css": {
-      $ref: new URL('src/node_modules/css/default/index.css', location).href
+    "app.css": {
+      $ref: new URL('src/node_modules/css/default/app.css', location).href
     },
     4: {
       type: 2
@@ -36,9 +36,9 @@ function fallback () {
 }
   function fallback_topnav (data) {
     data['topnav.json'].data.links.push({
-      "id": "index",
-      "text": "Index",
-      "url": "index"
+      "id": "app",
+      "text": "app",
+      "url": "app"
     })
     return data
   }
@@ -57,9 +57,9 @@ const modules = {
 //  our_contributors : require('our_contributors'),
 //  footer : require('footer'),
 }
-module.exports = index
+module.exports = app
 
-async function index (opts) {
+async function app (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
