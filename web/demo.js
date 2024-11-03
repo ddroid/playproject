@@ -5,7 +5,7 @@ const STATE = require('../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback)
 
-const make_page = require('../') 
+const make_page = require('../src/app') 
 
 function fallback () { // -> set database defaults or load from database
 	return {
