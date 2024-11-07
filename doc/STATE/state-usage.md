@@ -133,16 +133,16 @@ function fallback_<module_name2>_module(data){
 
 ## Example
 ```js
-// given: demo > app > foo > head > nav >  menu > (btn | btm.small) > icon
+// given: demo > app > foo > head > nav > menu > (btn | btm.small) > icon
 
 // 7. make demo (=`FB_MD`) redo the menu override
 // demo.js
 function FB_MD () {
   return {
     0: {
-      subs: ['app/foo/head/nav/0']
+      subs: ['app/foo/head/nav/1']
     },
-    '0': {
+    '1': {
       type: 'menu',
       override: [override_menu]
     }
@@ -166,7 +166,7 @@ function FB_IN () {
     '1': {
       type: 'menu',
       override: [override_menu]
-    }
+    },
   }
 }
 function override_menu (data) {
@@ -238,5 +238,10 @@ function override_icon (data) {
 // icon.js
 // FB_MI
 function FB_II () {
-  return { 'image.svg': `<svg>▶️</svg>` }
+  return { 
+    0: {
+      data: {
+        'image.svg': `<svg>▶️</svg>` 
+      }
+    }
 }

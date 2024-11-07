@@ -640,6 +640,7 @@ const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
 
 const version = 8
 if(db.read(['playproject_version']) != version){
+  console.log(db.read(['playproject_version']))
   localStorage.clear()
   status.fallback_check = true
   db.add(['playproject_version'], version)
@@ -707,7 +708,7 @@ function STATE(filename) {
   function load (snapshot) {
     localStorage.clear()
     Object.entries(snapshot).forEach(([key, value]) => {
-      db.add([key], JSON.parse(value))
+      db.add([key], JSON.parse(value), true)
     })
     window.location.reload()
   }
@@ -769,6 +770,7 @@ function STATE(filename) {
     return db.read_all(['state'])
   }
   function preprocess (host_data, xtype, super_data = {}) {
+    console.log('ok')
     let count = db.length(['state'])
     let {id: super_id, hubs, fallback, subs} = super_data
     let subs_data = {}, subs_types, id_map = {}
@@ -798,7 +800,6 @@ function STATE(filename) {
             const module_data = db.read(['state', id])
             if(module_data.idx == entry.type){
               entry.type = module_data.id
-              console.log(entry, entry.type)
               module = module_data
               return
             }
@@ -1969,8 +1970,8 @@ function localdb () {
    * @param {String[]} keys 
    * @param {any} value 
    */
-  function add (keys, value) {
-    localStorage[prefix + keys.join('/')] = JSON.stringify(value)
+  function add (keys, value, precheck) {
+    localStorage[(precheck ? '' : prefix) + keys.join('/')] = JSON.stringify(value)
   }
   /**
    * Appends values into an object already present in the DB
