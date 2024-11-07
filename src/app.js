@@ -10,7 +10,7 @@ const { sdb, subs: [get], sub_modules } = statedb(fallback)
 function fallback () { 
   return {
     0: {
-      subs: [2, 3]
+      subs: [2, 3, 6, 8]
     },
     2: {
       type: "theme_widget"
@@ -18,8 +18,14 @@ function fallback () {
     3: {
       type: "topnav"
     },
+    6: {
+      type: "header"
+    },
+    8: {
+      type: "footer"
+    },
     1: {
-      subs: [4, 5],
+      subs: [4, 5, 7, 9],
       inputs: ["app.css"]
     },
     "app.css": {
@@ -30,7 +36,13 @@ function fallback () {
     },
     5: {
       type: 3,
-      fallback: {0: fallback_topnav}
+      fallback: [fallback_topnav]
+    },
+    7: {
+      type: 6
+    },
+    9: {
+      type: 8
     }
   } 
 }
@@ -49,13 +61,13 @@ const IO = require('io')
 const modules = {
  [sub_modules['theme_widget']] : require('theme_widget'),
  [sub_modules['topnav']] : require('topnav'),
-//  header : require('header'),
+ [sub_modules['header']]  : require('header'),
 //  datdot : require('datdot'),
 //  editor : require('editor'),
 //  smartcontract_codes : require('smartcontract_codes'),
 //  supporters : require('supporters'),
 //  our_contributors : require('our_contributors'),
-//  footer : require('footer'),
+[sub_modules['footer']]  : require('footer'),
 }
 module.exports = app
 
@@ -63,7 +75,7 @@ async function app (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid)
   const on = {
     jump,
     css: inject,

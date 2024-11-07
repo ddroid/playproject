@@ -10,7 +10,7 @@ const make_page = require('../src/app')
 function fallback () { // -> set database defaults or load from database
 	return {
     0: {
-      admins: ["theme_editor", "theme_widget"],
+      admins: ["theme_editor", "theme_widget", "graph_explorer"],
       subs: [2]
     },
     2: {
@@ -33,10 +33,10 @@ function fallback () { // -> set database defaults or load from database
     },
     5: {
       type: 3,
-      fallback: {
-        1: fallback_topnav,
-        4: null,
-      }
+      fallback: [
+        fallback_topnav,
+        4
+      ]
     }
   }
 }

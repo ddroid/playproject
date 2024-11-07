@@ -1,10 +1,511 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+(function (global){(function (){
+
+// ------------------------------------------
+// Rellax.js
+// Buttery smooth parallax library
+// Copyright (c) 2016 Moe Amaya (@moeamaya)
+// MIT license
+//
+// Thanks to Paraxify.js and Jaime Cabllero
+// for parallax concepts
+// ------------------------------------------
+
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    // AMD. Register as an anonymous module.
+    define([], factory);
+  } else if (typeof module === 'object' && module.exports) {
+    // Node. Does not work with strict CommonJS, but
+    // only CommonJS-like environments that support module.exports,
+    // like Node.
+    module.exports = factory();
+  } else {
+    // Browser globals (root is window)
+    root.Rellax = factory();
+  }
+}(typeof window !== "undefined" ? window : global, function () {
+  var Rellax = function(el, options){
+    "use strict";
+
+    var self = Object.create(Rellax.prototype);
+
+    var posY = 0;
+    var screenY = 0;
+    var posX = 0;
+    var screenX = 0;
+    var blocks = [];
+    var pause = true;
+
+    // check what requestAnimationFrame to use, and if
+    // it's not supported, use the onscroll event
+    var loop = window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame ||
+      window.msRequestAnimationFrame ||
+      window.oRequestAnimationFrame ||
+      function(callback){ return setTimeout(callback, 1000 / 60); };
+
+    // store the id for later use
+    var loopId = null;
+
+    // Test via a getter in the options object to see if the passive property is accessed
+    var supportsPassive = false;
+    try {
+      var opts = Object.defineProperty({}, 'passive', {
+        get: function() {
+          supportsPassive = true;
+        }
+      });
+      window.addEventListener("testPassive", null, opts);
+      window.removeEventListener("testPassive", null, opts);
+    } catch (e) {}
+
+    // check what cancelAnimation method to use
+    var clearLoop = window.cancelAnimationFrame || window.mozCancelAnimationFrame || clearTimeout;
+
+    // check which transform property to use
+    var transformProp = window.transformProp || (function(){
+        var testEl = document.createElement('div');
+        if (testEl.style.transform === null) {
+          var vendors = ['Webkit', 'Moz', 'ms'];
+          for (var vendor in vendors) {
+            if (testEl.style[ vendors[vendor] + 'Transform' ] !== undefined) {
+              return vendors[vendor] + 'Transform';
+            }
+          }
+        }
+        return 'transform';
+      })();
+
+    // Default Settings
+    self.options = {
+      speed: -2,
+	    verticalSpeed: null,
+	    horizontalSpeed: null,
+      breakpoints: [576, 768, 1201],
+      center: false,
+      wrapper: null,
+      relativeToWrapper: false,
+      round: true,
+      vertical: true,
+      horizontal: false,
+      verticalScrollAxis: "y",
+      horizontalScrollAxis: "x",
+      callback: function() {},
+    };
+
+    // User defined options (might have more in the future)
+    if (options){
+      Object.keys(options).forEach(function(key){
+        self.options[key] = options[key];
+      });
+    }
+
+    function validateCustomBreakpoints () {
+      if (self.options.breakpoints.length === 3 && Array.isArray(self.options.breakpoints)) {
+        var isAscending = true;
+        var isNumerical = true;
+        var lastVal;
+        self.options.breakpoints.forEach(function (i) {
+          if (typeof i !== 'number') isNumerical = false;
+          if (lastVal !== null) {
+            if (i < lastVal) isAscending = false;
+          }
+          lastVal = i;
+        });
+        if (isAscending && isNumerical) return;
+      }
+      // revert defaults if set incorrectly
+      self.options.breakpoints = [576, 768, 1201];
+      console.warn("Rellax: You must pass an array of 3 numbers in ascending order to the breakpoints option. Defaults reverted");
+    }
+
+    if (options && options.breakpoints) {
+      validateCustomBreakpoints();
+    }
+
+    // By default, rellax class
+    if (!el) {
+      el = '.rellax';
+    }
+
+    // check if el is a className or a node
+    var elements = typeof el === 'string' ? document.querySelectorAll(el) : [el];
+
+    // Now query selector
+    if (elements.length > 0) {
+      self.elems = elements;
+    }
+
+    // The elements don't exist
+    else {
+      console.warn("Rellax: The elements you're trying to select don't exist.");
+      return;
+    }
+
+    // Has a wrapper and it exists
+    if (self.options.wrapper) {
+      if (!self.options.wrapper.nodeType) {
+        var wrapper = document.querySelector(self.options.wrapper);
+
+        if (wrapper) {
+          self.options.wrapper = wrapper;
+        } else {
+          console.warn("Rellax: The wrapper you're trying to use doesn't exist.");
+          return;
+        }
+      }
+    }
+
+    // set a placeholder for the current breakpoint
+    var currentBreakpoint;
+
+    // helper to determine current breakpoint
+    var getCurrentBreakpoint = function (w) {
+      var bp = self.options.breakpoints;
+      if (w < bp[0]) return 'xs';
+      if (w >= bp[0] && w < bp[1]) return 'sm';
+      if (w >= bp[1] && w < bp[2]) return 'md';
+      return 'lg';
+    };
+
+    // Get and cache initial position of all elements
+    var cacheBlocks = function() {
+      for (var i = 0; i < self.elems.length; i++){
+        var block = createBlock(self.elems[i]);
+        blocks.push(block);
+      }
+    };
+
+
+    // Let's kick this script off
+    // Build array for cached element values
+    var init = function() {
+      for (var i = 0; i < blocks.length; i++){
+        self.elems[i].style.cssText = blocks[i].style;
+      }
+
+      blocks = [];
+
+      screenY = window.innerHeight;
+      screenX = window.innerWidth;
+      currentBreakpoint = getCurrentBreakpoint(screenX);
+
+      setPosition();
+
+      cacheBlocks();
+
+      animate();
+
+      // If paused, unpause and set listener for window resizing events
+      if (pause) {
+        window.addEventListener('resize', init);
+        pause = false;
+        // Start the loop
+        update();
+      }
+    };
+
+    // We want to cache the parallax blocks'
+    // values: base, top, height, speed
+    // el: is dom object, return: el cache values
+    var createBlock = function(el) {
+      var dataPercentage = el.getAttribute( 'data-rellax-percentage' );
+      var dataSpeed = el.getAttribute( 'data-rellax-speed' );
+      var dataXsSpeed = el.getAttribute( 'data-rellax-xs-speed' );
+      var dataMobileSpeed = el.getAttribute( 'data-rellax-mobile-speed' );
+      var dataTabletSpeed = el.getAttribute( 'data-rellax-tablet-speed' );
+      var dataDesktopSpeed = el.getAttribute( 'data-rellax-desktop-speed' );
+      var dataVerticalSpeed = el.getAttribute('data-rellax-vertical-speed');
+      var dataHorizontalSpeed = el.getAttribute('data-rellax-horizontal-speed');
+      var dataVericalScrollAxis = el.getAttribute('data-rellax-vertical-scroll-axis');
+      var dataHorizontalScrollAxis = el.getAttribute('data-rellax-horizontal-scroll-axis');
+      var dataZindex = el.getAttribute( 'data-rellax-zindex' ) || 0;
+      var dataMin = el.getAttribute( 'data-rellax-min' );
+      var dataMax = el.getAttribute( 'data-rellax-max' );
+      var dataMinX = el.getAttribute('data-rellax-min-x');
+      var dataMaxX = el.getAttribute('data-rellax-max-x');
+      var dataMinY = el.getAttribute('data-rellax-min-y');
+      var dataMaxY = el.getAttribute('data-rellax-max-y');
+      var mapBreakpoints;
+      var breakpoints = true;
+
+      if (!dataXsSpeed && !dataMobileSpeed && !dataTabletSpeed && !dataDesktopSpeed) {
+        breakpoints = false;
+      } else {
+        mapBreakpoints = {
+          'xs': dataXsSpeed,
+          'sm': dataMobileSpeed,
+          'md': dataTabletSpeed,
+          'lg': dataDesktopSpeed
+        };
+      }
+
+      // initializing at scrollY = 0 (top of browser), scrollX = 0 (left of browser)
+      // ensures elements are positioned based on HTML layout.
+      //
+      // If the element has the percentage attribute, the posY and posX needs to be
+      // the current scroll position's value, so that the elements are still positioned based on HTML layout
+      var wrapperPosY = self.options.wrapper ? self.options.wrapper.scrollTop : (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop);
+      // If the option relativeToWrapper is true, use the wrappers offset to top, subtracted from the current page scroll.
+      if (self.options.relativeToWrapper) {
+        var scrollPosY = (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop);
+        wrapperPosY = scrollPosY - self.options.wrapper.offsetTop;
+      }
+      var posY = self.options.vertical ? ( dataPercentage || self.options.center ? wrapperPosY : 0 ) : 0;
+      var posX = self.options.horizontal ? ( dataPercentage || self.options.center ? self.options.wrapper ? self.options.wrapper.scrollLeft : (window.pageXOffset || document.documentElement.scrollLeft || document.body.scrollLeft) : 0 ) : 0;
+
+      var blockTop = posY + el.getBoundingClientRect().top;
+      var blockHeight = el.clientHeight || el.offsetHeight || el.scrollHeight;
+
+      var blockLeft = posX + el.getBoundingClientRect().left;
+      var blockWidth = el.clientWidth || el.offsetWidth || el.scrollWidth;
+
+      // apparently parallax equation everyone uses
+      var percentageY = dataPercentage ? dataPercentage : (posY - blockTop + screenY) / (blockHeight + screenY);
+      var percentageX = dataPercentage ? dataPercentage : (posX - blockLeft + screenX) / (blockWidth + screenX);
+      if(self.options.center){ percentageX = 0.5; percentageY = 0.5; }
+
+      // Optional individual block speed as data attr, otherwise global speed
+      var speed = (breakpoints && mapBreakpoints[currentBreakpoint] !== null) ? Number(mapBreakpoints[currentBreakpoint]) : (dataSpeed ? dataSpeed : self.options.speed);
+      var verticalSpeed = dataVerticalSpeed ? dataVerticalSpeed : self.options.verticalSpeed;
+      var horizontalSpeed = dataHorizontalSpeed ? dataHorizontalSpeed : self.options.horizontalSpeed;
+
+      // Optional individual block movement axis direction as data attr, otherwise gobal movement direction
+      var verticalScrollAxis = dataVericalScrollAxis ? dataVericalScrollAxis : self.options.verticalScrollAxis;
+      var horizontalScrollAxis = dataHorizontalScrollAxis ? dataHorizontalScrollAxis : self.options.horizontalScrollAxis;
+
+      var bases = updatePosition(percentageX, percentageY, speed, verticalSpeed, horizontalSpeed);
+
+      // ~~Store non-translate3d transforms~~
+      // Store inline styles and extract transforms
+      var style = el.style.cssText;
+      var transform = '';
+
+      // Check if there's an inline styled transform
+      var searchResult = /transform\s*:/i.exec(style);
+      if (searchResult) {
+        // Get the index of the transform
+        var index = searchResult.index;
+
+        // Trim the style to the transform point and get the following semi-colon index
+        var trimmedStyle = style.slice(index);
+        var delimiter = trimmedStyle.indexOf(';');
+
+        // Remove "transform" string and save the attribute
+        if (delimiter) {
+          transform = " " + trimmedStyle.slice(11, delimiter).replace(/\s/g,'');
+        } else {
+          transform = " " + trimmedStyle.slice(11).replace(/\s/g,'');
+        }
+      }
+
+      return {
+        baseX: bases.x,
+        baseY: bases.y,
+        top: blockTop,
+        left: blockLeft,
+        height: blockHeight,
+        width: blockWidth,
+        speed: speed,
+        verticalSpeed: verticalSpeed,
+        horizontalSpeed: horizontalSpeed,
+        verticalScrollAxis: verticalScrollAxis,
+        horizontalScrollAxis: horizontalScrollAxis,
+        style: style,
+        transform: transform,
+        zindex: dataZindex,
+        min: dataMin,
+        max: dataMax,
+        minX: dataMinX,
+        maxX: dataMaxX,
+        minY: dataMinY,
+        maxY: dataMaxY
+      };
+    };
+
+    // set scroll position (posY, posX)
+    // side effect method is not ideal, but okay for now
+    // returns true if the scroll changed, false if nothing happened
+    var setPosition = function() {
+      var oldY = posY;
+      var oldX = posX;
+
+      posY = self.options.wrapper ? self.options.wrapper.scrollTop : (document.documentElement || document.body.parentNode || document.body).scrollTop || window.pageYOffset;
+      posX = self.options.wrapper ? self.options.wrapper.scrollLeft : (document.documentElement || document.body.parentNode || document.body).scrollLeft || window.pageXOffset;
+      // If option relativeToWrapper is true, use relative wrapper value instead.
+      if (self.options.relativeToWrapper) {
+        var scrollPosY = (document.documentElement || document.body.parentNode || document.body).scrollTop || window.pageYOffset;
+        posY = scrollPosY - self.options.wrapper.offsetTop;
+      }
+
+
+      if (oldY != posY && self.options.vertical) {
+        // scroll changed, return true
+        return true;
+      }
+
+      if (oldX != posX && self.options.horizontal) {
+        // scroll changed, return true
+        return true;
+      }
+
+      // scroll did not change
+      return false;
+    };
+
+    // Ahh a pure function, gets new transform value
+    // based on scrollPosition and speed
+    // Allow for decimal pixel values
+    var updatePosition = function(percentageX, percentageY, speed, verticalSpeed, horizontalSpeed) {
+      var result = {};
+      var valueX = ((horizontalSpeed ? horizontalSpeed : speed) * (100 * (1 - percentageX)));
+      var valueY = ((verticalSpeed ? verticalSpeed : speed) * (100 * (1 - percentageY)));
+
+      result.x = self.options.round ? Math.round(valueX) : Math.round(valueX * 100) / 100;
+      result.y = self.options.round ? Math.round(valueY) : Math.round(valueY * 100) / 100;
+
+      return result;
+    };
+
+    // Remove event listeners and loop again
+    var deferredUpdate = function() {
+      window.removeEventListener('resize', deferredUpdate);
+      window.removeEventListener('orientationchange', deferredUpdate);
+      (self.options.wrapper ? self.options.wrapper : window).removeEventListener('scroll', deferredUpdate);
+      (self.options.wrapper ? self.options.wrapper : document).removeEventListener('touchmove', deferredUpdate);
+
+      // loop again
+      loopId = loop(update);
+    };
+
+    // Loop
+    var update = function() {
+      if (setPosition() && pause === false) {
+        animate();
+
+        // loop again
+        loopId = loop(update);
+      } else {
+        loopId = null;
+
+        // Don't animate until we get a position updating event
+        window.addEventListener('resize', deferredUpdate);
+        window.addEventListener('orientationchange', deferredUpdate);
+        (self.options.wrapper ? self.options.wrapper : window).addEventListener('scroll', deferredUpdate, supportsPassive ? { passive: true } : false);
+        (self.options.wrapper ? self.options.wrapper : document).addEventListener('touchmove', deferredUpdate, supportsPassive ? { passive: true } : false);
+      }
+    };
+
+    // Transform3d on parallax element
+    var animate = function() {
+      var positions;
+      for (var i = 0; i < self.elems.length; i++){
+        // Determine relevant movement directions
+        var verticalScrollAxis = blocks[i].verticalScrollAxis.toLowerCase();
+        var horizontalScrollAxis = blocks[i].horizontalScrollAxis.toLowerCase();
+        var verticalScrollX = verticalScrollAxis.indexOf("x") != -1 ? posY : 0;
+        var verticalScrollY = verticalScrollAxis.indexOf("y") != -1 ? posY : 0;
+        var horizontalScrollX = horizontalScrollAxis.indexOf("x") != -1 ? posX : 0;
+        var horizontalScrollY = horizontalScrollAxis.indexOf("y") != -1 ? posX : 0;
+
+        var percentageY = ((verticalScrollY + horizontalScrollY - blocks[i].top + screenY) / (blocks[i].height + screenY));
+        var percentageX = ((verticalScrollX + horizontalScrollX - blocks[i].left + screenX) / (blocks[i].width + screenX));
+
+        // Subtracting initialize value, so element stays in same spot as HTML
+        positions = updatePosition(percentageX, percentageY, blocks[i].speed, blocks[i].verticalSpeed, blocks[i].horizontalSpeed);
+        var positionY = positions.y - blocks[i].baseY;
+        var positionX = positions.x - blocks[i].baseX;
+
+        // The next two "if" blocks go like this:
+        // Check if a limit is defined (first "min", then "max");
+        // Check if we need to change the Y or the X
+        // (Currently working only if just one of the axes is enabled)
+        // Then, check if the new position is inside the allowed limit
+        // If so, use new position. If not, set position to limit.
+
+        // Check if a min limit is defined
+        if (blocks[i].min !== null) {
+          if (self.options.vertical && !self.options.horizontal) {
+            positionY = positionY <= blocks[i].min ? blocks[i].min : positionY;
+          }
+          if (self.options.horizontal && !self.options.vertical) {
+            positionX = positionX <= blocks[i].min ? blocks[i].min : positionX;
+          }
+        }
+
+        // Check if directional min limits are defined
+        if (blocks[i].minY != null) {
+            positionY = positionY <= blocks[i].minY ? blocks[i].minY : positionY;
+        }
+        if (blocks[i].minX != null) {
+            positionX = positionX <= blocks[i].minX ? blocks[i].minX : positionX;
+        }
+
+        // Check if a max limit is defined
+        if (blocks[i].max !== null) {
+          if (self.options.vertical && !self.options.horizontal) {
+            positionY = positionY >= blocks[i].max ? blocks[i].max : positionY;
+          }
+          if (self.options.horizontal && !self.options.vertical) {
+            positionX = positionX >= blocks[i].max ? blocks[i].max : positionX;
+          }
+        }
+
+        // Check if directional max limits are defined
+        if (blocks[i].maxY != null) {
+            positionY = positionY >= blocks[i].maxY ? blocks[i].maxY : positionY;
+        }
+        if (blocks[i].maxX != null) {
+            positionX = positionX >= blocks[i].maxX ? blocks[i].maxX : positionX;
+        }
+
+        var zindex = blocks[i].zindex;
+
+        // Move that element
+        // (Set the new translation and append initial inline transforms.)
+        var translate = 'translate3d(' + (self.options.horizontal ? positionX : '0') + 'px,' + (self.options.vertical ? positionY : '0') + 'px,' + zindex + 'px) ' + blocks[i].transform;
+        self.elems[i].style[transformProp] = translate;
+      }
+      self.options.callback(positions);
+    };
+
+    self.destroy = function() {
+      for (var i = 0; i < self.elems.length; i++){
+        self.elems[i].style.cssText = blocks[i].style;
+      }
+
+      // Remove resize event listener if not pause, and pause
+      if (!pause) {
+        window.removeEventListener('resize', init);
+        pause = true;
+      }
+
+      // Clear the animation loop to prevent possible memory leak
+      clearLoop(loopId);
+      loopId = null;
+    };
+
+    // Init
+    init();
+
+    // Allow to recalculate the initial values whenever we want
+    self.refresh = init;
+
+    return self;
+  };
+  return Rellax;
+}));
+
+}).call(this)}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],2:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
-const name = 'index'
+const name = 'app'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
@@ -12,7 +513,7 @@ const { sdb, subs: [get], sub_modules } = statedb(fallback)
 function fallback () { 
   return {
     0: {
-      subs: [2, 3]
+      subs: [2, 3, 6, 8]
     },
     2: {
       type: "theme_widget"
@@ -20,27 +521,39 @@ function fallback () {
     3: {
       type: "topnav"
     },
-    1: {
-      subs: [4, 5],
-      inputs: ["index.css"]
+    6: {
+      type: "header"
     },
-    "index.css": {
-      $ref: new URL('src/node_modules/css/default/index.css', location).href
+    8: {
+      type: "footer"
+    },
+    1: {
+      subs: [4, 5, 7, 9],
+      inputs: ["app.css"]
+    },
+    "app.css": {
+      $ref: new URL('src/node_modules/css/default/app.css', location).href
     },
     4: {
       type: 2
     },
     5: {
       type: 3,
-      fallback: {0: fallback_topnav}
+      fallback: [fallback_topnav]
+    },
+    7: {
+      type: 6
+    },
+    9: {
+      type: 8
     }
   } 
 }
   function fallback_topnav (data) {
     data['topnav.json'].data.links.push({
-      "id": "index",
-      "text": "Index",
-      "url": "index"
+      "id": "app",
+      "text": "app",
+      "url": "app"
     })
     return data
   }
@@ -51,21 +564,21 @@ const IO = require('io')
 const modules = {
  [sub_modules['theme_widget']] : require('theme_widget'),
  [sub_modules['topnav']] : require('topnav'),
-//  header : require('header'),
+ [sub_modules['header']]  : require('header'),
 //  datdot : require('datdot'),
 //  editor : require('editor'),
 //  smartcontract_codes : require('smartcontract_codes'),
 //  supporters : require('supporters'),
 //  our_contributors : require('our_contributors'),
-//  footer : require('footer'),
+[sub_modules['footer']]  : require('footer'),
 }
-module.exports = index
+module.exports = app
 
-async function index (opts) {
+async function app (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid)
   const on = {
     jump,
     css: inject,
@@ -110,23 +623,22 @@ async function index (opts) {
 }
 
 
-}).call(this)}).call(this,"/src/index.js")
-},{"STATE":2,"io":6,"theme_widget":10,"topnav":12}],2:[function(require,module,exports){
+}).call(this)}).call(this,"/src/app.js")
+},{"STATE":3,"footer":4,"header":9,"io":10,"theme_widget":14,"topnav":16}],3:[function(require,module,exports){
 // STATE.js
 
-const snapshot = null
 const localdb = require('localdb')
 const db = localdb()
 const status = {
   root_module: true, 
   root_instance: true, 
   module_index: {}, 
-  overrides: [],
+  overrides: {},
 
 }
 const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
 
-const version = 7
+const version = 8
 if(db.read(['playproject_version']) != version){
   localStorage.clear()
   status.fallback_check = true
@@ -149,7 +661,7 @@ function STATE(filename) {
   }
   const sdb = { watch, get_sub, req_access }
   const subs = [get]
-  const admin = { xget, get_all, add_admins }
+  const admin = { xget, get_all, add_admins, load }
   return statedb
 
   function statedb (fallback) {
@@ -158,8 +670,7 @@ function STATE(filename) {
     data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
     if (status.fallback_check) {
       if (status.root_module) {
-        status.fallback_check = !snapshot
-        snapshot ? db.append(['state'], snapshot) : preprocess(fallback(), 'module', {id: 0})
+        preprocess(fallback(), 'module', {id: 0})
         status.root_module = false
       }
       else
@@ -178,7 +689,7 @@ function STATE(filename) {
     })
     return { id: data.id, sdb, subs, sub_modules }
   }
-  function add_source(hubs){
+  function add_source (hubs) {
     hubs.forEach(id => {
       const data = db.read(['state', id])
       if(data.type === 'js'){
@@ -186,14 +697,21 @@ function STATE(filename) {
       }
     })
   }
-  function symbolfy (data){
+  function symbolfy (data) {
     data.subs && data.subs.forEach(sub => {
       const substate = db.read(['state', sub])
       s2i[i2s[sub] = Symbol(sub)] = sub
       local_status.subs.push({ sid: i2s[sub], type: substate.type })
     })
   }
-  function get (sid){
+  function load (snapshot) {
+    localStorage.clear()
+    Object.entries(snapshot).forEach(([key, value]) => {
+      db.add([key], JSON.parse(value))
+    })
+    window.location.reload()
+  }
+  function get (sid) {
     const id = s2i[sid]
     data = db.read(['state', id])
     if(status.fallback_check){
@@ -258,7 +776,7 @@ function STATE(filename) {
       subs.forEach(id => subs_data[id] = db.read(['state', id]))
       subs_types = new Set(Object.values(subs_data).map(sub => sub.type))
     }
-    fallback && Object.values(fallback).forEach(handler_id => {
+    fallback && fallback.forEach(handler_id => {
       host_data = status.overrides[handler_id](host_data)
     })
 
@@ -280,6 +798,7 @@ function STATE(filename) {
             const module_data = db.read(['state', id])
             if(module_data.idx == entry.type){
               entry.type = module_data.id
+              console.log(entry, entry.type)
               module = module_data
               return
             }
@@ -290,9 +809,12 @@ function STATE(filename) {
         if(subs_types && subs_types.has(entry.type)){
           const super_entry = Object.values(subs_data).find(sub => sub.type == entry.type)
           //continue a fallback chain
-          if(super_entry?.fallback?.[hub_entry.type] === null){
-            super_entry.fallback[hub_entry.type] = status.overrides.length
-            status.overrides.push(entry.fallback[0])
+          const index = super_entry?.fallback?.find(key => key == hub_entry.type)
+          if(index){
+            const key = 'f' + Object.keys(status.overrides).length
+            super_entry.fallback[index] = key
+            const fun = entry.fallback.find(v => typeof(v) === 'function')
+            status.overrides[key] = fun
             db.add(['state', super_entry.id], super_entry)
           }
           return super_entry.id
@@ -318,14 +840,15 @@ function STATE(filename) {
       id_map[local_id] = entry.type
       //start a fallback chain
       if(entry.fallback){
-        const new_fallback = {}
-        Object.entries(entry.fallback).forEach(([id, handler]) => {
-          if(handler){
-            new_fallback[id_map[id]] = status.overrides.length
-            status.overrides.push(handler)
+        const new_fallback = []
+        entry.fallback.forEach(handler => {
+          if(typeof(handler) === 'function'){
+            const key = 'f' + Object.keys(status.overrides).length
+            new_fallback.push(key)
+            status.overrides[key] = handler
           }
           else
-            new_fallback[id_map[id]] = null
+            new_fallback.push(id_map[handler])
         })
         entry.fallback = new_fallback
       }
@@ -351,12 +874,145 @@ function STATE(filename) {
   }
   
 }
-},{"localdb":8}],3:[function(require,module,exports){
+},{"localdb":12}],4:[function(require,module,exports){
+(function (__filename){(function (){
+const graphic = require('graphic')
+const IO = require('io')
+const STATE = require('STATE')
+const name = 'footer'
+const statedb = STATE(__filename)
+// ----------------------------------------
+const { sdb, subs: [get] } = statedb(fallback)
+function fallback () { 
+	const data = require('./instance.json')
+	data['footer.css'] = {
+		$ref: new URL('src/node_modules/css/default/footer.css', location).href
+	}
+	return data 
+}
+/******************************************************************************
+  APP FOOTER COMPONENT
+******************************************************************************/
+// ----------------------------------------
+const shopts = { mode: 'closed' }
+// ----------------------------------------
+module.exports = footer
+
+async function footer (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) 
+  const on = {
+		css: inject,
+		scroll,
+		json: fill
+	}
+	
+  const send = await IO(id, name, on)
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  let island = await graphic('island', './src/node_modules/assets/svg/deco-island.svg')
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+      <footer class='footer'>
+      </footer>
+    <style></style>`
+  // ----------------------------------------
+  const style = shadow.querySelector('style')
+  const footer = shadow.querySelector('footer')
+
+	sdb.watch(onbatch)
+  return el
+
+  function onbatch(batch){
+		for (const {type, data} of batch) {
+      on[type](data)
+    }  
+	}
+	async function inject (data){
+		style.innerHTML = data.join('\n')
+	}
+  async function fill ([ opts ]) {
+    const graphics = opts.icons.map(icon => graphic('icon', icon.imgURL))
+    const icons = await Promise.all(graphics)
+    footer.innerHTML = `
+          <div class='scene'>
+              ${island.outerHTML}
+              <nav class='contacts'>
+                  ${opts.icons.map((icon, i) => 
+                      `<a href=${icon.url} 
+                      title=${icon.name} 
+                      target="${icon.url.includes('http') ? "_blank" : null}"
+                      >${icons[i].outerHTML}</a>`
+                  )}
+              </nav>
+          </div>
+          <p class='copyright'>${new Date().getFullYear()+' '+opts.copyright}</p>
+      `
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
+    }
+  }
+}
+
+}).call(this)}).call(this,"/src/node_modules/footer/footer.js")
+},{"./instance.json":5,"STATE":3,"graphic":8,"io":10}],5:[function(require,module,exports){
+module.exports={
+  "0": {},
+  "1": {
+    "inputs": ["footer.css", "footer.json"]
+  },
+  "footer.json": {
+    "data": {
+      "copyright": " PlayProject",
+      "icons": [
+        {
+          "id": "1",
+          "name": "email",
+          "imgURL": "./src/node_modules/assets/svg/email.svg",
+          "url": "mailto:ninabreznik@gmail.com"
+        },
+        {
+          "id": "2",
+          "name": "twitter",
+          "imgURL": "./src/node_modules/assets/svg/twitter.svg",
+          "url": "https://twitter.com/playproject_io"
+        },
+        {
+          "id": "3",
+          "name": "Github",
+          "imgURL": "./src/node_modules/assets/svg/github.svg",
+          "url": "https://github.com/playproject-io"
+        },
+        {
+          "id": "4",
+          "name": "Gitter",
+          "imgURL": "./src/node_modules/assets/svg/gitter.svg",
+          "url": "https://gitter.im/playproject-io/community"
+        }
+      ]
+    }
+  }
+}
+},{}],6:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
 ******************************************************************************/
 const STATE = require('STATE')
+const localdb = require('localdb')
 const name = 'graph_explorer'
 const statedb = STATE(__filename)
 const default_slots = [['hubs', 'subs'], ['inputs', 'outputs']]
@@ -389,6 +1045,7 @@ async function graph_explorer (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
+  const db = localdb()
   const { id, sdb } = await get(opts.sid, fallback)
   const hub_id = opts.hub[0]
   const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
@@ -400,8 +1057,10 @@ async function graph_explorer (opts) {
 
   const on_add = {
     entry: add_entry,
+    entry_compact: add_entry_compact,
     menu: add_action
   }
+  const admin = sdb.req_access(opts.sid)
   const send = await IO(id, name, on)
   // ----------------------------------------
   // TEMPLATE
@@ -411,27 +1070,71 @@ async function graph_explorer (opts) {
   const style = document.createElement('style')
   await sdb.watch(onbatch)
   shadow.innerHTML = `
+  <div>
+    <button class="export">
+      Export
+    </button>
+    <button class="import">
+      Import
+    </button>
+    <input style="display: none;" class="upload" type='file' />
+  </div>
+  <span>Compact mode</span>
+  <label class="toggle_switch">
+    <input type="checkbox">
+    <span class="slider"></span>
+  </label>
   <main>
 
   </main>`
   const main = shadow.querySelector('main')
+  const compact_switch = shadow.querySelector('.toggle_switch > input')
+  const upload = shadow.querySelector('.upload')
+  const import_btn = shadow.querySelector('.import')
+  const export_btn = shadow.querySelector('.export')
   shadow.append(style)
   shadow.addEventListener('copy', oncopy)
-
+  /************************************
+   Listeners
+  *************************************/
+  compact_switch.onchange = e => add_root(e.target.checked)
+  export_btn.onclick = export_fn
+  import_btn.onclick = () => upload.click()
+  upload.onchange = import_fn
   return el
 
   /******************************************
    Mix
   ******************************************/
-  function onbatch(batch) {
+  function onbatch (batch) {
     for (const {type, data} of batch) {
       on[type](data)
     }  
   }
-  async function oncopy(e) {
+  async function oncopy (e) {
     const selection = shadow.getSelection()
     e.clipboardData.setData('text/plain', copy(selection))
     e.preventDefault()
+  }
+  function export_fn () {
+    const blob = new Blob([JSON.stringify(localStorage, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = 'snapshot.json'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+  function import_fn () {
+    const file = upload.files[0]
+    const reader = new FileReader()
+    reader.onload = e => {
+      const blob = JSON.parse(e.target.result)
+      admin.load(blob)
+    }
+    reader.readAsText(file)
   }
   async function init ({ data }) {
     let id = Object.keys(data).length + 1
@@ -442,13 +1145,24 @@ async function graph_explorer (opts) {
     add({ id, name: 'drop', type: 'action', hubs: [] })
 
     status.graph = data
-    console.log(data)
-    const root_entries = Object.values(data).filter(entry => !entry.hubs)
-    root_entries.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
+    add_root(false)
+
     function add (args){
       status.menu_ids.push(args.id)
       data[id++] = args
     }
+  }
+  async function add_root(compact) {
+    status.xentry = null
+    status.entry_types = {}
+    status.count = 0
+    status.tab_id = 0
+    main.innerHTML = ''
+    const root_entries = Object.values(status.graph).filter(entry => !entry.hubs)
+    if(compact)
+      root_entries.forEach((data, i) => add_entry_compact({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
+    else  
+      root_entries.forEach((data, i) => add_entry({hub_el: main, data, last: i === root_entries.length - 1, ancestry:[] }))
   }
   function html_template (data, space, pos){
     const element = document.createElement('div')
@@ -664,6 +1378,184 @@ async function graph_explorer (opts) {
       }
     }
   }
+  function add_entry_compact ({ hub_el, data, first, last, space = '', pos, ancestry }) {
+    //Init
+    const element = html_template(data, last, space, pos)
+    !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
+    ancestry = [...ancestry]
+    let lo_space = space + (last ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
+    let hi_space = space + (first ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
+    const space_handle = [], els = []
+    let slot_no = 0, slot_on
+
+    //HTML
+    element.innerHTML = `
+      <div class="slot_list">
+        <span class="space odd"><!--
+        -->${space}<span>${last ? '└' : first ? "┌" : '├'}</span><!--
+        --><span class='on'>${last ? '┗' : first ? "┏" : '┠'}</span>
+        </span><!--
+        --><span class="menu_emo"></span><!--
+        --><span class="type_emo odd"></span><!--
+        --><span class="name odd">${data.name}</span>
+      </div>
+      <div class="menu entries"></div>
+    `
+
+    //Unavoidable mix
+    const slot_list = element.querySelector('.slot_list')
+    const name = element.querySelector('.slot_list > .name')
+    hub_el.append(element)
+    const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
+    if(copies.length > 1){
+      copies.forEach(copy => !copy.previousElementSibling && (copy.style.color = '#000000'))
+    }
+    if(ancestry.includes(data.id)){
+      name.onclick = () => {
+        const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
+        copies.forEach((copy, i) => {
+          if(copy === slot_list)
+            return
+          const temp1 = copy.style.color
+          const temp2 = copy.style.backgroundColor
+          copy.style.color = '#fff'
+          copy.style.backgroundColor = '#000000'
+          setTimeout(() => {
+            copy.style.color = temp1
+            copy.style.backgroundColor = temp2
+          }, 1000)
+        })
+      }
+      return
+    }
+    ancestry.push(data.id)
+
+    //Elements
+    const menu_emo = element.querySelector('.slot_list > .menu_emo')
+    const type_emo = element.querySelector('.slot_list > .type_emo')
+    const menu = element.querySelector('.menu')
+
+    //Listeners
+    type_emo.onclick = type_click
+    name.onclick = () => send({ type: 'click', to: hub_id, data })
+    const slotmap = []
+    const data_keys = Object.keys(data)
+    const new_pair = [[], []]
+    const slot_handle = []
+    let check = false
+    default_slots.forEach(pair => {
+      pair.forEach((slot, i) => {
+        if(data_keys.includes(slot)){
+          new_pair[i].push(slot)
+          check = true
+        }
+      })
+    })
+    check && slotmap.push(new_pair)
+    slotmap.forEach(handle_slot)
+    menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
+    if(getComputedStyle(type_emo, '::before').content === 'none')
+      type_emo.innerHTML = `[${status.entry_types[data.type]}]`
+
+    //Procedures
+    async function handle_slot (pair, i) {
+      const slot_check = [false, false]
+      const slot_emo = document.createElement('span')
+      slot_emo.innerHTML = '<span></span><span>─</span>'
+      menu_emo.before(slot_emo)
+      slot_no++
+
+      pair.forEach((x, j) => {
+        let gap, mode, emo_on
+        const pos = !j
+        const count = status.count++
+        const style = document.createElement('style')
+        const entries = document.createElement('div')
+        entries.classList.add('entries')
+
+        element.append(style)
+        if(pos){
+          slot_list.before(entries)
+          mode= 'hi'
+          gap = hi_space
+          hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span>${x.length ? '<span class="xhi">│</span>' : ''}&nbsp;&nbsp;</span>`
+        }
+        else{
+          menu.after(entries)
+          mode = 'lo'
+          gap = lo_space
+          lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span>${x.length ? '<span class="xlo">│</span>' : ''}&nbsp;&nbsp;</span>`
+        }
+        style.innerHTML = `.space${count} > .x${mode}{display: none;}`
+        els.push(slot_emo)
+        space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
+        if(!x.length){
+          const space = document.createElement('span')
+          space.innerHTML = '&nbsp;&nbsp;&nbsp;'
+          return
+        }
+        slot_emo.classList.add('compact')
+
+        slot_handle.push(() => {
+          slot_emo.classList.add('on')
+          style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
+          // emo_on && space_handle[i]()
+          slot_check[j] = emo_on = !emo_on
+          if(slot_check[0] && slot_check[1])
+            slot_emo.children[1].innerHTML = '┼'
+          else if(slot_check[0] && !slot_check[1])
+            slot_emo.children[1].innerHTML = '┴'
+          else if(!slot_check[0] && slot_check[1])
+            slot_emo.children[1].innerHTML = '┬'
+          else{
+            slot_emo.children[1].innerHTML = '─'
+            slot_emo.classList.remove('on')
+          }
+          const ids = []
+          x.forEach(slot => ids.push(...data[slot]))
+          handle_click({space: gap, pos, el: entries, data: ids, ancestry, type: 'entry_compact' })
+        })
+      })
+      if(getComputedStyle(slot_emo, '::before').content === 'none')
+        slot_emo.innerHTML = `<span>${slot_no}─</span><span>─</span>`
+    }
+    async function type_click() {
+      slot_on = !slot_on
+      // if(status.xentry === type_emo)
+      //   status.xentry = null
+      // else{
+      //   status.xentry?.click()
+      //   status.xentry = type_emo
+      // }
+      slot_list.classList.toggle('on')
+      let temp = element
+      //Find path to root
+      while(temp.tagName !== 'MAIN'){
+        if(temp.classList.contains('entry')){
+          slot_on ? temp.classList.add('on') : temp.classList.remove('on')
+          while(temp.previousElementSibling){
+            temp = temp.previousElementSibling
+            slot_on ? temp.classList.add('on') : temp.classList.remove('on')
+          }
+        }
+        temp = temp.parentElement
+      }
+      els.forEach((emo, i) => {
+        if(!emo.classList.contains('on')){
+          space_handle[i]()
+        }
+      })
+      slot_handle[0] && slot_handle[0]()
+      slot_handle[1] && slot_handle[1]()
+    }
+    async function menu_click({ emo, emo_on, ...rest }, i) {
+      emo.onclick = () => {
+        emo.classList.toggle('on')
+        emo_on = !emo_on
+        handle_click({space: lo_space, ...rest })
+      }
+    }
+  }
   // async function add_node_data (name, type, parent_id, users, author){
   //   const node_id = status.graph.length
   //   status.graph.push({ id: node_id, name, type: state.code_words[type], room: {}, users })
@@ -839,7 +1731,7 @@ async function graph_explorer (opts) {
   }
 }
 }).call(this)}).call(this,"/src/node_modules/graph_explorer/graph_explorer.js")
-},{"STATE":2,"helper":4,"io":6}],4:[function(require,module,exports){
+},{"STATE":3,"helper":7,"io":10,"localdb":12}],7:[function(require,module,exports){
 function copy (selection) {
   const range = selection.getRangeAt(0)
   const selectedElements = []
@@ -882,7 +1774,7 @@ function download_json (data) {
   link.click();
 }
 module.exports = {copy, get_color, download_json}
-},{}],5:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 const loadSVG = require('loadSVG')
 
 function graphic(className, url) {
@@ -899,7 +1791,127 @@ function graphic(className, url) {
 }   
 
 module.exports = graphic
-},{"loadSVG":7}],6:[function(require,module,exports){
+},{"loadSVG":11}],9:[function(require,module,exports){
+(function (__filename){(function (){
+const graphic = require('graphic')
+const Rellax = require('rellax')
+const IO = require('io')
+const STATE = require('STATE')
+const name = 'header'
+const statedb = STATE(__filename)
+const shopts = { mode: 'closed' }
+/******************************************************************************
+  HEADER COMPONENT
+******************************************************************************/
+
+// ----------------------------------------
+const { sdb, subs: [get], sub_modules } = statedb(fallback)
+function fallback () {
+  return {
+    "0": {},
+    "1": {
+      "inputs": ["header.css", "header.json"]
+    },
+    "header.css": {
+      $ref: new URL('src/node_modules/css/default/header.css', location).href
+    },
+    "header.json": {
+      data: {
+        "title": "Infrastructure for the next-generation Internet"
+      }
+    }
+  }
+}
+module.exports = header
+
+async function header (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid)
+  const on = {
+    css: inject,
+    json: fill,
+    scroll
+  }
+  const send = await IO(id, name, on)
+  // ----------------------------------------
+  // OPTS
+  // ----------------------------------------
+  var graphics = [
+    graphic('playIsland', './src/node_modules/assets/svg/play-island.svg'),
+    graphic('sun', './src/node_modules/assets/svg/sun.svg'),
+    graphic('cloud1', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud2', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud3', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud4', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud5', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud6', './src/node_modules/assets/svg/cloud.svg'),
+    graphic('cloud7', './src/node_modules/assets/svg/cloud.svg'),
+  ]
+
+  const [playIsland, sun, cloud1, cloud2, cloud3, cloud4, cloud5, cloud6, cloud7] = await Promise.all(graphics)
+
+  // Parallax effects
+  // let playRellax = new Rellax(playIsland, { speed: 2 })
+  let sunRellax = new Rellax(sun, { speed: 2 })
+  let cloud1Rellax = new Rellax(cloud1, { speed: 4 })
+  let cloud2Rellax = new Rellax(cloud2, { speed: 2 })
+  let cloud3Rellax = new Rellax(cloud3, { speed: 4 })
+  let cloud4Rellax = new Rellax(cloud4, { speed: 2 })
+  let cloud5Rellax = new Rellax(cloud5, { speed: 4 })
+  let cloud6Rellax = new Rellax(cloud6, { speed: 3 })
+  let cloud7Rellax = new Rellax(cloud7, { speed: 3 })
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+  <div class='header'>
+      <h1 class='title'></h1>
+      <section class='scene'>
+          <div class='sunCloud'>
+          </div>
+      </section>
+  </div>
+  <style></style>`
+  // ----------------------------------------
+  const style = shadow.querySelector('style')
+  const scene = shadow.querySelector('.scene')
+  const sunCloud = shadow.querySelector('.sunCloud')
+  const title = shadow.querySelector('.title')
+  await sdb.watch(onbatch)
+  scene.append(cloud3, cloud4, cloud5, cloud6, cloud7, playIsland)
+  sunCloud.append(cloud1, sun, cloud2)
+  
+  return el
+
+  function onbatch(batch) {
+    for (const {type, data} of batch) {
+      on[type](data)
+    }  
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill ([ opts ]) {
+    title.innerHTML = opts.title
+  }
+  async function scroll () {
+    el.scrollIntoView({behavior: 'smooth'})
+    el.tabIndex = '0'
+    el.focus()
+    el.onblur = () => {
+      el.tabIndex = '-1'
+      el.onblur = null
+    }
+  }
+}
+
+
+}).call(this)}).call(this,"/src/node_modules/header/header.js")
+},{"STATE":3,"graphic":8,"io":10,"rellax":1}],10:[function(require,module,exports){
 const ports = {}
 const graph = {}
 let timer
@@ -924,7 +1936,7 @@ async function io(id, name, on) {
     ports[await find_id('theme_widget')]?.on['refresh']()
   }
 }
-},{}],7:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 async function loadSVG (url, done) { 
     const parser = document.createElement('div')
     let response = await fetch(url)
@@ -937,17 +1949,18 @@ async function loadSVG (url, done) {
 }
 
 module.exports = loadSVG
-},{}],8:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
 module.exports = localdb
 
 function localdb () {
+  const prefix = '153/'
   return { add, read_all, read, drop, push, length, append, get_by_value }
 
   function length (keys) {
-    const address = keys.join('/')
+    const address = prefix + keys.join('/')
     return Object.keys(localStorage).filter(key => key.includes(address)).length
   }
   /**
@@ -957,7 +1970,7 @@ function localdb () {
    * @param {any} value 
    */
   function add (keys, value) {
-    localStorage[keys.join('/')] = JSON.stringify(value)
+    localStorage[prefix + keys.join('/')] = JSON.stringify(value)
   }
   /**
    * Appends values into an object already present in the DB
@@ -968,7 +1981,7 @@ function localdb () {
   function append (keys, data) {
     const pre = keys.join('/')
     Object.entries(data).forEach(([key, value]) => {
-      localStorage[pre+'/'+key] = JSON.stringify(value)
+      localStorage[prefix + pre+'/'+key] = JSON.stringify(value)
     })
   }
   /**
@@ -987,11 +2000,11 @@ function localdb () {
     localStorage[keys[0]] = JSON.stringify(data)
   }
   function read (keys) {
-    const result = localStorage[keys.join('/')]
+    const result = localStorage[prefix + keys.join('/')]
     return result && JSON.parse(result)
   }
   function read_all (keys) {
-    const address = keys.join('/')
+    const address = prefix + keys.join('/')
     let result = {}
     Object.entries(localStorage).forEach(([key, value]) => {
       if(key.includes(address))
@@ -1017,7 +2030,7 @@ function localdb () {
   }
   function get_by_value (keys, filters, index = 0) {
     let index_count = 0
-    const address = keys.join('/')
+    const address = prefix + keys.join('/')
     const target_key = Object.keys(localStorage).find(key => {
       if(key.includes(address)){
         const entry = JSON.parse(localStorage[key])
@@ -1037,7 +2050,7 @@ function localdb () {
     return target_key && JSON.parse(localStorage[target_key])
   } 
 }
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1451,7 +2464,7 @@ async function theme_editor (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/theme_editor/theme_editor.js")
-},{"STATE":2,"io":6,"localdb":8}],10:[function(require,module,exports){
+},{"STATE":3,"io":10,"localdb":12}],14:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1615,7 +2628,7 @@ async function theme_widget (opts) {
 }
 
 }).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
-},{"STATE":2,"graph_explorer":3,"io":6,"theme_editor":9}],11:[function(require,module,exports){
+},{"STATE":3,"graph_explorer":6,"io":10,"theme_editor":13}],15:[function(require,module,exports){
 module.exports={
   "0": {},
   "1": {
@@ -1654,7 +2667,7 @@ module.exports={
     }
   }
 }
-},{}],12:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (__filename){(function (){
 /******************************************************************************
   STATE
@@ -1686,7 +2699,7 @@ async function topnav (opts) {
 	// ----------------------------------------
 	// ID + JSON STATE
 	// ----------------------------------------
-	const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+	const { id, sdb } = await get(opts.sid) 
 	const status = {}
 	const on = {
 		css: inject,
@@ -1753,6 +2766,9 @@ async function topnav (opts) {
       on[type](data)
     }  
 	}
+	async function inject (data){
+		style.innerHTML = data.join('\n')
+	}
 	function fill ([ opts ]) { 
 		menu.replaceChildren(...opts.links.map(make_link))
 	}
@@ -1775,13 +2791,10 @@ async function topnav (opts) {
 			el.onblur = null
 		}
 	}
-	async function inject (data){
-		style.innerHTML = data.join('\n')
-	}
 }
 
 }).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
-},{"./instance.json":11,"STATE":2,"graphic":5,"io":6}],13:[function(require,module,exports){
+},{"./instance.json":15,"STATE":3,"graphic":8,"io":10}],17:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
@@ -1790,16 +2803,16 @@ const STATE = require('../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback)
 
-const make_page = require('../') 
+const make_page = require('../src/app') 
 
 function fallback () { // -> set database defaults or load from database
 	return {
     0: {
-      admins: ["theme_editor", "theme_widget"],
+      admins: ["theme_editor", "theme_widget", "graph_explorer"],
       subs: [2]
     },
     2: {
-      type: "index",
+      type: "app",
       subs: [3]
     },
     3: {
@@ -1818,10 +2831,10 @@ function fallback () { // -> set database defaults or load from database
     },
     5: {
       type: 3,
-      fallback: {
-        1: fallback_topnav,
-        4: null,
-      }
+      fallback: [
+        fallback_topnav,
+        4
+      ]
     }
   }
 }
@@ -1866,7 +2879,7 @@ async function boot () {
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await get('') // hub is "parent's" io "id" to send/receive messages
-  const [opts] = sdb.get_sub('index')
+  const [opts] = sdb.get_sub('app')
   const on = {
     css: inject,
   }
@@ -1902,4 +2915,4 @@ async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
 }).call(this)}).call(this,"/web/demo.js","/web")
-},{"../":1,"../src/node_modules/STATE":2}]},{},[13]);
+},{"../src/app":2,"../src/node_modules/STATE":3}]},{},[17]);

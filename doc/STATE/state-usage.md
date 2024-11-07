@@ -133,105 +133,110 @@ function fallback_<module_name2>_module(data){
 
 ## Example
 ```js
-// EXAMPLE:
-// define scenario:
-// page>app>header>menubar>button
-//
-// with fallbacks and overrides for:
-// * button in almost all modules and instances
-// 
-// RULES:
-// every entity has an id:
-// - 0: is for module and or instance state
-// - n: is for possible sub instances
-// apart from `0:`, module and instance fallbacks are not allowed to re-use a number used in the other fallback for `n:`
-// --------------------------------
-// web/page.js
-function fallback_module () {
+// given: demo > app > foo > head > nav >  menu > (btn | btm.small) > icon
+
+// 7. make demo (=`FB_MD`) redo the menu override
+// demo.js
+function FB_MD () {
   return {
-    0: { subs: [1], slotmap: ['inputs', 'output', 'subs', 'hubs'] },
-    1: { type: 'app' },
+    0: {
+      subs: ['app/foo/head/nav/0']
+    },
+    '0': {
+      type: 'menu',
+      override: [override_menu]
+    }
   }
 }
-function fallback_instance () {
+function override_menu (data) {
+  data.menu.items.push('demo')
+  return data
+}
+// app.js
+// foo.js
+// head.js
+
+// 6. make nav (=`FB_IN`) undo the menu overide for button module instances
+// nav.js
+function FB_IN () {
   return {
-    0: { subs: [2] },
-    2: { idx: 1 },
+    0: {
+      subs: ['1']
+    },
+    '1': {
+      type: 'menu',
+      override: [override_menu]
+    }
   }
 }
-// --------------------------------
-// src/app.js
-function fallback_module () {
+function override_menu (data) {
+  Object.entries(data).forEach(([id, value]) => {
+    if(value.type.includes('btn'))
+      data[id].override = null
+  })
+  return data
+}
+
+// 5. make menu code require 2 button module instances, one for small button, one for normal button
+// 4. make menu (=`FB_IM`) override button label + reset icon back to original from what button changed
+// menu.js
+function FB_MM () {
   return {
-    0: { subs: [1] },
-    1: { type: 'header' },
+    0: {
+      subs: ['btn']
+    }
   }
 }
-function fallback_instance () {
+function FB_IM () {
   return {
-    0: { subs: [2] },
-    2: { idx: 1 },
+    0: {
+      subs: ['1', '2']
+    },
+    '1': {
+      type: 'btn:small',
+      override: [override_btn]
+    },
+    '2': {
+      type: 'btn:normal',
+      override: [override_btn]
+    }
   }
 }
-// --------------------------------
-// ********************************
-// Overriding an override
-// ********************************
-// src/node_modules/header/index.js
-function fallback_module () {
+function override_btn (data) {
+  data.label = 'beep boop'
+  Object.entries(data).forEach(([id, value]) => {
+    if(value.type.includes('icon'))
+      data[id].override = null
+  })
+}
+
+// 3. make button override icon `image.svg`
+// 2. set button default fallback (=`FB_IB1` + `FB_IB2`) to `label/size`
+// btn.js
+// FB_MB
+function FB_IB () {
   return {
-    0: { subs: [1] },
-    1: { type: 'menubar', subs: [2] },
-    2: { type: 'button' }
+    0: {
+      subs: [1],
+      data: {
+        label: 'button',
+        size: 'small',
+      }
+    },
+    1: {
+      type: 'icon',
+      override: [override_icon]
+    }
   }
 }
-function fallback_instance () {
-  return {
-    0: { subs: [3] },
-    3: { idx: 1, subs: [4] },
-    4: { idx: 2, fallback: {
-      header: fallback_button, menubar: null
-     } }
-  }
+function override_icon (data) {
+  data[0].data['image.svg'] = `<svg>🧸</svg>`
+  return data
 }
-function fallback_button (data) {
-  return data.map(() => {})
+
+// 1. make icon set its default fallback (=`FB_II`) using the `image.svg` in the above snippet
+// icon.js
+// FB_MI
+function FB_II () {
+  return { 'image.svg': `<svg>▶️</svg>` }
 }
-// --------------------------------
-// ********************************
-// Override level-1
-// ********************************
-// src/node_modules/menubar/index.js
-function fallback_module () {
-  return {
-    0: { subs: [1] },
-    1: { type: "button" },
-  }
-}
-function fallback_instance () {
-  return {
-    0: { subs: [2, 3, 4, 5], inputs: ["menubar.css", "menubar.json"] },
-    "menubar.css": "div{ display: none;}",
-    "menubar.json": { some: "data" },
-    2: { idx: 1, fallback: { menubar: fallback_button }},
-    3: { idx: 1, data: { label: 'news' } },
-    4: { idx: 1, data: { label: 'docs' } },
-    5: { idx: 1, data: { label: 'help' } },
-  }
-}
-function fallback_button (data) {
-  return data.map(() => {})
-}
-// --------------------------------
-// src/node_modules/button/index.js
-function fallback_module () {
-  return { 0: {} }
-}
-function fallback_instance () {
-  return {
-    0: { inputs: ["button.css", "button.json"] },
-    "button.css": "div{ display: none;}",
-    "button.json": { some: "data" },
-  }
-}
-// --------------------------------
