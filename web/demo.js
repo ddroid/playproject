@@ -3,49 +3,35 @@ const STATE = require('../src/node_modules/STATE')
   INITIALIZE PAGE
 ******************************************************************************/
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
 
 const make_page = require('../src/app') 
 
-function fallback () { // -> set database defaults or load from database
+function fallback_module () { // -> set database defaults or load from database
 	return {
-    0: {
       admins: ["theme_editor", "theme_widget", "graph_explorer"],
-      subs: [2]
+      _: {
+        "app": {}
+      }
+    }
+  }
+function fallback_instance () {
+  return {
+    _: {
+      "app": {
+        0: override
+      }
     },
-    2: {
-      type: "app",
-      subs: [3]
-    },
-    3: {
-      type: "topnav"
-    },
-    1: {
-      subs: [4],
-      inputs: ["demo.css"]
-    },
-    "demo.css": {
-      $ref: new URL('src/node_modules/css/default/demo.css', location).href
-    },
-    4: {
-      type: 2,
-      subs: [5]
-    },
-    5: {
-      type: 3,
-      fallback: [
-        fallback_topnav,
-        4
-      ]
+    inputs: {
+      "demo.css": {
+        $ref: new URL('src/node_modules/css/default/demo.css', location).href
+      }
     }
   }
 }
-function fallback_topnav (data) {
-  data['topnav.json'].data.links.push({
-    "id": "demo",
-    "text": "Demo",
-    "url": "demo"
-  })
+function override ([app], path) {
+  const data = app()
+  console.log(path._.app._.topnav)
   return data
 }
 /******************************************************************************

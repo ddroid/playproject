@@ -6,54 +6,42 @@ const name = 'app'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { sdb, subs: [get], sub_modules } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get], sub_modules } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
   return {
-    0: {
-      subs: [2, 3, 6, 8]
-    },
-    2: {
-      type: "theme_widget"
-    },
-    3: {
-      type: "topnav"
-    },
-    6: {
-      type: "header"
-    },
-    8: {
-      type: "footer"
-    },
-    1: {
-      subs: [4, 5, 7, 9],
-      inputs: ["app.css"]
-    },
-    "app.css": {
-      $ref: new URL('src/node_modules/css/default/app.css', location).href
-    },
-    4: {
-      type: 2
-    },
-    5: {
-      type: 3,
-      fallback: [fallback_topnav]
-    },
-    7: {
-      type: 6
-    },
-    9: {
-      type: 8
+    _: {
+      'topnav': {},
+      'theme_widget': {},
+      'header': {},
+      'footer': {}
     }
-  } 
-}
-  function fallback_topnav (data) {
-    data['topnav.json'].data.links.push({
-      "id": "app",
-      "text": "app",
-      "url": "app"
-    })
-    return data
   }
+}
+function fallback_instance () {
+  return {
+    _: {
+      'topnav': {},
+      'theme_widget': {},
+      'header': {},
+      'footer': {}
+    },
+    inputs: {
+      'app.css': {
+        $ref: new URL('src/node_modules/css/default/app.css', location).href
+      }
+    }
+  }
+}
+function override ([topnav]) {
+  const data = topnav()
+  console.log(data)
+  data['topnav.json'].data.links.push({
+    "id": "app",
+    "text": "app",
+    "url": "app"
+  })
+  return data
+}
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
