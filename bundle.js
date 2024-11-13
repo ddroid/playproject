@@ -509,54 +509,42 @@ const name = 'app'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { sdb, subs: [get], sub_modules } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get], sub_modules } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
   return {
-    0: {
-      subs: [2, 3, 6, 8]
-    },
-    2: {
-      type: "theme_widget"
-    },
-    3: {
-      type: "topnav"
-    },
-    6: {
-      type: "header"
-    },
-    8: {
-      type: "footer"
-    },
-    1: {
-      subs: [4, 5, 7, 9],
-      inputs: ["app.css"]
-    },
-    "app.css": {
-      $ref: new URL('src/node_modules/css/default/app.css', location).href
-    },
-    4: {
-      type: 2
-    },
-    5: {
-      type: 3,
-      fallback: [fallback_topnav]
-    },
-    7: {
-      type: 6
-    },
-    9: {
-      type: 8
+    _: {
+      'topnav': {},
+      'theme_widget': {},
+      'header': {},
+      'footer': {}
     }
-  } 
-}
-  function fallback_topnav (data) {
-    data['topnav.json'].data.links.push({
-      "id": "app",
-      "text": "app",
-      "url": "app"
-    })
-    return data
   }
+}
+function fallback_instance () {
+  return {
+    _: {
+      'topnav': {},
+      'theme_widget': {},
+      'header': {},
+      'footer': {}
+    },
+    inputs: {
+      'app.css': {
+        $ref: new URL('src/node_modules/css/default/app.css', location).href
+      }
+    }
+  }
+}
+function override ([topnav]) {
+  const data = topnav()
+  console.log(data)
+  data['topnav.json'].data.links.push({
+    "id": "app",
+    "text": "app",
+    "url": "app"
+  })
+  return data
+}
 /******************************************************************************
   MAKE_PAGE COMPONENT
 ******************************************************************************/
@@ -634,13 +622,13 @@ const status = {
   root_instance: true, 
   module_index: {}, 
   overrides: {},
-
+  tree: {},
+  tree_pointers: {}
 }
-const default_slots = ['hubs', 'subs', 'inputs', 'outputs']
+const default_slots = ['hubs', '_', 'inputs', 'outputs']
 
 const version = 8
 if(db.read(['playproject_version']) != version){
-  console.log(db.read(['playproject_version']))
   localStorage.clear()
   status.fallback_check = true
   db.add(['playproject_version'], version)
@@ -665,17 +653,18 @@ function STATE(filename) {
   const admin = { xget, get_all, add_admins, load }
   return statedb
 
-  function statedb (fallback) {
-    local_status.fallback = fallback
+  function statedb (fallback_module, fallback_instance) {
+    local_status.fallback_module = fallback_module
+    local_status.fallback_instance = fallback_instance
     const search_filters = {'type': local_status.name}
     data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
     if (status.fallback_check) {
       if (status.root_module) {
-        preprocess(fallback(), 'module', {id: 0})
+        preprocess(fallback_module, 'module', {id: 0})
         status.root_module = false
       }
       else
-        preprocess(fallback(), 'module', data)
+        preprocess(fallback_module, 'module', data)
       data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
     }
     if(data.id == 0){
@@ -716,7 +705,7 @@ function STATE(filename) {
     const id = s2i[sid]
     data = db.read(['state', id])
     if(status.fallback_check){
-      preprocess(local_status.fallback(), 'instance', data)
+      preprocess(local_status.fallback_instance, 'instance', data)
       data = db.read(['state', id])
     }
     if(status.root_instance){
@@ -769,43 +758,46 @@ function STATE(filename) {
   function get_all () {
     return db.read_all(['state'])
   }
-  function preprocess (host_data, xtype, super_data = {}) {
-    console.log('ok')
+  function preprocess (fallback, xtype, super_data = {}) {
     let count = db.length(['state'])
-    let {id: super_id, hubs, fallback, subs} = super_data
+    let {id: super_id, hubs, subs} = super_data
     let subs_data = {}, subs_types, id_map = {}
     if(subs){
       subs.forEach(id => subs_data[id] = db.read(['state', id]))
       subs_types = new Set(Object.values(subs_data).map(sub => sub.type))
     }
-    fallback && fallback.forEach(handler_id => {
-      host_data = status.overrides[handler_id](host_data)
-    })
+    let host_data
+    if(super_data.fallback){
+      host_data = status.overrides[super_data.fallback]([fallback], status.tree_pointers[super_data.type])
+    }
+    else
+      host_data = fallback()
 
     const on = {
-      subs: clean_node,
+      _: clean_node,
       inputs: clean_file,
-      hubs: clean_file
     }
-    clean_node(xtype === 'module' ? 0 : 1)
+    clean_node('', host_data)
 
-    function clean_node (local_id, hub_entry, hub_module) {
-      const entry = host_data[local_id]
+    function clean_node (local_id, entry, hub_entry, hub_module, local_tree) {
       let module
-
-      if(Number(local_id) > 1){
+      const split = local_id.split(':')
+      if(local_id){
         entry.hubs = [hub_entry.id]
         if(xtype === 'instance')
           hub_module?.subs && hub_module.subs.forEach(id => {
             const module_data = db.read(['state', id])
-            if(module_data.idx == entry.type){
+            if(module_data.idx == split[0]){
               entry.type = module_data.id
               module = module_data
               return
             }
           })
-        else
+        else{
           entry.idx = local_id
+          entry.type = split[0]
+          status.tree_pointers[count] = local_tree
+        }
         //Check if sub-entries are already initialized by a super
         if(subs_types && subs_types.has(entry.type)){
           const super_entry = Object.values(subs_data).find(sub => sub.type == entry.type)
@@ -827,44 +819,55 @@ function STATE(filename) {
           entry.type = module.id
         }
         else{
+          local_tree = JSON.parse(JSON.stringify(entry))
+          if(super_id)
+            status.tree_pointers[super_id]._[super_data.idx] = local_tree
+          else
+            status.tree[local_id] = local_tree
           const file_id = local_status.name+'.js'
-          host_data[file_id] = { $ref: new URL(filename, location).href }
-          hubs?.push(file_id) || (hubs = [file_id])
+          entry.inputs || (entry.inputs = {})
+          entry.inputs[file_id] = { $ref: new URL(filename, location).href }
           entry.type = entry.type || local_status.name
           entry.idx = super_data.idx
         }
         hubs && (entry.hubs = hubs)
       }
-      entry.id = Number(local_id) > 1 ? count : super_id || count
+      entry.id = local_id ? count++ : super_id || count++
       entry.name = entry.name || module?.type || entry.type || local_status.name
-
+      
       id_map[local_id] = entry.type
       //start a fallback chain
-      if(entry.fallback){
-        const new_fallback = []
-        entry.fallback.forEach(handler => {
-          if(typeof(handler) === 'function'){
-            const key = 'f' + Object.keys(status.overrides).length
-            new_fallback.push(key)
-            status.overrides[key] = handler
-          }
-          else
-            new_fallback.push(id_map[handler])
-        })
-        entry.fallback = new_fallback
+      if(entry[0]){
+        const key = 'f' + Object.keys(status.overrides).length
+        status.overrides[key] = entry[0]
+        delete(entry[0])
+        entry.fallback = key
+        // const new_fallback = []
+        // entry[0].forEach(handler => {
+        //   if(typeof(handler) === 'function'){
+        //     const key = 'f' + Object.keys(status.overrides).length
+        //     new_fallback.push(key)
+        //     status.overrides[key] = handler
+        //   }
+        //   else
+        //     new_fallback.push(id_map[handler])
+        // })
+        // entry.fallback = new_fallback
       }
-      count++
+      // console.log(JSON.parse(JSON.stringify(entry)))
       default_slots.forEach(slot => {
         if(entry[slot] && on[slot])
-          entry[slot] = entry[slot].map(id => on[slot](id, entry, module))
+          entry[slot === '_' ? 'subs' : slot] = Object.entries(entry[slot])
+          .map(([key, value]) => on[slot](key, value, entry, module, local_tree))
       })
+      delete(entry._)
       db.add(['state', entry.id], entry)
       return entry.id
     }
-    function clean_file (file_id, hub_entry){
+    function clean_file (file_id, entry, hub_entry){
       if(!isNaN(Number(file_id)))
         return file_id
-      const file = host_data[file_id]
+      const file = entry
       file.id = file_id
       file.name = file.name || file_id
       file.type = file.type || file.id.split('.').at(-1)
@@ -883,10 +886,13 @@ const STATE = require('STATE')
 const name = 'footer'
 const statedb = STATE(__filename)
 // ----------------------------------------
-const { sdb, subs: [get] } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
+	return {}
+}
+function fallback_instance () { 
 	const data = require('./instance.json')
-	data['footer.css'] = {
+	data.inputs['footer.css'] = {
 		$ref: new URL('src/node_modules/css/default/footer.css', location).href
 	}
 	return data 
@@ -971,39 +977,37 @@ async function footer (opts) {
 }).call(this)}).call(this,"/src/node_modules/footer/footer.js")
 },{"./instance.json":5,"STATE":3,"graphic":8,"io":10}],5:[function(require,module,exports){
 module.exports={
-  "0": {},
-  "1": {
-    "inputs": ["footer.css", "footer.json"]
-  },
-  "footer.json": {
-    "data": {
-      "copyright": " PlayProject",
-      "icons": [
-        {
-          "id": "1",
-          "name": "email",
-          "imgURL": "./src/node_modules/assets/svg/email.svg",
-          "url": "mailto:ninabreznik@gmail.com"
-        },
-        {
-          "id": "2",
-          "name": "twitter",
-          "imgURL": "./src/node_modules/assets/svg/twitter.svg",
-          "url": "https://twitter.com/playproject_io"
-        },
-        {
-          "id": "3",
-          "name": "Github",
-          "imgURL": "./src/node_modules/assets/svg/github.svg",
-          "url": "https://github.com/playproject-io"
-        },
-        {
-          "id": "4",
-          "name": "Gitter",
-          "imgURL": "./src/node_modules/assets/svg/gitter.svg",
-          "url": "https://gitter.im/playproject-io/community"
-        }
-      ]
+  "inputs": {
+    "footer.json": {
+      "data": {
+        "copyright": " PlayProject",
+        "icons": [
+          {
+            "id": "1",
+            "name": "email",
+            "imgURL": "./src/node_modules/assets/svg/email.svg",
+            "url": "mailto:ninabreznik@gmail.com"
+          },
+          {
+            "id": "2",
+            "name": "twitter",
+            "imgURL": "./src/node_modules/assets/svg/twitter.svg",
+            "url": "https://twitter.com/playproject_io"
+          },
+          {
+            "id": "3",
+            "name": "Github",
+            "imgURL": "./src/node_modules/assets/svg/github.svg",
+            "url": "https://github.com/playproject-io"
+          },
+          {
+            "id": "4",
+            "name": "Gitter",
+            "imgURL": "./src/node_modules/assets/svg/gitter.svg",
+            "url": "https://gitter.im/playproject-io/community"
+          }
+        ]
+      }
     }
   }
 }
@@ -1018,17 +1022,18 @@ const name = 'graph_explorer'
 const statedb = STATE(__filename)
 const default_slots = [['hubs', 'subs'], ['inputs', 'outputs']]
 // ----------------------------------------
-const { id, sdb, subs:[get] } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
+  return {}
+}
+function fallback_instance () {
   return {
-    0: {},
-    1: {
-      inputs: ["graph_explorer.css"]
-    },
-    "graph_explorer.css": {
-      $ref: new URL('src/node_modules/css/default/graph_explorer.css', location).href
+    inputs: {
+      'graph_explorer.css': {
+        $ref: new URL('src/node_modules/css/default/graph_explorer.css', location).href
+      }
     }
-  } 
+  }
 }
 
 const IO = require('io')
@@ -1047,7 +1052,7 @@ async function graph_explorer (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const db = localdb()
-  const { id, sdb } = await get(opts.sid, fallback)
+  const { id, sdb } = await get(opts.sid)
   const hub_id = opts.hub[0]
   const status = { tab_id: 0, count: 0, entry_types: {}, menu_ids: [] }
   const on = {
@@ -1204,19 +1209,18 @@ async function graph_explorer (opts) {
     name.onclick = () => send({ type: 'click', to: hub_id, data })
 
   }
-  function add_entry ({ hub_el, data, first, last, space = '', pos, ancestry }) {
+  function add_entry_compact ({ hub_el, data, first, last, space = '', pos, ancestry }) {
     //Init
     const element = html_template(data, last, space, pos)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
     ancestry = [...ancestry]
-    let lo_space = space + (last ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
-    let hi_space = space + (first ? '&nbsp;&nbsp;&nbsp;' : '│&nbsp;&nbsp;')
+    let lo_space = space + (last ? '&nbsp;' : '│')
+    let hi_space = space + (first ? '&nbsp;' : '│')
     const space_handle = [], els = []
     let slot_no = 0, slot_on
 
     //HTML
     element.innerHTML = `
-      <div class="entries hi_row">${space}${first ? '&nbsp;' : '│'}</div>
       <div class="slot_list">
         <span class="space odd"><!--
         -->${space}<span>${last ? '└' : first ? "┌" : '├'}</span><!--
@@ -1226,49 +1230,60 @@ async function graph_explorer (opts) {
         --><span class="type_emo odd"></span><!--
         --><span class="name odd">${data.name}</span>
       </div>
-      <div class="entries lo_row">${space}${last ? '&nbsp;' : '│'}</div>
       <div class="menu entries"></div>
     `
 
     //Unavoidable mix
+    const slot_list = element.querySelector('.slot_list')
+    const name = element.querySelector('.slot_list > .name')
     hub_el.append(element)
     const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
     if(copies.length > 1){
-      const color = get_color()
-      copies.forEach(copy => copy.style.backgroundColor = color)
+      copies.forEach(copy => !copy.previousElementSibling && (copy.style.color = '#000000'))
     }
-    if(ancestry.includes(data.id))
+    if(ancestry.includes(data.id)){
+      name.onclick = () => {
+        const copies = main.querySelectorAll('.a'+data.id + '> .slot_list')
+        copies.forEach((copy, i) => {
+          if(copy === slot_list)
+            return
+          const temp1 = copy.style.color
+          const temp2 = copy.style.backgroundColor
+          copy.style.color = '#fff'
+          copy.style.backgroundColor = '#000000'
+          setTimeout(() => {
+            copy.style.color = temp1
+            copy.style.backgroundColor = temp2
+          }, 1000)
+        })
+      }
       return
+    }
     ancestry.push(data.id)
 
     //Elements
-    const slot_list = element.querySelector('.slot_list')
-    const name = element.querySelector('.slot_list > .name')
     const menu_emo = element.querySelector('.slot_list > .menu_emo')
     const type_emo = element.querySelector('.slot_list > .type_emo')
     const menu = element.querySelector('.menu')
-    const hi_row = element.querySelector('.hi_row')
-    const lo_row = element.querySelector('.lo_row')
 
     //Listeners
     type_emo.onclick = type_click
     name.onclick = () => send({ type: 'click', to: hub_id, data })
     const slotmap = []
     const data_keys = Object.keys(data)
+    const new_pair = [[], []]
+    const slot_handle = []
+    let check = false
     default_slots.forEach(pair => {
-      let check = false
-      const new_pair = []
-      pair.forEach(slot => {
+      pair.forEach((slot, i) => {
         if(data_keys.includes(slot)){
-          new_pair.push(slot)
+          new_pair[i].push(slot)
           check = true
-        }else
-          new_pair.push('')
+        }
       })
-      check && slotmap.push(new_pair)
     })
+    check && slotmap.push(new_pair)
     slotmap.forEach(handle_slot)
-
     menu_click({el: menu, emo: menu_emo, data: status.menu_ids, pos: 0, type: 'menu'})
     if(getComputedStyle(type_emo, '::before').content === 'none')
       type_emo.innerHTML = `[${status.entry_types[data.type]}]`
@@ -1277,82 +1292,73 @@ async function graph_explorer (opts) {
     async function handle_slot (pair, i) {
       const slot_check = [false, false]
       const slot_emo = document.createElement('span')
-      slot_emo.innerHTML = '<span></span><span>─</span>'
+      slot_emo.innerHTML = '<span>─</span><span></span>'
       menu_emo.before(slot_emo)
       slot_no++
 
       pair.forEach((x, j) => {
-        let gap, mode, emo_on, arrow_gap
+        let gap, mode, emo_on
         const pos = !j
         const count = status.count++
-        const entries = document.createElement('div')
-        const arrow = document.createElement('span')
         const style = document.createElement('style')
-        
+        const entries = document.createElement('div')
         entries.classList.add('entries')
+
         element.append(style)
         if(pos){
-          hi_row.before(entries)
-          hi_row.append(arrow)
+          slot_list.before(entries)
           mode= 'hi'
           gap = hi_space
-          hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span>${x ? '<span class="xhi">│</span>' : ''}&nbsp;&nbsp;</span>`
-          arrow_gap = `<span class="space${count}"><span class="hi">&nbsp;</span><span class="xhi">│</span></span>`
+          hi_space += `<span class="space${count}"><span class="hi">&nbsp;</span>${x.length ? '<span class="xhi">│</span>' : ''}&nbsp;&nbsp;</span>`
         }
         else{
           menu.after(entries)
-          lo_row.append(arrow)
           mode = 'lo'
           gap = lo_space
-          lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span>${x ? '<span class="xlo">│</span>' : ''}&nbsp;&nbsp;</span>`
-          arrow_gap = `<span class="space${count}"><span class="lo">&nbsp;</span><span class="xlo">│</span></span>`
+          lo_space += `<span class="space${count}"><span class="lo">&nbsp;</span>${x.length ? '<span class="xlo">│</span>' : ''}&nbsp;&nbsp;</span>`
         }
         style.innerHTML = `.space${count} > .x${mode}{display: none;}`
         els.push(slot_emo)
         space_handle.push(() => style.innerHTML = `.space${count}${slot_on ? ` > .x${mode}` : ''}{display: none;}`)
-        if(!x){
+        if(!x.length){
           const space = document.createElement('span')
           space.innerHTML = '&nbsp;&nbsp;&nbsp;'
-          j ? lo_row.append(space) : hi_row.append(space)
           return
         }
-        slot_emo.classList.add(x)
-        arrow.classList.add(mode+'_emo')
-        arrow.innerHTML = arrow_gap
+        slot_emo.classList.add('compact')
 
-        arrow.onclick = () => {
-          arrow.classList.toggle('on')
+        slot_handle.push(() => {
           slot_emo.classList.add('on')
           style.innerHTML = `.space${count} > .${emo_on ? 'x' : ''}${mode}{display: none;}`
           // emo_on && space_handle[i]()
           slot_check[j] = emo_on = !emo_on
           if(slot_check[0] && slot_check[1])
-            slot_emo.children[1].innerHTML = '┼'
+            slot_emo.children[0].innerHTML = '┼'
           else if(slot_check[0] && !slot_check[1])
-            slot_emo.children[1].innerHTML = '┴'
+            slot_emo.children[0].innerHTML = '┴'
           else if(!slot_check[0] && slot_check[1])
-            slot_emo.children[1].innerHTML = '┬'
+            slot_emo.children[0].innerHTML = '┬'
           else{
-            slot_emo.children[1].innerHTML = '─'
+            slot_emo.children[0].innerHTML = '─'
             slot_emo.classList.remove('on')
           }
-          handle_click({space: gap, pos, el: entries, data: data[x], ancestry })
-        }
+          const ids = []
+          x.forEach(slot => ids.push(...data[slot]))
+          handle_click({space: gap, pos, el: entries, data: ids, ancestry, type: 'entry_compact' })
+        })
       })
       if(getComputedStyle(slot_emo, '::before').content === 'none')
-        slot_emo.innerHTML = `<span>${slot_no}─</span><span>─</span>`
+        slot_emo.innerHTML = `<span>─</span><span>${slot_no}─</span>`
     }
     async function type_click() {
       slot_on = !slot_on
-      if(status.xentry === type_emo)
-        status.xentry = null
-      else{
-        status.xentry?.click()
-        status.xentry = type_emo
-      }
+      // if(status.xentry === type_emo)
+      //   status.xentry = null
+      // else{
+      //   status.xentry?.click()
+      //   status.xentry = type_emo
+      // }
       slot_list.classList.toggle('on')
-      hi_row.classList.toggle('show')
-      lo_row.classList.toggle('show')
       let temp = element
       //Find path to root
       while(temp.tagName !== 'MAIN'){
@@ -1370,6 +1376,8 @@ async function graph_explorer (opts) {
           space_handle[i]()
         }
       })
+      slot_handle[0] && slot_handle[0]()
+      slot_handle[1] && slot_handle[1]()
     }
     async function menu_click({ emo, emo_on, ...rest }, i) {
       emo.onclick = () => {
@@ -1379,7 +1387,7 @@ async function graph_explorer (opts) {
       }
     }
   }
-  function add_entry_compact ({ hub_el, data, first, last, space = '', pos, ancestry }) {
+  function add_entry ({ hub_el, data, first, last, space = '', pos, ancestry }) {
     //Init
     const element = html_template(data, last, space, pos)
     !status.entry_types[data.type] && (status.entry_types[data.type] = Object.keys(status.entry_types).length)
@@ -1514,7 +1522,7 @@ async function graph_explorer (opts) {
           }
           const ids = []
           x.forEach(slot => ids.push(...data[slot]))
-          handle_click({space: gap, pos, el: entries, data: ids, ancestry, type: 'entry_compact' })
+          handle_click({space: gap, pos, el: entries, data: ids, ancestry })
         })
       })
       if(getComputedStyle(slot_emo, '::before').content === 'none')
@@ -1806,19 +1814,20 @@ const shopts = { mode: 'closed' }
 ******************************************************************************/
 
 // ----------------------------------------
-const { sdb, subs: [get], sub_modules } = statedb(fallback)
-function fallback () {
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
+  return {}
+}
+function fallback_instance () {
   return {
-    "0": {},
-    "1": {
-      "inputs": ["header.css", "header.json"]
-    },
-    "header.css": {
-      $ref: new URL('src/node_modules/css/default/header.css', location).href
-    },
-    "header.json": {
-      data: {
-        "title": "Infrastructure for the next-generation Internet"
+    inputs: {
+      'header.css': {
+        $ref: new URL('src/node_modules/css/default/header.css', location).href
+      },
+      "header.json": {
+        data: {
+          "title": "Infrastructure for the next-generation Internet"
+        }
       }
     }
   }
@@ -2060,15 +2069,16 @@ const STATE = require('STATE')
 const name = 'theme_editor'
 const statedb = STATE(__filename)
 // ----------------------------------------
-const { id, sdb, subs: [get] } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
+  return {}
+}
+function fallback_instance () {
   return {
-    0: {},
-    1: {
-      inputs: ["theme_editor.css"]
-    },
-    "theme_editor.css": {
-      $ref: new URL('src/node_modules/css/default/theme_editor.css', location).href
+    inputs: {
+      'theme_editor.css': {
+        $ref: new URL('src/node_modules/css/default/theme_editor.css', location).href
+      }
     }
   }
 }
@@ -2085,7 +2095,7 @@ async function theme_editor (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const status = { tab_id: 0 }
   const db = DB()
   const on = {
@@ -2475,30 +2485,25 @@ const name = 'theme_widget'
 const statedb = STATE(__filename)
 const shopts = { mode: 'closed' }
 // ----------------------------------------
-const { id, sdb, subs: [get] } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
   return {
-    0: {
-      subs: [2, 3]
+    _: {
+      'theme_editor': {},
+      'graph_explorer': {}
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _: {
+      'theme_editor': {},
+      'graph_explorer': {}
     },
-    2: {
-      type: "theme_editor"
-    },
-    3: {
-      type: "graph_explorer"
-    },
-    1: {
-      subs: [4, 5],
-      inputs: ["theme_widget.css"]
-    },
-    "theme_widget.css": {
-      $ref: new URL('src/node_modules/css/default/theme_widget.css', location).href
-    },
-    4: {
-      type: 2
-    },
-    5: {
-      type: 3
+    inputs: {
+      'theme_widget.css': {
+        $ref: new URL('src/node_modules/css/default/theme_widget.css', location).href
+      }
     }
   }
 }
@@ -2515,7 +2520,7 @@ async function theme_widget (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid, fallback) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const status = { tab_id: 0, init_check: true }
   const on = {
     refresh,
@@ -2631,42 +2636,41 @@ async function theme_widget (opts) {
 }).call(this)}).call(this,"/src/node_modules/theme_widget/theme_widget.js")
 },{"STATE":3,"graph_explorer":6,"io":10,"theme_editor":13}],15:[function(require,module,exports){
 module.exports={
-  "0": {},
-  "1": {
-    "inputs": ["topnav.css", "topnav.json"]
-  },
-  "topnav.json": {
-    "type": "content",
-    "data": {
-      "links": [
-      {
-        "id": "datdot",
-        "text": "DatDot",
-        "url": "datdot"
-      },
-      {
-        "id": "editor",
-        "text": "Play Editor",
-        "url": "editor"
-      },
-      {
-        "id": "smartcontract_codes",
-        "text": "Smart Contract Codes",
-        "url": "smartcontract_codes"
-      },
-      {
-        "id": "supporters",
-        "text": "Supporters",
-        "url": "supporters"
-      },
-      {
-        "id": "our_contributors",
-        "text": "Contributors",
-        "url": "our_contributors"
+  "inputs": {
+    "topnav.json": {
+      "type": "content",
+      "data": {
+        "links": [
+        {
+          "id": "datdot",
+          "text": "DatDot",
+          "url": "datdot"
+        },
+        {
+          "id": "editor",
+          "text": "Play Editor",
+          "url": "editor"
+        },
+        {
+          "id": "smartcontract_codes",
+          "text": "Smart Contract Codes",
+          "url": "smartcontract_codes"
+        },
+        {
+          "id": "supporters",
+          "text": "Supporters",
+          "url": "supporters"
+        },
+        {
+          "id": "our_contributors",
+          "text": "Contributors",
+          "url": "our_contributors"
+        }
+      ]
       }
-    ]
     }
   }
+
 }
 },{}],16:[function(require,module,exports){
 (function (__filename){(function (){
@@ -2677,10 +2681,13 @@ const STATE = require('STATE')
 const name = 'topnav'
 const statedb = STATE(__filename)
 // ----------------------------------------
-const { sdb, subs: [get] } = statedb(fallback)
-function fallback () { 
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+function fallback_module () { 
+	return {}
+}
+function fallback_instance () { 
 	const data = require('./instance.json')
-	data['topnav.css'] = {
+	data.inputs['topnav.css'] = {
 		$ref: new URL('src/node_modules/css/default/topnav.css', location).href
 	}
 	return data 
@@ -2802,49 +2809,35 @@ const STATE = require('../src/node_modules/STATE')
   INITIALIZE PAGE
 ******************************************************************************/
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
 
 const make_page = require('../src/app') 
 
-function fallback () { // -> set database defaults or load from database
+function fallback_module () { // -> set database defaults or load from database
 	return {
-    0: {
       admins: ["theme_editor", "theme_widget", "graph_explorer"],
-      subs: [2]
+      _: {
+        "app": {}
+      }
+    }
+  }
+function fallback_instance () {
+  return {
+    _: {
+      "app": {
+        0: override
+      }
     },
-    2: {
-      type: "app",
-      subs: [3]
-    },
-    3: {
-      type: "topnav"
-    },
-    1: {
-      subs: [4],
-      inputs: ["demo.css"]
-    },
-    "demo.css": {
-      $ref: new URL('src/node_modules/css/default/demo.css', location).href
-    },
-    4: {
-      type: 2,
-      subs: [5]
-    },
-    5: {
-      type: 3,
-      fallback: [
-        fallback_topnav,
-        4
-      ]
+    inputs: {
+      "demo.css": {
+        $ref: new URL('src/node_modules/css/default/demo.css', location).href
+      }
     }
   }
 }
-function fallback_topnav (data) {
-  data['topnav.json'].data.links.push({
-    "id": "demo",
-    "text": "Demo",
-    "url": "demo"
-  })
+function override ([app], path) {
+  const data = app()
+  console.log(path._.app._.topnav)
   return data
 }
 /******************************************************************************
