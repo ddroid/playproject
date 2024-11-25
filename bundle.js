@@ -625,6 +625,7 @@ const status = {
   tree: {},
   tree_pointers: {}
 }
+//@TODO Where devs can define slots
 const default_slots = ['hubs', '_', 'inputs', 'outputs']
 
 const version = 8
@@ -641,31 +642,29 @@ const i2s = {}
 var admins = [0]
 
 module.exports = STATE
-function STATE(filename) {
-  const parts = filename.split('/node_modules/')
-  const last = parts.at(-1).split('/')
+function STATE (address) {
   const local_status = {
-    name: last.at(-1).slice(0, -3),
+    name: extract_filename(address),
     deny: {}, subs: []
   }
+
   const sdb = { watch, get_sub, req_access }
   const subs = [get]
   const admin = { xget, get_all, add_admins, load }
   return statedb
 
+  function extract_filename (address) {
+    const parts = address.split('/node_modules/')
+    const last = parts.at(-1).split('/')
+    return last.at(-1).slice(0, -3)
+  }
   function statedb (fallback_module, fallback_instance) {
-    local_status.fallback_module = fallback_module
     local_status.fallback_instance = fallback_instance
     const search_filters = {'type': local_status.name}
-    data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
+    let data = db.find(['state'], search_filters, status.module_index[local_status.name])
     if (status.fallback_check) {
-      if (status.root_module) {
-        preprocess(fallback_module, 'module', {id: 0})
-        status.root_module = false
-      }
-      else
-        preprocess(fallback_module, 'module', data)
-      data = db.get_by_value(['state'], search_filters, status.module_index[local_status.name])
+      preprocess(fallback_module, 'module', data || {id: 0})
+      data = db.find(['state'], search_filters, status.module_index[local_status.name])
     }
     if(data.id == 0){
       data.admins && add_admins(data.admins)
@@ -703,13 +702,13 @@ function STATE(filename) {
   }
   function get (sid) {
     const id = s2i[sid]
-    data = db.read(['state', id])
+    let data = db.read(['state', id])
     if(status.fallback_check){
       preprocess(local_status.fallback_instance, 'instance', data)
       data = db.read(['state', id])
     }
     if(status.root_instance){
-      data = db.get_by_value(['state'], {'type': 0})
+      data = db.find(['state'], {'type': 0})
       status.root_instance = false
     }
     local_status.id = data.id
@@ -826,7 +825,7 @@ function STATE(filename) {
             status.tree[local_id] = local_tree
           const file_id = local_status.name+'.js'
           entry.inputs || (entry.inputs = {})
-          entry.inputs[file_id] = { $ref: new URL(filename, location).href }
+          entry.inputs[file_id] = { $ref: new URL(address, location).href }
           entry.type = entry.type || local_status.name
           entry.idx = super_data.idx
         }
@@ -872,8 +871,13 @@ function STATE(filename) {
       file.name = file.name || file_id
       file.type = file.type || file.id.split('.').at(-1)
       file[file.type === 'js' ? 'subs' : 'hubs' ] = [hub_entry.id]
-      db.add(['state', file_id], file)
-      return file_id
+      const copies = Object.keys(db.read_all(['state', file_id]))
+      if(copies.length){
+        const id = copies.sort().at(-1).split(':')[1]
+        file.id = file_id + ':' + (Number(id || 0) + 1)
+      }
+      db.add(['state', file.id], file)
+      return file.id
     }
   }
   
@@ -1442,10 +1446,12 @@ async function graph_explorer (opts) {
     //Elements
     const menu_emo = element.querySelector('.slot_list > .menu_emo')
     const type_emo = element.querySelector('.slot_list > .type_emo')
+    const space_emo = element.querySelector('.slot_list > .space')
     const menu = element.querySelector('.menu')
 
     //Listeners
-    type_emo.onclick = type_click
+    space_emo.onclick = () => type_click(0)
+    type_emo.onclick = () => type_click(1)
     name.onclick = () => send({ type: 'click', to: hub_id, data })
     const slotmap = []
     const data_keys = Object.keys(data)
@@ -1528,7 +1534,7 @@ async function graph_explorer (opts) {
       if(getComputedStyle(slot_emo, '::before').content === 'none')
         slot_emo.innerHTML = `<span>${slot_no}─</span><span>─</span>`
     }
-    async function type_click() {
+    async function type_click(i) {
       slot_on = !slot_on
       // if(status.xentry === type_emo)
       //   status.xentry = null
@@ -1554,9 +1560,10 @@ async function graph_explorer (opts) {
           space_handle[i]()
         }
       })
-      slot_handle[0] && slot_handle[0]()
-      slot_handle[1] && slot_handle[1]()
+      // slot_handle[0] && slot_handle[0]()
+      slot_handle[i] && slot_handle[i]()
     }
+
     async function menu_click({ emo, emo_on, ...rest }, i) {
       emo.onclick = () => {
         emo.classList.toggle('on')
@@ -1967,7 +1974,7 @@ module.exports = localdb
 
 function localdb () {
   const prefix = '153/'
-  return { add, read_all, read, drop, push, length, append, get_by_value }
+  return { add, read_all, read, drop, push, length, append, find }
 
   function length (keys) {
     const address = prefix + keys.join('/')
@@ -2038,7 +2045,7 @@ function localdb () {
     else
       delete(localStorage[keys[0]])
   }
-  function get_by_value (keys, filters, index = 0) {
+  function find (keys, filters, index = 0) {
     let index_count = 0
     const address = prefix + keys.join('/')
     const target_key = Object.keys(localStorage).find(key => {
@@ -2803,6 +2810,35 @@ async function topnav (opts) {
 
 }).call(this)}).call(this,"/src/node_modules/topnav/topnav.js")
 },{"./instance.json":15,"STATE":3,"graphic":8,"io":10}],17:[function(require,module,exports){
+patch_cache_in_browser(arguments[4], arguments[5])
+
+function patch_cache_in_browser (source_cache, module_cache) {
+  for (const key of Object.keys(source_cache)) {
+    const [module, names] = source_cache[key]
+    const dependencies = names || {}
+    source_cache[key][0] = patch(module, dependencies)
+  }
+  function patch (module, dependencies) {
+    const MAP = {}
+    for (const [name, number] of Object.entries(dependencies)) MAP[name] = number
+    return (...args) => {
+      const original = args[0]
+      require.cache = module_cache
+      require.resolve = resolve
+      args[0] = require
+      return module(...args)
+      function require (name) {
+        const identifier = resolve(name)
+        if (require.cache[identifier]) return require.cache[identifier]
+        const exports = require.cache[identifier] = original(name)
+        return exports
+      }
+    }
+    function resolve (name) { return MAP[name] }
+  }
+}
+require('./demo') // or whatever is otherwise the main entry of our project
+},{"./demo":18}],18:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../src/node_modules/STATE')
 /******************************************************************************
@@ -2878,11 +2914,6 @@ async function boot () {
     css: inject,
   }
   sdb.watch(onbatch)
-  function onbatch(batch){
-    for (const {type, data} of batch) {
-      on[type](data)
-    }
-  }
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -2904,6 +2935,11 @@ async function boot () {
 
   return
 
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))

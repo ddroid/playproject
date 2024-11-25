@@ -1,42 +1,45 @@
-const STATE = require('../src/node_modules/STATE')
-/******************************************************************************
-  INITIALIZE PAGE
-******************************************************************************/
+const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
 
-const make_page = require('../src/app') 
-
 function fallback_module () { // -> set database defaults or load from database
 	return {
-      admins: ["theme_editor", "theme_widget", "graph_explorer"],
-      _: {
-        "app": {}
-      }
+    _: {
+      "nav": {},
+      "nav#1": {}
     }
   }
+}
 function fallback_instance () {
   return {
     _: {
-      "app": {
-        0: override
-      }
+      "nav": {
+        0: override_nav
+      },
+      "nav#1": {},
     },
     inputs: {
-      "demo.css": {
-        $ref: new URL('src/node_modules/css/default/demo.css', location).href
+      "page.css": {
+        data: `
+          body{
+            font-family: 'system-ui';
+          }
+        `
       }
     }
   }
 }
-function override ([app], path) {
-  const data = app()
-  console.log(path._.app._.topnav)
+function override_nav ([nav], path) {
+  const data = nav()
+  data.inputs['nav.json'].data.links.push('Page')
   return data
 }
 /******************************************************************************
-  CSS & HTML Defaults
+  PAGE
 ******************************************************************************/
+const nav = require('nav')
+delete require.cache[require.resolve('nav')]
+const nav1 = require('nav')
 const sheet = new CSSStyleSheet()
 config().then(() => boot({ }))
 
@@ -66,12 +69,11 @@ async function boot () {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get('') // hub is "parent's" io "id" to send/receive messages
-  const [opts] = sdb.get_sub('app')
+  const { id, sdb } = await get('')
   const on = {
     css: inject,
   }
-  sdb.watch(onbatch)
+  const subs = await sdb.watch(onbatch)
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -84,8 +86,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    const element = await make_page(opts)
-    shadow.append(element)
+    shadow.append(await nav(subs[0]), await nav1(subs[1]))
   }
   // ----------------------------------------
   // INIT
