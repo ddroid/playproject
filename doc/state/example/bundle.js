@@ -2,12 +2,13 @@
 patch_cache_in_browser(arguments[4], arguments[5])
 
 function patch_cache_in_browser (source_cache, module_cache) {
+  const meta = { modulepath: [], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
     const dependencies = names || {}
-    source_cache[key][0] = patch(module, dependencies)
+    source_cache[key][0] = patch(module, dependencies, meta)
   }
-  function patch (module, dependencies) {
+  function patch (module, dependencies, meta) {
     const MAP = {}
     for (const [name, number] of Object.entries(dependencies)) MAP[name] = number
     return (...args) => {
@@ -18,8 +19,21 @@ function patch_cache_in_browser (source_cache, module_cache) {
       return module(...args)
       function require (name) {
         const identifier = resolve(name)
-        if (require.cache[identifier]) return require.cache[identifier]
+        if (name.endsWith('node_modules/STATE')) {
+          const modulepath = meta.modulepath.join('/')
+          const original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
+          const exports = (...args) => original_export(...args, modulepath)
+          return exports
+        } else if (require.cache[identifier]) return require.cache[identifier]
+        else {
+          const counter = meta.modulepath.concat(name).join('/')
+          if (!meta.paths[counter]) meta.paths[counter] = 0
+          const localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
+          meta.paths[counter]++
+          meta.modulepath.push(localid)
+        }
         const exports = require.cache[identifier] = original(name)
+        if (!name.endsWith('node_modules/STATE')) meta.modulepath.pop(name)
         return exports
       }
     }
@@ -27,7 +41,343 @@ function patch_cache_in_browser (source_cache, module_cache) {
   }
 }
 require('./page') // or whatever is otherwise the main entry of our project
-},{"./page":4}],2:[function(require,module,exports){
+},{"./page":10}],2:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+
+function fallback_module () { // -> set database defaults or load from database
+	return {
+    _: {
+      "head": {},
+      "foot": {},
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _: {
+      "head": {},
+      "foot": {},
+    }
+  }
+}
+/******************************************************************************
+  PAGE
+******************************************************************************/
+const head = require('head')
+const foot = require('foot')
+
+module.exports = app
+async function app(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // nav
+    shadow.append(await head(subs[0]), await foot(subs[1]))
+  }
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/app.js")
+},{"../../../../src/node_modules/STATE":11,"foot":4,"head":5}],3:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+
+function fallback_module () {
+  return {
+    _: {
+      icon: {}
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _: {
+      icon: {}
+    },    
+    inputs: {
+      'btn.json': {
+        data: {
+          title: 'Click me'
+        }
+      }
+    }
+  }
+}
+/******************************************************************************
+  BTN
+******************************************************************************/
+delete require.cache[require.resolve('icon')]
+const icon = require('icon')
+
+module.exports = {btn, btn_small}
+async function btn(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <button></button>
+    <style>
+      button{
+        padding: 10px 40px;
+      }
+    </style>`
+  const style = shadow.querySelector('style')
+  const button = shadow.querySelector('button')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    button.append(await icon(subs[0]))
+  }
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    button.append(data.title)
+  }
+}
+async function btn_small(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <button></button>
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const button = shadow.querySelector('button')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    button.append(await icon(subs[0]))
+  }
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    button.innerHTML = data.title
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/btn.js")
+},{"../../../../src/node_modules/STATE":11,"icon":6}],4:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+
+function fallback_module () {
+  return {
+    _:{
+      text: {}
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _:{
+      text: {}
+    }
+  }
+}
+/******************************************************************************
+  FOOT
+******************************************************************************/
+const text = require('text')
+
+module.exports = foot
+async function foot(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    shadow.prepend(await text(subs[0]))
+  }
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/foot.js")
+},{"../../../../src/node_modules/STATE":11,"text":9}],5:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+
+function fallback_module () { // -> set database defaults or load from database
+	return {
+    _: {
+      "nav": {},
+      "nav#1": {}
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _: {
+      "nav": {
+        0: override_nav
+      },
+      "nav#1": {},
+    }
+  }
+}
+function override_nav ([nav]) {
+  const data = nav()
+  console.log(JSON.parse(JSON.stringify(data)))
+  data.inputs['nav.json'].data.links.push('Page')
+  return data
+}
+/******************************************************************************
+  HEAD
+******************************************************************************/
+const nav = require('nav')
+delete require.cache[require.resolve('nav')]
+const nav1 = require('nav')
+
+module.exports = head
+async function head(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const main = shadow.querySelector('nav')
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // nav
+    shadow.append(await nav(subs[0]), await nav1(subs[1]))
+  }
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/head.js")
+},{"../../../../src/node_modules/STATE":11,"nav":8}],6:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
@@ -37,7 +387,69 @@ function fallback_module () {
   return {}
 }
 function fallback_instance () {
+  return {}
+}
+/******************************************************************************
+  ICON
+******************************************************************************/
+module.exports = icon
+async function icon(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    🗃
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/icon.js")
+},{"../../../../src/node_modules/STATE":11}],7:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+
+function fallback_module () {
   return {
+    _: {
+      btn: {},
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _: {
+      btn: {},
+      'btn$small': {},
+    },
     inputs: {
       'menu.json': {
         data: {
@@ -75,6 +487,10 @@ function fallback_instance () {
 /******************************************************************************
   MENU
 ******************************************************************************/
+delete require.cache[require.resolve('btn')]
+const {btn, btn_small} = require('btn')
+
+
 module.exports = {menu, menu_hover}
 async function menu(opts) {
   // ----------------------------------------
@@ -85,7 +501,6 @@ async function menu(opts) {
     css: inject,
     json: fill
   }
-  sdb.watch(onbatch)
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -100,6 +515,7 @@ async function menu(opts) {
   const main = shadow.querySelector('ul')
   const title = shadow.querySelector('.title')
   const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
   // ----------------------------------------
   // EVENT LISTENERS
   // ----------------------------------------
@@ -112,6 +528,9 @@ async function menu(opts) {
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
+  { //btn
+    main.append(await btn(subs[0]), await btn_small(subs[1]))
+  }
   return el
 
   function onbatch(batch){
@@ -140,7 +559,6 @@ async function menu_hover(opts) {
     css: inject,
     json: fill
   }
-  sdb.watch(onbatch)
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -155,6 +573,8 @@ async function menu_hover(opts) {
   const main = shadow.querySelector('ul')
   const title = shadow.querySelector('.title')
   const style = shadow.querySelector('style')
+  sdb.watch(onbatch)
+  const subs = await sdb.watch(onbatch)
   // ----------------------------------------
   // EVENT LISTENERS
   // ----------------------------------------
@@ -167,6 +587,9 @@ async function menu_hover(opts) {
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
+  { //btn
+    main.append(await btn(subs[0]), await btn_small(subs[1]))
+  }
   return el
 
   function onbatch(batch){
@@ -188,7 +611,7 @@ async function menu_hover(opts) {
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/menu.js")
-},{"../../../../src/node_modules/STATE":5}],3:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":11,"btn":3}],8:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
@@ -260,6 +683,7 @@ function override_menu_hover ([menu], path){
 /******************************************************************************
   NAV
 ******************************************************************************/
+delete require.cache[require.resolve('menu')]
 const {menu, menu_hover} = require('menu')
 
 module.exports = nav
@@ -312,27 +736,76 @@ async function nav(opts) {
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/nav.js")
-},{"../../../../src/node_modules/STATE":5,"menu":2}],4:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":11,"menu":7}],9:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+
+function fallback_module () {
+  return {}
+}
+function fallback_instance () {
+  return {}
+}
+/******************************************************************************
+  TEXT
+******************************************************************************/
+module.exports = text
+async function text(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    Copyright © 2024  Playproject Inc.
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/text.js")
+},{"../../../../src/node_modules/STATE":11}],10:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
-
 function fallback_module () { // -> set database defaults or load from database
 	return {
     _: {
-      "nav": {},
-      "nav#1": {}
+      "app": {},
     }
   }
 }
 function fallback_instance () {
   return {
     _: {
-      "nav": {
-        0: override_nav
-      },
-      "nav#1": {},
+      "app": {}
     },
     inputs: {
       "page.css": {
@@ -345,17 +818,10 @@ function fallback_instance () {
     }
   }
 }
-function override_nav ([nav], path) {
-  const data = nav()
-  data.inputs['nav.json'].data.links.push('Page')
-  return data
-}
 /******************************************************************************
   PAGE
 ******************************************************************************/
-const nav = require('nav')
-delete require.cache[require.resolve('nav')]
-const nav1 = require('nav')
+const app = require('app')
 const sheet = new CSSStyleSheet()
 config().then(() => boot({ }))
 
@@ -402,7 +868,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await nav(subs[0]), await nav1(subs[1]))
+    shadow.append(await app(subs[0]))
   }
   // ----------------------------------------
   // INIT
@@ -420,7 +886,7 @@ async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
 }).call(this)}).call(this,"/doc/state/example/page.js","/doc/state/example")
-},{"../../../src/node_modules/STATE":5,"nav":3}],5:[function(require,module,exports){
+},{"../../../src/node_modules/STATE":11,"app":2}],11:[function(require,module,exports){
 // STATE.js
 
 const localdb = require('localdb')
@@ -428,15 +894,16 @@ const db = localdb()
 const status = {
   root_module: true, 
   root_instance: true, 
-  module_index: {}, 
   overrides: {},
   tree: {},
-  tree_pointers: {}
+  tree_pointers: {},
+  modulepaths: [],
+  db
 }
 //@TODO Where devs can define slots
-const default_slots = ['hubs', '_', 'inputs', 'outputs']
+const default_slots = ['_', 'inputs']
 
-const version = 8
+const version = 9
 if(db.read(['playproject_version']) != version){
   localStorage.clear()
   status.fallback_check = true
@@ -450,7 +917,8 @@ const i2s = {}
 var admins = [0]
 
 module.exports = STATE
-function STATE (address) {
+function STATE (address, modulepath) {
+  status.modulepaths.push(modulepath)
   const local_status = {
     name: extract_filename(address),
     deny: {}, subs: []
@@ -468,15 +936,17 @@ function STATE (address) {
   }
   function statedb (fallback_module, fallback_instance) {
     local_status.fallback_instance = fallback_instance
-    const search_filters = {'type': local_status.name}
-    let data = db.find(['state'], search_filters, status.module_index[local_status.name])
+    const search_filters = {'path': modulepath }
+    let data = db.find(['state'], search_filters)
     if (status.fallback_check) {
+      // console.log(local_status.name, data)
       preprocess(fallback_module, 'module', data || {id: 0})
-      data = db.find(['state'], search_filters, status.module_index[local_status.name])
+      data = db.find(['state'], search_filters)
     }
     if(data.id == 0){
       data.admins && add_admins(data.admins)
     }
+
     local_status.id = data.id
     local_status.module_id = data.id
     data.hubs && add_source(data.hubs)
@@ -516,11 +986,13 @@ function STATE (address) {
       data = db.read(['state', id])
     }
     if(status.root_instance){
+      status.tree = JSON.parse(JSON.stringify(status.tree))
       data = db.find(['state'], {'type': 0})
       status.root_instance = false
     }
     local_status.id = data.id
     symbolfy(data)
+    window.STATEMODULE = status
     return {id, sdb}
   }
   async function watch (listener) {
@@ -565,17 +1037,34 @@ function STATE (address) {
   function get_all () {
     return db.read_all(['state'])
   }
-  function preprocess (fallback, xtype, super_data = {}) {
+  function preprocess (fallback, xtype, pre_data = {}) {
     let count = db.length(['state'])
-    let {id: super_id, hubs, subs} = super_data
+    let {id: pre_id, hubs, subs} = pre_data
     let subs_data = {}, subs_types, id_map = {}
     if(subs){
       subs.forEach(id => subs_data[id] = db.read(['state', id]))
       subs_types = new Set(Object.values(subs_data).map(sub => sub.type))
     }
     let host_data
-    if(super_data.fallback){
-      host_data = status.overrides[super_data.fallback]([fallback], status.tree_pointers[super_data.type])
+    if (pre_data.fallback) {
+      host_data = status.overrides[pre_data.fallback]([merge_trees(fallback)])
+      function merge_trees (fallback) {
+        return () => {
+          const data = fallback()
+          traverse (data, local_status.name)
+          function traverse (data, type) {
+            if(data._)
+              Object.entries(data._).forEach(([type, data]) => traverse(data, type))
+            else{
+              type = type.split('$')[0]
+              const id = db.find(['state'], {type}).id
+              data._ = status.tree_pointers[id]?._?.[type]._
+              // console.log(data, id, type, status.tree_pointers[id])
+            }
+          }
+          return data
+        }
+      }
     }
     else
       host_data = fallback()
@@ -584,10 +1073,11 @@ function STATE (address) {
       _: clean_node,
       inputs: clean_file,
     }
-    clean_node('', host_data)
+    clean_node('', host_data, modulepath)
 
-    function clean_node (local_id, entry, hub_entry, hub_module, local_tree) {
+    function clean_node (local_id, entry, path, hub_entry, hub_module, local_tree) {
       let module
+      // console.log(local_status.name, xtype, local_id)
       const split = local_id.split(':')
       if(local_id){
         entry.hubs = [hub_entry.id]
@@ -602,8 +1092,15 @@ function STATE (address) {
           })
         else{
           entry.idx = local_id
-          entry.type = split[0]
+          const module_split = local_id.split('#')
+          entry.type = module_split[0]
           status.tree_pointers[count] = local_tree
+          path = path ? path + '/' : path
+          let new_path = path + local_id
+          if(new_path in status.modulepaths)
+            new_path = path + module_split[0] + (Number(module_split[1]) + 1)
+          entry.path = new_path
+          path = new_path
         }
         //Check if sub-entries are already initialized by a super
         if(subs_types && subs_types.has(entry.type)){
@@ -627,19 +1124,23 @@ function STATE (address) {
         }
         else{
           local_tree = JSON.parse(JSON.stringify(entry))
-          if(super_id)
-            status.tree_pointers[super_id]._[super_data.idx] = local_tree
-          else
+          if(pre_id){
+            // console.log(pre_id, pre_data.idx, xtype, local_tree)
+            status.tree_pointers[pre_id]._[pre_data.idx] = local_tree
+          }
+          else{
             status.tree[local_id] = local_tree
+          }
           const file_id = local_status.name+'.js'
           entry.inputs || (entry.inputs = {})
           entry.inputs[file_id] = { $ref: new URL(address, location).href }
           entry.type = entry.type || local_status.name
-          entry.idx = super_data.idx
+          entry.idx = pre_data.idx
+          entry.path = path
         }
         hubs && (entry.hubs = hubs)
       }
-      entry.id = local_id ? count++ : super_id || count++
+      entry.id = local_id ? count++ : pre_id || count++
       entry.name = entry.name || module?.type || entry.type || local_status.name
       
       id_map[local_id] = entry.type
@@ -665,7 +1166,7 @@ function STATE (address) {
       default_slots.forEach(slot => {
         if(entry[slot] && on[slot])
           entry[slot === '_' ? 'subs' : slot] = Object.entries(entry[slot])
-          .map(([key, value]) => on[slot](key, value, entry, module, local_tree))
+          .map(([key, value]) => on[slot](key, value, path, entry, module, local_tree))
       })
       delete(entry._)
       db.add(['state', entry.id], entry)
@@ -690,7 +1191,7 @@ function STATE (address) {
   }
   
 }
-},{"localdb":6}],6:[function(require,module,exports){
+},{"localdb":12}],12:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/

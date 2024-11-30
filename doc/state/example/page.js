@@ -1,22 +1,17 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
-
 function fallback_module () { // -> set database defaults or load from database
 	return {
     _: {
-      "nav": {},
-      "nav#1": {}
+      "app": {},
     }
   }
 }
 function fallback_instance () {
   return {
     _: {
-      "nav": {
-        0: override_nav
-      },
-      "nav#1": {},
+      "app": {}
     },
     inputs: {
       "page.css": {
@@ -29,17 +24,10 @@ function fallback_instance () {
     }
   }
 }
-function override_nav ([nav], path) {
-  const data = nav()
-  data.inputs['nav.json'].data.links.push('Page')
-  return data
-}
 /******************************************************************************
   PAGE
 ******************************************************************************/
-const nav = require('nav')
-delete require.cache[require.resolve('nav')]
-const nav1 = require('nav')
+const app = require('app')
 const sheet = new CSSStyleSheet()
 config().then(() => boot({ }))
 
@@ -86,7 +74,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await nav(subs[0]), await nav1(subs[1]))
+    shadow.append(await app(subs[0]))
   }
   // ----------------------------------------
   // INIT
