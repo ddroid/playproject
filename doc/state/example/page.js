@@ -11,7 +11,9 @@ function fallback_module () { // -> set database defaults or load from database
 function fallback_instance () {
   return {
     _: {
-      "app": {}
+      "app": {
+        0: override_app
+      }
     },
     inputs: {
       "page.css": {
@@ -23,6 +25,19 @@ function fallback_instance () {
       }
     }
   }
+}
+function override_app ([app]) {
+  const data = app()
+  console.log(JSON.parse(JSON.stringify(data._.head)))
+  // data._.head._.foo._.nav._.menu[0] = ([menu]) => {
+  //   const data = menu()
+  //   data.inputs['menu.json'].data = {
+  //     links: ['custom', 'menu'],
+  //     title: 'Custom'
+  //   }
+  //   return data
+  // }
+  return data
 }
 /******************************************************************************
   PAGE
