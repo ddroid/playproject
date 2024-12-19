@@ -863,14 +863,15 @@ function fallback_instance () {
 function override_app ([app]) {
   const data = app()
   console.log(JSON.parse(JSON.stringify(data._.head)))
-  // data._.head._.foo._.nav._.menu[0] = ([menu]) => {
-  //   const data = menu()
-  //   data.inputs['menu.json'].data = {
-  //     links: ['custom', 'menu'],
-  //     title: 'Custom'
-  //   }
-  //   return data
-  // }
+  data._.head._['foo.nav']._.menu[0] = ([menu]) => {
+    const data = menu()
+    console.log(data)
+    data.inputs['menu.json'].data = {
+      links: ['custom', 'menu'],
+      title: 'Custom'
+    }
+    return data
+  }
   return data
 }
 /******************************************************************************
@@ -995,14 +996,16 @@ function STATE (address, modulepath) {
     let data = db.find(['state'], search_filters)
     if (status.fallback_check) {
       if(!data){
-        if(status.root_module)
+        if(status.root_module){
           status.root_module = false
+          preprocess(fallback_module, 'module', {id: 0})
+        }
         else{
-          find_super('module')
-          data = db.find(['state'], search_filters)
+          find_super('module', fallback_module)
         }
       }
-      preprocess(fallback_module, 'module', data || {id: 0})
+      else
+        preprocess(fallback_module, 'module', data)
       data = db.find(['state'], search_filters)
     }
     if(data.id == 0){
@@ -1018,23 +1021,17 @@ function STATE (address, modulepath) {
     })
     return { id: data.id, sdb, subs, sub_modules }
   }
-  function find_super (xtype) {
+  function find_super (xtype, fallback) {
     const split = modulepath.split('/')
+    const name = split.at(-2) + '.' + split.at(-1)
     const modulepath_parent = modulepath.split(/\/(?=[^\/]*$)/)[0]
-    const node = split.at(-1)
-    const parent = split.at(-2)
-    function fallback () {
-      return {
-      _: {
-        [node]: {}
-      }
-    }}
     const search_filters = {'path': modulepath_parent }
-    let data = db.find(['state'], search_filters)
+    let data = db.find(['state'], search_filters) || db.find(['state'], {path: modulepath})
     if(xtype === 'instance')
       data = db.find(['state'], {'type': data.id})
+    data.idx = name
     console.log(data)
-    return preprocess(fallback, xtype, data, {name: parent, module_id: data.type}, modulepath_parent)
+    return preprocess(fallback, xtype, data, {name, module_id: data.type})
   }
   function add_source (hubs) {
     hubs.forEach(id => {
@@ -1064,12 +1061,10 @@ function STATE (address, modulepath) {
     if(status.fallback_check){
       // console.log(data, local_status.name)
       if(!data && !status.root_instance){
-        const super_id = find_super('instance')
-        const super_node = db.read(['state', super_id])
-        data = db.read(['state', super_node.subs[0]])
-        console.log(data)
+        id = find_super('instance', local_status.fallback_instance)
       }
-      id = preprocess(local_status.fallback_instance, 'instance', data)
+      else
+        id = preprocess(local_status.fallback_instance, 'instance', data)
       data = db.read(['state', id])
     }
     if(status.root_instance){
@@ -1180,14 +1175,13 @@ function STATE (address, modulepath) {
 
     function clean_node (local_id, entry, path, hub_entry, hub_module, local_tree) {
       let module
-      console.log(fun_status.name, xtype, local_id)
       const split = local_id.split(':')
       if(local_id){
         entry.hubs = [hub_entry.id]
         if(xtype === 'instance')
           hub_module?.subs && hub_module.subs.forEach(id => {
             const module_data = db.read(['state', id])
-            if(module_data.idx == split[0]){
+            if(module_data.idx == split[0].split('$')[0]){
               entry.type = module_data.id
               module = module_data
               return
@@ -1208,6 +1202,7 @@ function STATE (address, modulepath) {
         //Check if sub-entries are already initialized by a super
         // console.log(subs_types, entry.type)
         if(subs_types && subs_types.has(entry.type)){
+          subs_types.delete(entry.type)
           const super_entry = Object.values(subs_data).find(sub => sub.type == entry.type)
           //continue a fallback chain
           const index = super_entry?.fallback?.find?.(key => key == hub_entry.type)
@@ -1245,13 +1240,14 @@ function STATE (address, modulepath) {
         hubs && (entry.hubs = hubs)
       }
       entry.id = local_id ? count++ : pre_id || count++
+      console.log(fun_status.name, xtype, local_id, module)
       entry.name = entry.name || module?.type || entry.type || fun_status.name
-      
+
       id_map[local_id] = entry.type
       //start a fallback chain
       if(entry[0]){
-        // console.log(fun_status.name, entry)
         const key = 'f' + Object.keys(status.overrides).length
+        console.log(key, fun_status.name, entry)
         status.overrides[key] = entry[0]
         delete(entry[0])
         entry.fallback = key
