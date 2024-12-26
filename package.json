@@ -7,7 +7,9 @@
     "start": "budo web/boot.js:bundle.js --dir ./ --live --open",
     "build": "browserify web/boot.js -o bundle.js",
     "start:doc": "budo doc/state/example/boot.js:doc/state/example/bundle.js  --dir ./ --live --open",
-    "build:doc": "browserify doc/state/example/boot.js > doc/state/example/bundle.js"
+    "build:doc": "browserify doc/state/example/boot.js > doc/state/example/bundle.js",
+    "start:doc2": "budo doc/state/example2/boot.js:doc/state/example2/bundle.js  --dir ./ --live --open",
+    "build:doc2": "browserify doc/state/example2/boot.js > doc/state/example2/bundle.js"
   },
   "repository": {
     "type": "git",
