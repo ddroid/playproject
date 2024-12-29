@@ -1,8 +1,11 @@
 const STATE = require('STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 function fallback_module () { // -> set database defaults or load from database
 	return {
+     // drive: {},
+     api: fallback_instance,
+     // on (subpath, overrides) {},
     _: {
       "app": {},
     }
@@ -15,13 +18,15 @@ function fallback_instance () {
         0: override_app
       }
     },
-    inputs: {
-      "page.css": {
-        data: `
-          body{
-            font-family: 'system-ui';
-          }
-        `
+    drive: {
+      inputs: {
+        "page.css": {
+          data: `
+            body{
+              font-family: 'system-ui';
+            }
+          `
+        }
       }
     }
   }
@@ -52,7 +57,7 @@ function page$nav_override ([nav]) {
 function page$menu_override ([menu]) {
   const data = menu()
   console.log(data)
-  data.inputs['menu.json'].data = {
+  data.drive.inputs['menu.json'].data = {
     links: ['custom', 'menu'],
     title: 'Custom'
   }

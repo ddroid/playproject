@@ -45,10 +45,11 @@ require('./page') // or whatever is otherwise the main entry of our project
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () { // -> set database defaults or load from database
 	return {
+    api: fallback_instance,
     _: {
       "head": {},
       "foot": {},
@@ -114,10 +115,11 @@ async function app(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () {
   return {
+    api: fallback_instance,
     _: {
       icon: {}
     }
@@ -127,11 +129,13 @@ function fallback_instance () {
   return {
     _: {
       icon: {}
-    },    
-    inputs: {
-      'btn.json': {
-        data: {
-          title: 'Click me'
+    },
+    drive: {
+      inputs: {
+        'btn.json': {
+          data: {
+            title: 'Click me'
+          }
         }
       }
     }
@@ -290,10 +294,11 @@ async function foo(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () {
   return {
+    api: fallback_instance,
     _:{
       text: {}
     }
@@ -356,10 +361,11 @@ async function foot(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () { // -> set database defaults or load from database
 	return {
+    api: fallback_instance,
     _: {
       "foo": {}
     }
@@ -422,10 +428,12 @@ async function head(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () {
-  return {}
+  return {
+    api: fallback_instance,
+  }
 }
 function fallback_instance () {
   return {}
@@ -476,10 +484,11 @@ async function icon(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () {
   return {
+    api: fallback_instance,
     _: {
       btn: {},
     }
@@ -491,36 +500,38 @@ function fallback_instance () {
       btn: {},
       'btn$small': {},
     },
-    inputs: {
-      'menu.json': {
-        data: {
-          title: 'menu',
-          links: ['link1', 'link2'],
+    drive: {
+      inputs: {
+        'menu.json': {
+          data: {
+            title: 'menu',
+            links: ['link1', 'link2'],
+          }
+        },
+        'menu.css': {
+          data: `
+            .title{
+              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+              transition: color .5s ease, background-size .5s;
+              cursor: pointer;
+            }
+            .title:hover{
+              --underline-width: 100%
+            }
+            ul{
+              background: #273d3d;
+              list-style: none;
+              display: none;
+              position: absolute;
+              padding: 10px;
+              box-shadow: 0px 1px 6px 1px gray;
+              border-radius: 5px;
+            }
+            ul.active{
+              display: block;
+            }
+          `
         }
-      },
-      'menu.css': {
-        data: `
-          .title{
-            background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-            transition: color .5s ease, background-size .5s;
-            cursor: pointer;
-          }
-          .title:hover{
-            --underline-width: 100%
-          }
-          ul{
-            background: #273d3d;
-            list-style: none;
-            display: none;
-            position: absolute;
-            padding: 10px;
-            box-shadow: 0px 1px 6px 1px gray;
-            border-radius: 5px;
-          }
-          ul.active{
-            display: block;
-          }
-        `
       }
     }
   }
@@ -655,10 +666,11 @@ async function menu_hover(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () { // -> set database defaults or load from database
 	return {
+      api: fallback_instance,
       _: {
         'menu':{},
       }
@@ -674,31 +686,33 @@ function fallback_instance () {
         0: override_menu_hover
       }
     },
-    inputs: {
-      'nav.css': {
-        data: `
-          nav{
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            background: #4b6d6d;
-            color: white;
-            box-shadow: 0px 1px 6px 1px gray;
-            margin: 5px;
+    drive: {
+      inputs: {
+        'nav.css': {
+          data: `
+            nav{
+              display: flex;
+              gap: 20px;
+              padding: 20px;
+              background: #4b6d6d;
+              color: white;
+              box-shadow: 0px 1px 6px 1px gray;
+              margin: 5px;
+            }
+            .title{
+              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+              transition: color .5s ease, background-size .5s;
+              cursor: pointer;
+            }
+            .title:hover{
+              --underline-width: 100%
+            }
+          `
+        },
+        'nav.json': {
+          data: {
+            links: ['Home', 'About', 'Contact']
           }
-          .title{
-            background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-            transition: color .5s ease, background-size .5s;
-            cursor: pointer;
-          }
-          .title:hover{
-            --underline-width: 100%
-          }
-        `
-      },
-      'nav.json': {
-        data: {
-          links: ['Home', 'About', 'Contact']
         }
       }
     }
@@ -706,7 +720,7 @@ function fallback_instance () {
 }
 function override_menu ([menu], path){
   const data = menu()
-  data.inputs['menu.json'].data = {
+  data.drive.inputs['menu.json'].data = {
     title: 'Services',
     links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
   }
@@ -714,7 +728,7 @@ function override_menu ([menu], path){
 }
 function override_menu_hover ([menu], path){
   const data = menu()
-  data.inputs['menu.json'].data = {
+  data.drive.inputs['menu.json'].data = {
     title: 'Services#hover',
     links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
   }
@@ -780,10 +794,12 @@ async function nav(opts) {
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () {
-  return {}
+  return {
+    api: fallback_instance,
+  }
 }
 function fallback_instance () {
   return {}
@@ -834,9 +850,10 @@ async function text(opts) {
 (function (__filename,__dirname){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module, fallback_instance)
+const { sdb, subs: [get] } = statedb(fallback_module)
 function fallback_module () { // -> set database defaults or load from database
 	return {
+    api: fallback_instance,
     _: {
       "app": {},
     }
@@ -849,13 +866,15 @@ function fallback_instance () {
         0: override_app
       }
     },
-    inputs: {
-      "page.css": {
-        data: `
-          body{
-            font-family: 'system-ui';
-          }
-        `
+    drive: {
+      inputs: {
+        "page.css": {
+          data: `
+            body{
+              font-family: 'system-ui';
+            }
+          `
+        }
       }
     }
   }
@@ -866,7 +885,7 @@ function override_app ([app]) {
   data._.head._['foo.nav']._.menu[0] = ([menu]) => {
     const data = menu()
     console.log(data)
-    data.inputs['menu.json'].data = {
+    data.drive.inputs['menu.json'].data = {
       links: ['custom', 'menu'],
       title: 'Custom'
     }
@@ -947,7 +966,6 @@ const localdb = require('localdb')
 const db = localdb()
 
 // Constants and initial setup (global level)
-const DEFAULT_SLOTS = ['_', 'inputs']
 const VERSION = 9
 
 const status = {
@@ -962,32 +980,27 @@ const status = {
 }
 
 // Version check and initialization
-function check_version () {
-  if (db.read(['playproject_version']) != VERSION) {
-    localStorage.clear()
-    status.fallback_check = true
-    db.add(['playproject_version'], VERSION)
-  }
-}
 check_version()
 
 // Symbol mappings
 const listeners = {}
-const symbol_to_id = {}
-const id_to_symbol = {}
+const s2i = {}
+const i2s = {}
 let admins = [0]
 
 // Inner Function
 function STATE (address, modulepath) {
   status.modulepaths.push(modulepath)
   
+  //Variables (module-level)
   const local_status = {
     name: extract_filename(address),
     deny: {},
     subs: []
   }
-  function statedb (fallback_module, fallback_instance) {
-    local_status.fallback_instance = fallback_instance
+  return statedb
+  
+  function statedb (fallback_module) {
     const data = get_module_data(fallback_module)
     
     //Setup local data (module level)
@@ -1037,18 +1050,28 @@ function STATE (address, modulepath) {
       sdb: create_statedb_interface(local_status, modulepath)
     }
   }
-  function preprocess (fallback, xtype, pre_data = {}, fun_status = local_status, orphan) {
+  function preprocess (fallback, xtype, pre_data = {}, fun_status = local_status, orphan_check) {
+    console.log('Important:', fun_status.name, xtype)
     let count = db.length(['state'])
-    let {id: pre_id, hubs, subs} = pre_data
+    let {id: pre_id, hubs} = pre_data
     let id_map = {}
 
-    const instance_path = get_path(pre_data.name, modulepath)
-    const host_data = status.overrides[instance_path] ? 
-      status.overrides[instance_path]([merge_trees(fallback, fun_status)]) :
+
+    const path = xtype === 'instance' ? get_instance_path(pre_data.name, modulepath) : modulepath
+    const host_data = status.overrides[path] ? 
+      status.overrides[path]([merge_trees(fallback, fun_status)]) :
       fallback()
-    
-    reduce_tree(host_data, modulepath)
-    host_data.orphan = orphan
+      
+    if(status.overrides[path])
+      delete status.overrides[path]
+    if(xtype === 'module')
+      local_status.fallback_instance = host_data.api
+
+    register_overrides(host_data, modulepath)
+    console.log('overrides: ', status.overrides)
+    host_data.orphan = orphan_check
+    return clean_node('', host_data, modulepath)
+
     
     function clean_node (local_id, entry, path, hub_entry, hub_module, local_tree) {
       let module
@@ -1060,11 +1083,10 @@ function STATE (address, modulepath) {
       entry.name = split[0] || entry.name || module?.type || entry.type || fun_status.name
       id_map[local_id] = entry.type
       
-      clean_subs ()
+      clean_subs()
       
       delete entry._
       db.add(['state', entry.id], entry)
-      console.log('Important:', fun_status.name, xtype, local_id, JSON.parse(JSON.stringify(entry)))
       return entry.id
 
       function extract_data () {
@@ -1117,18 +1139,15 @@ function STATE (address, modulepath) {
       }
       function clean_subs () {
         if (!local_id) {
-          DEFAULT_SLOTS.forEach(slot => {
-            if (entry[slot]) {
-              entry[slot === '_' ? 'subs' : slot] = Object.entries(entry[slot])
-                .map(([key, value]) => {
-                  if (slot === '_') {
-                    return clean_node(key, value, path, entry, module, local_tree)
-                  } else {
-                    return clean_file(key, value, entry)
-                  }
-                })
-            }
-          })
+          if(entry._){
+            entry.subs = Object.entries(entry._).map(([key, value]) => 
+              clean_node(key, value, path, entry, module, local_tree)
+          )}
+          if(entry.drive){
+            entry.inputs = Object.entries(entry.drive.inputs).map(([key, value]) => 
+              clean_file(key, value, entry)
+            )
+        }
         }
       }
     }
@@ -1151,29 +1170,27 @@ function STATE (address, modulepath) {
       db.add(['state', file.id], file)
       return file.id
     }
-    
-    return clean_node('', host_data, modulepath)
   }
   function get_module_data (fallback) {
     const search_filters = {'path': modulepath}
     let data = db.find(['state'], search_filters)
     if (status.fallback_check) {
-      if (!data) {
-        if (status.root_module) {
-          status.root_module = false
-          preprocess(fallback, 'module', {id: 0})
-        } else {
-          find_super('module', fallback)
-        }
-      } else {
+      if (data) {
         preprocess(fallback, 'module', data)
+      } 
+      else if (status.root_module) {
+        status.root_module = false
+        preprocess(fallback, 'module', {id: 0})
+      } 
+      else {
+        find_super('module', fallback)
       }
       data = db.find(['state'], search_filters)
     }
     return data
   }
   function get_instance_data (sid) {
-    let id = symbol_to_id[sid]
+    let id = s2i[sid]
     let data = db.read(['state', id])
     
     if (status.fallback_check) {
@@ -1197,7 +1214,6 @@ function STATE (address, modulepath) {
     }
     return data
   }
-  return statedb
 }
 
 // External Function (helper)
@@ -1206,7 +1222,7 @@ function extract_filename (address) {
   const last = parts.at(-1).split('/')
   return last.at(-1).slice(0, -3)
 }
-function get_path (local_id, modulepath) {
+function get_instance_path (local_id, modulepath) {
   const modulepath_parent = modulepath.split(/\/(?=[^\/]*$)/)
   return modulepath_parent[1] ? 
     modulepath_parent[0] + '/' + local_id : 
@@ -1233,8 +1249,8 @@ function add_source (hubs) {
 function symbolfy (data, local_status) {
   data.subs && data.subs.forEach(sub => {
     const substate = db.read(['state', sub])
-    symbol_to_id[id_to_symbol[sub] = Symbol(sub)] = sub
-    local_status.subs.push({ sid: id_to_symbol[sub], type: substate.type })
+    s2i[i2s[sub] = Symbol(sub)] = sub
+    local_status.subs.push({ sid: i2s[sub], type: substate.type })
     
     if (substate.orphan) {
       const substate_module = db.read(['state', substate.type])
@@ -1246,12 +1262,11 @@ function symbolfy (data, local_status) {
     }
   })
 }
-function reduce_tree (tree, path = '') {
+function register_overrides (tree, path = '') {
   let check_override = true
   let check_sub = false
   
   check_override = Boolean(tree[0])
-  console.log(path)
   if (check_override && !status.overrides[path]) {
     status.overrides[path] = tree[0]
   }
@@ -1260,7 +1275,7 @@ function reduce_tree (tree, path = '') {
   
   if (tree._) {
     Object.entries(tree._).forEach(([type, data]) => {
-      const check = reduce_tree(data, path + type.replace('.', '/'))
+      const check = register_overrides(data, path + type.replace('.', '/'))
       if (!check) check_sub = true
     })
   }
@@ -1283,6 +1298,13 @@ function merge_trees (fallback, fun_status) {
     
     traverse(data, fun_status.name)
     return data
+  }
+}
+function check_version () {
+  if (db.read(['playproject_version']) != VERSION) {
+    localStorage.clear()
+    status.fallback_check = true
+    db.add(['playproject_version'], VERSION)
   }
 }
 
@@ -1315,8 +1337,8 @@ function create_statedb_interface (local_status, modulepath) {
   }
   function req_access (sid) {
     if (local_status.deny[sid]) throw new Error('access denied')
-    const el = db.read(['state', symbol_to_id[sid]])
-    if (admins.includes(symbol_to_id[sid]) || admins.includes(el?.name)) {
+    const el = db.read(['state', s2i[sid]])
+    if (admins.includes(s2i[sid]) || admins.includes(el?.name)) {
       return {
         xget: (id) => db.read(['state', id]),
         get_all: () => db.read_all(['state']),
