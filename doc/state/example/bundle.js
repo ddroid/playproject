@@ -881,7 +881,6 @@ function fallback_instance () {
 }
 function override_app ([app]) {
   const data = app()
-  console.log(JSON.parse(JSON.stringify(data._.head)))
   data._.head._['foo.nav']._.menu[0] = ([menu]) => {
     const data = menu()
     console.log(data)
@@ -964,6 +963,14 @@ async function inject (data){
 },{"../../../src/node_modules/STATE":12,"app":2}],12:[function(require,module,exports){
 const localdb = require('localdb')
 const db = localdb()
+/** Data stored in a entry in db by STATE:
+ * id (String): Node Path 
+ * name (String): Any (To be used theme_widget)
+ * type (String): Module Name for module / Module id for instances
+ * hubs (Array): List of hub-nodes
+ * subs (Array): List of sub-nodes
+ * inputs (Array): List of input files
+ */
 
 // Constants and initial setup (global level)
 const VERSION = 9
@@ -974,8 +981,7 @@ const status = {
   overrides: {},
   tree: {},
   tree_pointers: {},
-  modulepaths: [],
-  orphans: {},
+  modulepaths: {},
   db
 }
 
@@ -990,11 +996,13 @@ let admins = [0]
 
 // Inner Function
 function STATE (address, modulepath) {
-  status.modulepaths.push(modulepath)
+  status.modulepaths[modulepath] = 0
   
   //Variables (module-level)
   const local_status = {
     name: extract_filename(address),
+    module_id: modulepath,
+    instance_ids: [],
     deny: {},
     subs: []
   }
@@ -1004,7 +1012,10 @@ function STATE (address, modulepath) {
     const data = get_module_data(fallback_module)
     
     //Setup local data (module level)
-    data.id == 0 && data.admins && admins.push(...data.admins)
+    if(status.root_module){
+      status.root_module = false
+      data.admins && admins.push(...data.admins)
+    }
     local_status.id = data.id
     local_status.module_id = data.id
     data.hubs && add_source(data.hubs)
@@ -1013,7 +1024,8 @@ function STATE (address, modulepath) {
     data.subs && data.subs.forEach(id => {
       sub_modules[db.read(['state', id]).type] = id
     })
-    
+    window.STATEMODULE = status
+
     return {
       id: data.id,
       sdb: create_statedb_interface(local_status, modulepath),
@@ -1021,22 +1033,29 @@ function STATE (address, modulepath) {
       sub_modules
     }
   }
-  function find_super (xtype, fallback) {
+  function find_super ({ xtype, fallback }) {
     const split = modulepath.split('/')
     const name = split.at(-2) + '.' + split.at(-1)
     const modulepath_parent = modulepath.split(/\/(?=[^\/]*$)/)[0]
-    const search_filters = {'path': modulepath_parent}
     
-    let data = db.find(['state'], search_filters) || db.find(['state'], {path: modulepath})
+    let data = db.read(['state', modulepath_parent]) || db.read(['state', modulepath])
     
     if (xtype === 'instance') {
-      data = db.find(['state'], {'type': data.id})
+      data = db.read(['state', modulepath_parent])
     }
     
-    data.idx = name
     data.name = split.at(-1)
-    
-    return preprocess(fallback, xtype, data, {name, module_id: data.type}, true)
+    if(xtype === 'module')
+      data.path = data.id = modulepath
+    else
+      data.path = data.id = get_instance_path(modulepath)
+    status.tree_pointers[modulepath] = status.tree_pointers[modulepath_parent] 
+    local_status.name = name
+
+    return preprocess({ 
+      fallback, xtype, 
+      pre_data: data, 
+      orphan_check: true })
   }
   function get (sid) {
     const data = get_instance_data(sid)
@@ -1050,109 +1069,95 @@ function STATE (address, modulepath) {
       sdb: create_statedb_interface(local_status, modulepath)
     }
   }
-  function preprocess (fallback, xtype, pre_data = {}, fun_status = local_status, orphan_check) {
-    console.log('Important:', fun_status.name, xtype)
-    let count = db.length(['state'])
-    let {id: pre_id, hubs} = pre_data
-    let id_map = {}
+  function preprocess ({ fallback, xtype, pre_data = {}, orphan_check }) {
+    const entries = {}
+    let {id: pre_id, hubs: pre_hubs} = pre_data
 
-
-    const path = xtype === 'instance' ? get_instance_path(pre_data.name, modulepath) : modulepath
-    const host_data = status.overrides[path] ? 
-      status.overrides[path]([merge_trees(fallback, fun_status)]) :
+    validate(fallback())
+    
+    const fallback_data = status.overrides[pre_id] ? 
+      status.overrides[pre_id]([get_fallbacks(fallback, local_status, modulepath)]) :
       fallback()
       
-    if(status.overrides[path])
-      delete status.overrides[path]
+    if(status.overrides[pre_id])
+      delete status.overrides[pre_id]
     if(xtype === 'module')
-      local_status.fallback_instance = host_data.api
+      local_status.fallback_instance = fallback_data.api
 
-    register_overrides(host_data, modulepath)
-    console.log('overrides: ', status.overrides)
-    host_data.orphan = orphan_check
-    return clean_node('', host_data, modulepath)
+
+    register_overrides(fallback_data, modulepath)
+    // console.log('overrides: ', status.overrides)
+    orphan_check && (fallback_data.orphan = orphan_check)
+    const id = sanitize_state({ local_id: '', entry: fallback_data, path: pre_id })
+    return {entries, id}
 
     
-    function clean_node (local_id, entry, path, hub_entry, hub_module, local_tree) {
-      let module
-      const split = local_id.split(':')
+    function sanitize_state ({ local_id, entry, path, hub_entry, local_tree }) {
+      [path, entry, local_tree] = extract_data({ local_id, entry, path, hub_entry, local_tree })
       
-      extract_data()
+      entry.id = path
+      entry.name = local_id.split(':')[0]
       
-      entry.id = local_id ? count++ : pre_id || count++
-      entry.name = split[0] || entry.name || module?.type || entry.type || fun_status.name
-      id_map[local_id] = entry.type
-      
-      clean_subs()
+      sanitize_subs({ local_id, entry, path, local_tree })
       
       delete entry._
-      db.add(['state', entry.id], entry)
+      delete entry.drive
+      entries[entry.id] = entry
+      // console.log('Entry: ', entry)
       return entry.id
+    }
+    function extract_data ({ local_id, entry, path, hub_entry, local_tree }) {
+      if (local_id) {
+        entry.hubs = [hub_entry.id]
+        if (xtype === 'instance') {
+          let temp_path = path.split(':')[0]
+          temp_path = temp_path ? temp_path + '/' : temp_path
+          const module_id = temp_path + local_id.split('$')[0]
+          entry.type = module_id
+          path = module_id + ':' + status.modulepaths[module_id]++
 
-      function extract_data () {
-        if (local_id) {
-          entry.hubs = [hub_entry.id]
-          if (xtype === 'instance') {
-            hub_module?.subs && hub_module.subs.forEach(id => {
-              const module_data = db.read(['state', id])
-              if (module_data.idx.split('.')[0] == split[0].split('$')[0]) {
-                entry.type = module_data.id
-                module = module_data
-              }
-            })
-          } 
-          else {
-            entry.idx = local_id
-            const module_split = local_id.split('#')
-            entry.type = module_split[0]
-            status.tree_pointers[count] = local_tree
-            path = path ? path + '/' : path
-            let new_path = path + local_id
-            if (new_path in status.modulepaths) {
-              new_path = path + module_split[0] + (Number(module_split[1]) + 1)
-            }
-            entry.path = new_path
-            path = new_path
-          }
         } 
         else {
-          if (xtype === 'instance') {
-            module = db.read(['state', fun_status.module_id])
-            entry.type = module.id
+          entry.type = local_id
+          path = path ? path + '/' : ''
+          path = path + local_id
+          status.tree_pointers[path] = local_tree
+        }
+      } 
+      else {
+        if (xtype === 'instance') {
+          entry.type = local_status.module_id
+        } else {
+          local_tree = JSON.parse(JSON.stringify(entry))
+          // console.log('pre_id:', pre_id)
+          if (pre_id) {
+            status.tree_pointers[pre_id]._[local_status.name] = local_tree
           } else {
-            local_tree = JSON.parse(JSON.stringify(entry))
-            if (pre_id) {
-              status.tree_pointers[pre_id]._[pre_data.idx] = local_tree
-            } else {
-              status.tree[local_id] = local_tree
-            }
-            const file_id = fun_status.name + '.js'
-            entry.inputs || (entry.inputs = {})
-            entry.inputs[file_id] = { $ref: new URL(address, location).href }
-            entry.type = entry.type || fun_status.name
-            entry.idx = pre_data.idx
-            entry.path = path
+            status.tree[local_id] = local_tree
           }
-          hubs && (entry.hubs = hubs)
+          const file_id = local_status.name + '.js'
+          entry.inputs || (entry.inputs = {})
+          entry.inputs[file_id] = { $ref: new URL(address, location).href }
+          entry.type = local_status.name
         }
-        
+        pre_hubs && (entry.hubs = pre_hubs)
       }
-      function clean_subs () {
-        if (!local_id) {
-          if(entry._){
-            entry.subs = Object.entries(entry._).map(([key, value]) => 
-              clean_node(key, value, path, entry, module, local_tree)
-          )}
-          if(entry.drive){
-            entry.inputs = Object.entries(entry.drive.inputs).map(([key, value]) => 
-              clean_file(key, value, entry)
-            )
-        }
-        }
+      return [path, entry, local_tree]
+    }
+    function sanitize_subs ({ local_id, entry, path, local_tree }) {
+      if (!local_id) {
+        if(entry._){
+          entry.subs = Object.entries(entry._).map(([local_id, value]) => 
+            sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree })
+        )}
+        if(entry.drive){
+          entry.inputs = Object.entries(entry.drive.inputs).map(([key, value]) => 
+            sanitize_file(key, value, entry)
+          )
+      }
       }
     }
-    
-    function clean_file (file_id, entry, hub_entry) {
+    function sanitize_file (file_id, entry, hub_entry) {
       if (!isNaN(Number(file_id))) return file_id
       
       const file = entry
@@ -1166,67 +1171,144 @@ function STATE (address, modulepath) {
         const id = copies.sort().at(-1).split(':')[1]
         file.id = file_id + ':' + (Number(id || 0) + 1)
       }
-      
-      db.add(['state', file.id], file)
+      entries[file.id] = file
       return file.id
     }
   }
   function get_module_data (fallback) {
-    const search_filters = {'path': modulepath}
-    let data = db.find(['state'], search_filters)
+    let data = db.read(['state', modulepath])
+    data?.orphan && (local_status.orphan = true)
+
     if (status.fallback_check) {
+      let result
       if (data) {
-        preprocess(fallback, 'module', data)
+        result = preprocess({fallback, xtype: 'module', pre_data: data })
       } 
       else if (status.root_module) {
         status.root_module = false
-        preprocess(fallback, 'module', {id: 0})
+        result = preprocess({fallback, xtype: 'module', pre_data: {id: modulepath}})
       } 
       else {
-        find_super('module', fallback)
+        result = find_super({xtype: 'module', fallback})
       }
-      data = db.find(['state'], search_filters)
+      data = result.entries[result.id]
+      db.append(['state'], result.entries)
     }
     return data
   }
   function get_instance_data (sid) {
     let id = s2i[sid]
-    let data = db.read(['state', id])
-    
+    let data = id && db.read(['state', id])
+
     if (status.fallback_check) {
+      let result
       if (!data && !status.root_instance) {
-        id = find_super('instance', local_status.fallback_instance)
+        result = find_super({ xtype: 'instance', fallback: local_status.fallback_instance})
       } else {
-        id = preprocess(local_status.fallback_instance, 'instance', data)
+        result = preprocess({
+          fallback: local_status.fallback_instance, 
+          xtype: 'instance', 
+          pre_data: data || {id: get_instance_path(modulepath)}
+        })
       }
-      data = db.read(['state', id])
+      data = result.entries[result.id]
+      db.append(['state'], result.entries)
     }
-    
-    if (status.root_instance) {
+    else if (status.root_instance) {
+      data = db.read(['state', id || get_instance_path(modulepath)])
       status.tree = JSON.parse(JSON.stringify(status.tree))
-      data = db.find(['state'], { type: local_status.module_id})
       status.root_instance = false
     }
     
-    if (!data) {
-      id = status.orphans[modulepath].pop()
-      data = db.read(['state', id])
+    if (!data && local_status.orphan) {
+      data = db.read(['state', get_instance_path(modulepath)])
     }
     return data
   }
 }
 
 // External Function (helper)
+function validate (data) {
+  /**  Expected structure and types
+   * Sample : "key1|key2:*:type1|type2"
+   * ":" : separator
+   * "|" : OR
+   * "*" : Required key
+   * 
+   * */
+  const errors = []
+  const expected_structure = {
+    '_': {
+      ":*": { // Required key, any name allowed
+        "0": () => {}, // Optional key
+      },
+    },
+    'drive': {
+      'inputs:*': { // Required key
+        ":*": { // Required key, any name allowed
+          "data|link:*:object|string": {}, // data or link are names, required, object or string are types
+          "link": "string"
+        },
+      },
+    },
+  };
+
+
+  validate_shape(data, expected_structure);
+  if (errors.length > 0) 
+    console.error("Validation failed:", ...errors);
+
+  function validate_shape (obj, expected, super_node = 'root') {
+    const keys = Object.keys(obj)
+    const values = Object.values(obj)
+
+    Object.entries(expected).forEach(([expected_key, expected_value]) => {
+      let [expected_key_names, required, expected_types] = expected_key.split(':')
+      expected_types = expected_types ? expected_types.split('|') : [typeof(expected_value)]
+      let absent = true
+
+      if(expected_key_names)
+        expected_key_names.split('|').forEach(expected_key_name => {
+          const value = obj[expected_key_name]
+
+          if(value){
+            const type = typeof(value)
+            absent = false
+
+            if(expected_types.includes(type))
+              type === 'object' && validate_shape(value, expected_value, expected_key_name)
+            else
+              errors.push(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${expected_key_name}" at: `, obj)
+          }
+        })
+      else if(required){
+        values.forEach((value, index) => {
+          absent = false
+          const type = typeof(value)
+          
+          if(expected_types.includes(type))
+            expected_types.includes('object') && validate_shape(value, expected_value, keys[index])
+          else
+            errors.push(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${keys[index]}" at: `, obj)
+        })
+      }
+
+      if(absent && required){
+        if(expected_key_names)
+          errors.push(`Can't find required key "${expected_key_names.replace('|', ' or ')}" at: `, obj)
+        else
+          errors.push(`No subs found for super key "${super_node}" at sub:`, obj)
+      }
+    })
+  }
+}
 function extract_filename (address) {
   const parts = address.split('/node_modules/')
   const last = parts.at(-1).split('/')
   return last.at(-1).slice(0, -3)
 }
-function get_instance_path (local_id, modulepath) {
-  const modulepath_parent = modulepath.split(/\/(?=[^\/]*$)/)
-  return modulepath_parent[1] ? 
-    modulepath_parent[0] + '/' + local_id : 
-    local_id
+function get_instance_path (modulepath, modulepaths = status.modulepaths) {
+  return modulepath + ':' + modulepaths[modulepath]++
 }
 async function fetch_save ({ id, name, $ref, type, data }) {
   const xtype = (typeof(id) === "number" ? name : id).split('.').at(-1)
@@ -1251,52 +1333,47 @@ function symbolfy (data, local_status) {
     const substate = db.read(['state', sub])
     s2i[i2s[sub] = Symbol(sub)] = sub
     local_status.subs.push({ sid: i2s[sub], type: substate.type })
-    
-    if (substate.orphan) {
-      const substate_module = db.read(['state', substate.type])
-      if (status.orphans[substate_module.path]) {
-        status.orphans[substate_module.path].push(sub)
-      } else {
-        status.orphans[substate_module.path] = [sub]
-      }
-    }
   })
 }
-function register_overrides (tree, path = '') {
+function register_overrides (tree, path = '', xtype = 'instance', local_modulepaths = {}) {
   let check_override = true
   let check_sub = false
-  
+  local_modulepaths[path] = 0
   check_override = Boolean(tree[0])
-  if (check_override && !status.overrides[path]) {
-    status.overrides[path] = tree[0]
+  if (check_override) {
+    let resultant_path = path
+    if(xtype === 'instance')
+      resultant_path = get_instance_path(path.split('$')[0], local_modulepaths)
+    if(!status.overrides[resultant_path])
+      status.overrides[resultant_path] = tree[0]
   }
   
   path = path ? path + '/' : path
   
   if (tree._) {
     Object.entries(tree._).forEach(([type, data]) => {
-      const check = register_overrides(data, path + type.replace('.', '/'))
+      const check = register_overrides(data, path + type.replace('.', '/'), xtype, local_modulepaths)
       if (!check) check_sub = true
     })
   }
   
   return !(check_override || check_sub)
 }
-function merge_trees (fallback, fun_status) {
+function get_fallbacks (fallback, fun_status, modulepath) {
   return () => {
     const data = fallback()
     
-    function traverse (data, type) {
+    function traverse (data, type, path) {
       if (data._) {
-        Object.entries(data._).forEach(([type, data]) => traverse(data, type))
+        Object.entries(data._).forEach(([type, data]) => traverse(data, type, path + '/' + type.split('$')[0].replace('.', '/')))
       } else {
         type = type.split('$')[0]
-        const id = db.find(['state'], {type}).id
+        const id = db.read(['state', path]).id
         data._ = status.tree_pointers[id]?._?.[type]?._
       }
     }
     
-    traverse(data, fun_status.name)
+    traverse(data, fun_status.name, modulepath)
     return data
   }
 }
