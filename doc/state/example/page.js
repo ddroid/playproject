@@ -8,46 +8,48 @@ function fallback_module () { // -> set database defaults or load from database
       "app": {},
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      "app": {
-        0: override_app
-      }
-    },
-    drive: {
-      inputs: {
-        "page.css": {
-          data: `
-            body{
-              font-family: 'system-ui';
-            }
-          `
+  function fallback_instance () {
+    return {
+      _: {
+        "app": {
+          0: override_app
+        }
+      },
+      drive: {
+        inputs: {
+          "page.css": {
+            data: `
+              body{
+                font-family: 'system-ui';
+              }
+            `
+          }
         }
       }
     }
   }
-}
-function override_app ([app]) {
-  const data = app()
-  data._.head._['foo.nav']._.menu[0] = ([menu]) => {
-    const data = menu()
+  function override_app ([app]) {
+    const data = app()
     console.log(data)
-    data.drive.inputs['menu.json'].data = {
-      links: ['custom', 'menu'],
-      title: 'Custom'
+    data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive.inputs['menu.json'].data = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
     }
     return data
   }
-  return data
 }
+
 /******************************************************************************
   PAGE
 ******************************************************************************/
 const app = require('app')
 const sheet = new CSSStyleSheet()
-config().then(() => boot({ }))
+config().then(() => boot({ sid: '' }))
 
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
@@ -71,11 +73,11 @@ async function config () {
 /******************************************************************************
   PAGE BOOT
 ******************************************************************************/
-async function boot () {
+async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get('')
+  const { id, sdb } = await get(opts)
   const on = {
     css: inject,
   }

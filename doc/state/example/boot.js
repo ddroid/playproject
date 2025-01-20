@@ -1,7 +1,7 @@
 patch_cache_in_browser(arguments[4], arguments[5])
 
 function patch_cache_in_browser (source_cache, module_cache) {
-  const meta = { modulepath: [], paths: {} }
+  const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
     const dependencies = names || {}
