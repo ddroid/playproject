@@ -77,7 +77,7 @@ async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts)
+  const { id, sdb } = await get(opts.sid)
   const on = {
     css: inject,
   }
