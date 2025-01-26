@@ -2,7 +2,7 @@
 patch_cache_in_browser(arguments[4], arguments[5])
 
 function patch_cache_in_browser (source_cache, module_cache) {
-  const meta = { modulepath: [], paths: {} }
+  const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
     const dependencies = names || {}
@@ -55,15 +55,16 @@ function fallback_module () { // -> set database defaults or load from database
       "foot": {},
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      "head": {},
-      "foot": {},
+  function fallback_instance () {
+    return {
+      _: {
+        "head": {},
+        "foot": {},
+      }
     }
   }
 }
+
 /******************************************************************************
   PAGE
 ******************************************************************************/
@@ -124,23 +125,24 @@ function fallback_module () {
       icon: {}
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      icon: {}
-    },
-    drive: {
-      inputs: {
-        'btn.json': {
-          data: {
-            title: 'Click me'
+  function fallback_instance () {
+    return {
+      _: {
+        icon: {}
+      },
+      drive: {
+        inputs: {
+          'btn.json': {
+            data: {
+              title: 'Click me'
+            }
           }
         }
       }
     }
   }
 }
+
 /******************************************************************************
   BTN
 ******************************************************************************/
@@ -303,14 +305,15 @@ function fallback_module () {
       text: {}
     }
   }
-}
-function fallback_instance () {
-  return {
-    _:{
-      text: {}
+  function fallback_instance () {
+    return {
+      _:{
+        text: {}
+      }
     }
   }
 }
+
 /******************************************************************************
   FOOT
 ******************************************************************************/
@@ -370,11 +373,11 @@ function fallback_module () { // -> set database defaults or load from database
       "foo": {}
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      "foo": {},
+  function fallback_instance () {
+    return {
+      _: {
+        "foo": {},
+      }
     }
   }
 }
@@ -434,10 +437,11 @@ function fallback_module () {
   return {
     api: fallback_instance,
   }
+  function fallback_instance () {
+    return {}
+  }
 }
-function fallback_instance () {
-  return {}
-}
+
 /******************************************************************************
   ICON
 ******************************************************************************/
@@ -493,49 +497,50 @@ function fallback_module () {
       btn: {},
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      btn: {},
-      'btn$small': {},
-    },
-    drive: {
-      inputs: {
-        'menu.json': {
-          data: {
-            title: 'menu',
-            links: ['link1', 'link2'],
+  function fallback_instance () {
+    return {
+      _: {
+        btn: {},
+        'btn$small': {},
+      },
+      drive: {
+        inputs: {
+          'menu.json': {
+            data: {
+              title: 'menu',
+              links: ['link1', 'link2'],
+            }
+          },
+          'menu.css': {
+            data: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
           }
-        },
-        'menu.css': {
-          data: `
-            .title{
-              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-              transition: color .5s ease, background-size .5s;
-              cursor: pointer;
-            }
-            .title:hover{
-              --underline-width: 100%
-            }
-            ul{
-              background: #273d3d;
-              list-style: none;
-              display: none;
-              position: absolute;
-              padding: 10px;
-              box-shadow: 0px 1px 6px 1px gray;
-              border-radius: 5px;
-            }
-            ul.active{
-              display: block;
-            }
-          `
         }
       }
     }
   }
 }
+
 /******************************************************************************
   MENU
 ******************************************************************************/
@@ -670,69 +675,69 @@ const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () { // -> set database defaults or load from database
 	return {
-      api: fallback_instance,
-      _: {
-        'menu':{},
-      }
+    api: fallback_instance,
+    _: {
+      'menu':{},
     }
   }
-function fallback_instance () {
-  return {
-    _: {
-      'menu':{
-        0: override_menu
-      },
-      'menu$hover': {
-        0: override_menu_hover
-      }
-    },
-    drive: {
-      inputs: {
-        'nav.css': {
-          data: `
-            nav{
-              display: flex;
-              gap: 20px;
-              padding: 20px;
-              background: #4b6d6d;
-              color: white;
-              box-shadow: 0px 1px 6px 1px gray;
-              margin: 5px;
-            }
-            .title{
-              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-              transition: color .5s ease, background-size .5s;
-              cursor: pointer;
-            }
-            .title:hover{
-              --underline-width: 100%
-            }
-          `
+  function fallback_instance () {
+    return {
+      _: {
+        'menu':{
+          0: override_menu
         },
-        'nav.json': {
-          data: {
-            links: ['Home', 'About', 'Contact']
+        'menu$hover': {
+          0: override_menu_hover
+        }
+      },
+      drive: {
+        inputs: {
+          'nav.css': {
+            data: `
+              nav{
+                display: flex;
+                gap: 20px;
+                padding: 20px;
+                background: #4b6d6d;
+                color: white;
+                box-shadow: 0px 1px 6px 1px gray;
+                margin: 5px;
+              }
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+            `
+          },
+          'nav.json': {
+            data: {
+              links: ['Home', 'About', 'Contact']
+            }
           }
         }
       }
     }
   }
-}
-function override_menu ([menu], path){
-  const data = menu()
-  data.drive.inputs['menu.json'].data = {
-    title: 'Services',
-    links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+  function override_menu ([menu], path){
+    const data = menu()
+    data.drive.inputs['menu.json'].data = {
+      title: 'Services',
+      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    }
+    return data
   }
-  return data
-}
-function override_menu_hover ([menu], path){
-  const data = menu()
-  data.drive.inputs['menu.json'].data = {
-    title: 'Services#hover',
-    links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+  function override_menu_hover ([menu], path){
+    const data = menu()
+    data.drive.inputs['menu.json'].data = {
+      title: 'Services#hover',
+      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    }
+    return data
   }
-  return data
 }
 /******************************************************************************
   NAV
@@ -800,10 +805,11 @@ function fallback_module () {
   return {
     api: fallback_instance,
   }
+  function fallback_instance () {
+    return {}
+  }
 }
-function fallback_instance () {
-  return {}
-}
+
 /******************************************************************************
   TEXT
 ******************************************************************************/
@@ -851,16 +857,8 @@ async function text(opts) {
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-function fallback_module () { // -> set database defaults or load from database
+function fallback_module () { 
 	return {
-    api: fallback_instance,
-    _: {
-      "app": {},
-    }
-  }
-}
-function fallback_instance () {
-  return {
     _: {
       "app": {
         0: override_app
@@ -878,26 +876,28 @@ function fallback_instance () {
       }
     }
   }
-}
-function override_app ([app]) {
-  const data = app()
-  data._.head._['foo.nav']._.menu[0] = ([menu]) => {
-    const data = menu()
+  function override_app ([app]) {
+    const data = app()
     console.log(data)
-    data.drive.inputs['menu.json'].data = {
-      links: ['custom', 'menu'],
-      title: 'Custom'
+    data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive.inputs['menu.json'].data = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
     }
     return data
   }
-  return data
 }
+
 /******************************************************************************
   PAGE
 ******************************************************************************/
 const app = require('app')
 const sheet = new CSSStyleSheet()
-config().then(() => boot({ }))
+config().then(() => boot({ sid: '' }))
 
 async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
@@ -921,15 +921,15 @@ async function config () {
 /******************************************************************************
   PAGE BOOT
 ******************************************************************************/
-async function boot () {
+async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get('')
   const on = {
     css: inject,
   }
   const subs = await sdb.watch(onbatch)
+  console.log(subs)
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -942,7 +942,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[0]))
+    shadow.append(await app(subs[1]))
   }
   // ----------------------------------------
   // INIT
@@ -952,7 +952,7 @@ async function boot () {
 
   function onbatch(batch){
     for (const {type, data} of batch) {
-      on[type](data)
+      on[type] && on[type](data)
     }
   }
 }
@@ -963,9 +963,9 @@ async function inject (data){
 },{"../../../src/node_modules/STATE":12,"app":2}],12:[function(require,module,exports){
 const localdb = require('localdb')
 const db = localdb()
-/** Data stored in a entry in db by STATE:
+/** Data stored in a entry in db by STATE (Schema): 
  * id (String): Node Path 
- * name (String): Any (To be used theme_widget)
+ * name (String/Optional): Any (To be used theme_widget)
  * type (String): Module Name for module / Module id for instances
  * hubs (Array): List of hub-nodes
  * subs (Array): List of sub-nodes
@@ -975,153 +975,264 @@ const db = localdb()
 // Constants and initial setup (global level)
 const VERSION = 9
 
-const status = {
+let status = {
   root_module: true, 
   root_instance: true, 
   overrides: {},
   tree: {},
   tree_pointers: {},
   modulepaths: {},
+  inits: [],
+  open_branches: {},
   db
 }
 
 // Version check and initialization
-check_version()
+status.fallback_check = Boolean(check_version())
+status.fallback_check && db.add(['playproject_version'], VERSION)
+
 
 // Symbol mappings
 const listeners = {}
 const s2i = {}
 const i2s = {}
 let admins = [0]
+let timer
 
 // Inner Function
 function STATE (address, modulepath) {
   status.modulepaths[modulepath] = 0
-  
   //Variables (module-level)
-  const local_status = {
+  let local_status = {
     name: extract_filename(address),
     module_id: modulepath,
     instance_ids: [],
     deny: {},
-    subs: []
+    sub_modules: [],
+    sub_instances: {}
   }
   return statedb
   
-  function statedb (fallback_module) {
-    const data = get_module_data(fallback_module)
-    
+  function init () {
+    status.inits.forEach(func => func())
+  }
+  function statedb (fallback) {
+    const data = fallback()
+    if(data._)
+      status.open_branches[modulepath] = Object.keys(data._).length
+    local_status.fallback_module = new Function(`return ${fallback.toString()}`)()
+    status = append_tree_node(modulepath, status)
+    status.inits.push(init_module)
+    if(!Object.values(status.open_branches).reduce((acc, curr) => acc + curr, 0)){
+      init()
+    }
+    return {
+      id: modulepath,
+      sdb: create_statedb_interface(local_status, modulepath, xtype = 'module'),
+      subs: [get],
+      // sub_modules
+    }
+  }
+  function append_tree_node (id, status) {
+    const [super_id, name] = id.split(/\/(?=[^\/]*$)/)
+
+    if(name){
+      if(status.tree_pointers[super_id]){
+        status.tree_pointers[super_id]._[name] = { _: {} }
+        status.tree_pointers[id] = status.tree_pointers[super_id]._[name]
+        status.open_branches[super_id]--
+      }
+      else{
+        let temp_name, new_name = name
+        let new_super_id = super_id
+        while(!status.tree_pointers[new_super_id]){
+          [new_super_id, temp_name] = new_super_id.split(/\/(?=[^\/]*$)/)
+          new_name = temp_name + '.' + new_name
+        }
+        status.open_branches[new_super_id]--
+        status.tree_pointers[new_super_id]._[new_name] = { _: {} }
+        status.tree_pointers[id] = status.tree_pointers[new_super_id]._[new_name]
+      }
+    }
+    else{
+      status.tree[id] = { _: {} }
+      status.tree_pointers[id] = status.tree[id]
+    }
+    return status
+  }
+  function init_module () {
+    const {statedata, state_entries, newstatus, updated_local_status} = get_module_data(local_status.fallback_module)
+    statedata.orphan && (local_status.orphan = true)
+    //side effects
+    if (status.fallback_check) {
+      status = newstatus
+      console.log('Main module: ', statedata.name, '\n', state_entries)
+      local_status = updated_local_status ? updated_local_status : local_status
+      local_status.fallback_instance = statedata.api
+      db.append(['state'], state_entries)
+      add_source_code(statedata.inputs)
+    }
+
+    local_status.sub_modules = symbolfy(statedata, local_status)
     //Setup local data (module level)
     if(status.root_module){
       status.root_module = false
-      data.admins && admins.push(...data.admins)
+      statedata.admins && admins.push(...statedata.admins)
     }
-    local_status.id = data.id
-    local_status.module_id = data.id
-    data.hubs && add_source(data.hubs)
-    
     const sub_modules = {}
-    data.subs && data.subs.forEach(id => {
+    statedata.subs && statedata.subs.forEach(id => {
       sub_modules[db.read(['state', id]).type] = id
     })
     window.STATEMODULE = status
-
-    return {
-      id: data.id,
-      sdb: create_statedb_interface(local_status, modulepath),
-      subs: [get],
-      sub_modules
-    }
-  }
-  function find_super ({ xtype, fallback }) {
-    const split = modulepath.split('/')
-    const name = split.at(-2) + '.' + split.at(-1)
-    const modulepath_parent = modulepath.split(/\/(?=[^\/]*$)/)[0]
-    
-    let data = db.read(['state', modulepath_parent]) || db.read(['state', modulepath])
-    
-    if (xtype === 'instance') {
-      data = db.read(['state', modulepath_parent])
-    }
-    
-    data.name = split.at(-1)
-    if(xtype === 'module')
-      data.path = data.id = modulepath
-    else
-      data.path = data.id = get_instance_path(modulepath)
-    status.tree_pointers[modulepath] = status.tree_pointers[modulepath_parent] 
-    local_status.name = name
-
-    return preprocess({ 
-      fallback, xtype, 
-      pre_data: data, 
-      orphan_check: true })
   }
   function get (sid) {
-    const data = get_instance_data(sid)
-    
-    local_status.id = data.id
-    symbolfy(data, local_status)
+    const {statedata, state_entries, newstatus} = get_instance_data(sid)
+
+    if (status.fallback_check) {
+      status = newstatus
+      console.log('Main instance: ', statedata.name, '\n', state_entries)
+      db.append(['state'], state_entries)
+    }
+    local_status.sub_instances[statedata.id] = symbolfy(statedata, local_status)
     window.STATEMODULE = status
     
     return {
-      id: data.id,
-      sdb: create_statedb_interface(local_status, modulepath)
+      id: statedata.id,
+      sdb: create_statedb_interface(local_status, statedata.id, xtype = 'instance')
     }
   }
-  function preprocess ({ fallback, xtype, pre_data = {}, orphan_check }) {
-    const entries = {}
+  function get_module_data (fallback) {
+    let data = db.read(['state', modulepath])
+
+    if (status.fallback_check) {
+      if (data) {
+        var {sanitized_data, updated_status} = validate_and_preprocess({ fun_status: status, fallback, xtype: 'module', pre_data: data })
+      } 
+      else if (status.root_module) {
+        status.root_module = false
+        var {sanitized_data, updated_status} = validate_and_preprocess({ fun_status: status, fallback, xtype: 'module', pre_data: {id: modulepath}})
+      } 
+      else {
+
+        var {sanitized_data, updated_status, updated_local_status} = find_super({ xtype: 'module', fallback, fun_status:status, local_status })
+      }
+      data = sanitized_data.entry
+    }
+    return {
+      statedata: data,
+      state_entries: sanitized_data?.entries,
+      newstatus: updated_status,
+      updated_local_status
+    }
+  }
+  function get_instance_data (sid) {
+    let id = s2i[sid]
+    let data = id && db.read(['state', id])
+    let sanitized_data, updated_status = status
+    if (status.fallback_check) {
+      if (!data && !status.root_instance) {
+        ({sanitized_data, updated_status} = find_super({ xtype: 'instance', fallback: local_status.fallback_instance, fun_status: status }))
+      } else {
+        ({sanitized_data, updated_status} = validate_and_preprocess({
+          fun_status: status,
+          fallback: local_status.fallback_instance, 
+          xtype: 'instance',
+          pre_data: data || {id: get_instance_path(modulepath)}
+        }))
+      }
+      data = sanitized_data.entry
+    }
+    else if (status.root_instance) {
+      data = db.read(['state', id || get_instance_path(modulepath)])
+      updated_status.tree = JSON.parse(JSON.stringify(status.tree))
+      updated_status.root_instance = false
+    }
+    
+    if (!data && local_status.orphan) {
+      data = db.read(['state', get_instance_path(modulepath)])
+    }
+    return {
+      statedata: data,
+      state_entries: sanitized_data?.entries,
+      newstatus: updated_status,
+    }
+  }
+  function find_super ({ xtype, fallback, fun_status, local_status }) {
+    const modulepath_super = modulepath.split(/\/(?=[^\/]*$)/)[0]
+    const split = modulepath.split('/')
+    const name = split.at(-2) + '.' + split.at(-1)
+    let data
+
+    if(xtype === 'module'){
+      data = db.read(['state', modulepath_super])
+      data.path = data.id = modulepath
+      local_status.name = name
+    }
+    else{
+      db.read(['state', modulepath])
+      data.path = data.id = get_instance_path(modulepath)
+    }
+    data.name = split.at(-1)
+
+    return { updated_local_status: local_status,
+      ...validate_and_preprocess({ 
+      fun_status,
+      fallback, xtype, 
+      pre_data: data, 
+      orphan_check: true }) }
+  }
+  function validate_and_preprocess ({ fallback, xtype, pre_data = {}, orphan_check, fun_status }) {
     let {id: pre_id, hubs: pre_hubs} = pre_data
 
     validate(fallback())
-    
-    const fallback_data = status.overrides[pre_id] ? 
-      status.overrides[pre_id]([get_fallbacks(fallback, local_status, modulepath)]) :
-      fallback()
-      
-    if(status.overrides[pre_id])
-      delete status.overrides[pre_id]
-    if(xtype === 'module')
-      local_status.fallback_instance = fallback_data.api
+    if(fun_status.overrides[pre_id]){
+      console.log('OK')
+      fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
+      fun_status.overrides[pre_id].by.splice(0, 1)
+      fun_status.overrides[pre_id].fun.splice(0, 1)
+    }
+    else
+      fallback_data = fallback()
 
-
-    register_overrides(fallback_data, modulepath)
-    // console.log('overrides: ', status.overrides)
+    fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
+    console.log('overrides: ', fun_status.overrides)
     orphan_check && (fallback_data.orphan = orphan_check)
-    const id = sanitize_state({ local_id: '', entry: fallback_data, path: pre_id })
-    return {entries, id}
-
+    //This function makes changes in fun_status (side effect)
+    return {
+      sanitized_data: sanitize_state({ local_id: '', entry: fallback_data, path: pre_id, xtype }),
+      updated_status: fun_status
+    }
     
-    function sanitize_state ({ local_id, entry, path, hub_entry, local_tree }) {
-      [path, entry, local_tree] = extract_data({ local_id, entry, path, hub_entry, local_tree })
+    function sanitize_state ({ local_id, entry, path, hub_entry, local_tree, entries = {}, xtype }) {
+      [path, entry, local_tree] = extract_data({ local_id, entry, path, hub_entry, local_tree, xtype })
       
       entry.id = path
-      entry.name = local_id.split(':')[0]
+      entry.name = entry.name || local_id.split(':')[0] || local_status.name
       
-      sanitize_subs({ local_id, entry, path, local_tree })
+      entries = {...sanitize_subs({ local_id, entry, path, local_tree, xtype })}
       
       delete entry._
       delete entry.drive
       entries[entry.id] = entry
       // console.log('Entry: ', entry)
-      return entry.id
+      return {entries, entry}
     }
-    function extract_data ({ local_id, entry, path, hub_entry, local_tree }) {
+    function extract_data ({ local_id, entry, path, hub_entry, xtype }) {
       if (local_id) {
         entry.hubs = [hub_entry.id]
         if (xtype === 'instance') {
           let temp_path = path.split(':')[0]
           temp_path = temp_path ? temp_path + '/' : temp_path
+          console.log(local_id)
           const module_id = temp_path + local_id.split('$')[0]
           entry.type = module_id
-          path = module_id + ':' + status.modulepaths[module_id]++
+          path = module_id + ':' + (status.modulepaths[module_id]++ || 0)
 
         } 
         else {
           entry.type = local_id
           path = path ? path + '/' : ''
           path = path + local_id
-          status.tree_pointers[path] = local_tree
         }
       } 
       else {
@@ -1130,32 +1241,42 @@ function STATE (address, modulepath) {
         } else {
           local_tree = JSON.parse(JSON.stringify(entry))
           // console.log('pre_id:', pre_id)
-          if (pre_id) {
-            status.tree_pointers[pre_id]._[local_status.name] = local_tree
-          } else {
-            status.tree[local_id] = local_tree
-          }
           const file_id = local_status.name + '.js'
-          entry.inputs || (entry.inputs = {})
-          entry.inputs[file_id] = { $ref: new URL(address, location).href }
+          entry.drive?.inputs || (entry.drive = {inputs: {}})
+          entry.drive.inputs[file_id] = { $ref: address }
           entry.type = local_status.name
         }
         pre_hubs && (entry.hubs = pre_hubs)
       }
       return [path, entry, local_tree]
     }
-    function sanitize_subs ({ local_id, entry, path, local_tree }) {
+    function sanitize_subs ({ local_id, entry, path, local_tree, xtype }) {
+      const entries = {}
       if (!local_id) {
+        entry.subs = []
         if(entry._){
-          entry.subs = Object.entries(entry._).map(([local_id, value]) => 
-            sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree })
-        )}
+          Object.entries(entry._).forEach(([local_id, value]) => {
+            const sub_entry = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype }).entry
+            entries[sub_entry.id] = JSON.parse(JSON.stringify(sub_entry))
+            entry.subs.push(sub_entry.id)
+            if(xtype === 'module')
+              Object.keys(value).forEach(override => {
+                if(!isNaN(parseInt(override))){
+                  const sub_instance = sanitize_state({ local_id: local_id, entry: value, path, hub_entry: entry, local_tree, xtype: 'instance' }).entry
+                  entries[sub_instance.id] = sub_instance
+                  entry.subs.push(sub_instance.id)
+                }
+              })
+        })}
         if(entry.drive){
-          entry.inputs = Object.entries(entry.drive.inputs).map(([key, value]) => 
-            sanitize_file(key, value, entry)
-          )
+          entry.inputs = Object.entries(entry.drive.inputs).map(([key, value]) => {
+            const sanitized_file = sanitize_file(key, value, entry)
+            entries[sanitized_file.id] = sanitized_file
+            return sanitized_file.id
+          })
+        }
       }
-      }
+      return entries
     }
     function sanitize_file (file_id, entry, hub_entry) {
       if (!isNaN(Number(file_id))) return file_id
@@ -1171,59 +1292,8 @@ function STATE (address, modulepath) {
         const id = copies.sort().at(-1).split(':')[1]
         file.id = file_id + ':' + (Number(id || 0) + 1)
       }
-      entries[file.id] = file
-      return file.id
+      return file
     }
-  }
-  function get_module_data (fallback) {
-    let data = db.read(['state', modulepath])
-    data?.orphan && (local_status.orphan = true)
-
-    if (status.fallback_check) {
-      let result
-      if (data) {
-        result = preprocess({fallback, xtype: 'module', pre_data: data })
-      } 
-      else if (status.root_module) {
-        status.root_module = false
-        result = preprocess({fallback, xtype: 'module', pre_data: {id: modulepath}})
-      } 
-      else {
-        result = find_super({xtype: 'module', fallback})
-      }
-      data = result.entries[result.id]
-      db.append(['state'], result.entries)
-    }
-    return data
-  }
-  function get_instance_data (sid) {
-    let id = s2i[sid]
-    let data = id && db.read(['state', id])
-
-    if (status.fallback_check) {
-      let result
-      if (!data && !status.root_instance) {
-        result = find_super({ xtype: 'instance', fallback: local_status.fallback_instance})
-      } else {
-        result = preprocess({
-          fallback: local_status.fallback_instance, 
-          xtype: 'instance', 
-          pre_data: data || {id: get_instance_path(modulepath)}
-        })
-      }
-      data = result.entries[result.id]
-      db.append(['state'], result.entries)
-    }
-    else if (status.root_instance) {
-      data = db.read(['state', id || get_instance_path(modulepath)])
-      status.tree = JSON.parse(JSON.stringify(status.tree))
-      status.root_instance = false
-    }
-    
-    if (!data && local_status.orphan) {
-      data = db.read(['state', get_instance_path(modulepath)])
-    }
-    return data
   }
 }
 
@@ -1236,7 +1306,6 @@ function validate (data) {
    * "*" : Required key
    * 
    * */
-  const errors = []
   const expected_structure = {
     '_': {
       ":*": { // Required key, any name allowed
@@ -1254,11 +1323,12 @@ function validate (data) {
   };
 
 
-  validate_shape(data, expected_structure);
+  const errors = validate_shape(data, expected_structure)
   if (errors.length > 0) 
-    console.error("Validation failed:", ...errors);
+    console.error("Validation failed:", ...errors)
 
   function validate_shape (obj, expected, super_node = 'root') {
+    const errors = []
     const keys = Object.keys(obj)
     const values = Object.values(obj)
 
@@ -1276,7 +1346,7 @@ function validate (data) {
             absent = false
 
             if(expected_types.includes(type))
-              type === 'object' && validate_shape(value, expected_value, expected_key_name)
+              type === 'object' && errors.push(...validate_shape(value, expected_value, expected_key_name))
             else
               errors.push(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${expected_key_name}" at: `, obj)
           }
@@ -1287,7 +1357,7 @@ function validate (data) {
           const type = typeof(value)
           
           if(expected_types.includes(type))
-            expected_types.includes('object') && validate_shape(value, expected_value, keys[index])
+            expected_types.includes('object') && errors.push(...validate_shape(value, expected_value, keys[index]))
           else
             errors.push(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${keys[index]}" at: `, obj)
         })
@@ -1300,6 +1370,7 @@ function validate (data) {
           errors.push(`No subs found for super key "${super_node}" at sub:`, obj)
       }
     })
+    return errors
   }
 }
 function extract_filename (address) {
@@ -1310,101 +1381,130 @@ function extract_filename (address) {
 function get_instance_path (modulepath, modulepaths = status.modulepaths) {
   return modulepath + ':' + modulepaths[modulepath]++
 }
-async function fetch_save ({ id, name, $ref, type, data }) {
+async function get_input ({ id, name, $ref, type, data }) {
   const xtype = (typeof(id) === "number" ? name : id).split('.').at(-1)
   let result = db.read([type, id])
   
   if (!result) {
     result = data || await((await fetch($ref))[xtype === 'json' ? 'json' : 'text']())
-    db.add([type, id], result)
   }
   return result
 }
-function add_source (hubs) {
-  hubs.forEach(id => {
+//Unavoidable side effect
+function add_source_code (hubs) {
+  hubs.forEach(async id => {
     const data = db.read(['state', id])
     if (data.type === 'js') {
-      fetch_save(data)
+      data.data = await get_input(data)
+      db.add(['state', data.id], data)
+      return
     }
   })
 }
-function symbolfy (data, local_status) {
+function symbolfy (data) {
+  const subs = []
   data.subs && data.subs.forEach(sub => {
     const substate = db.read(['state', sub])
     s2i[i2s[sub] = Symbol(sub)] = sub
-    local_status.subs.push({ sid: i2s[sub], type: substate.type })
+    subs.push({ sid: i2s[sub], type: substate.type })
   })
+  return subs
 }
-function register_overrides (tree, path = '', xtype = 'instance', local_modulepaths = {}) {
-  let check_override = true
-  let check_sub = false
-  local_modulepaths[path] = 0
-  check_override = Boolean(tree[0])
-  if (check_override) {
-    let resultant_path = path
-    if(xtype === 'instance')
-      resultant_path = get_instance_path(path.split('$')[0], local_modulepaths)
-    if(!status.overrides[resultant_path])
-      status.overrides[resultant_path] = tree[0]
-  }
-  
-  path = path ? path + '/' : path
-  
-  if (tree._) {
-    Object.entries(tree._).forEach(([type, data]) => {
-      const check = register_overrides(data, path + type.replace('.', '/'), xtype, local_modulepaths)
-      if (!check) check_sub = true
-    })
-  }
-  
-  return !(check_override || check_sub)
-}
-function get_fallbacks (fallback, fun_status, modulepath) {
-  return () => {
-    const data = fallback()
-    
-    function traverse (data, type, path) {
-      if (data._) {
-        Object.entries(data._).forEach(([type, data]) => traverse(data, type, path + '/' + type.split('$')[0].replace('.', '/')))
-      } else {
-        type = type.split('$')[0]
-        const id = db.read(['state', path]).id
-        data._ = status.tree_pointers[id]?._?.[type]?._
+function register_overrides ({overrides, ...args}) {
+  recurse(args)
+  return overrides
+  function recurse ({ tree, path = '', id, xtype = 'instance', local_modulepaths = {} }) {
+    let check_override = true
+    let check_sub = false
+    local_modulepaths[path] = 0
+    if(xtype === 'module'){
+      Object.entries(([id, override]) => {
+        if(!isNaN(parseInt(id))){
+          check_override = true
+          let resultant_path = path + ':' + id
+          if(overrides[resultant_path]){
+            overrides[resultant_path].fun.push(override)
+            overrides[resultant_path].by.push(id)
+          }
+          else
+            overrides[resultant_path] = {fun: [override], by: [id]}
+        }
+      })
+    }
+    else{
+      check_override = Boolean(tree[0])
+      if (check_override) {
+        const resultant_path = get_instance_path(path.split('$')[0], local_modulepaths)
+        if(overrides[resultant_path]){
+          overrides[resultant_path].fun.push(tree[0])
+          overrides[resultant_path].by.push(id)
+        }
+        else
+          overrides[resultant_path] = {fun: [tree[0]], by: [id]}
       }
     }
     
-    traverse(data, fun_status.name, modulepath)
+    path = path ? path + '/' : path
+    
+    if (tree._) {
+      Object.entries(tree._).forEach(([type, data]) => {
+        const check = recurse({ tree: data, path: path + type.replace('.', '/'), id, xtype, local_modulepaths })
+        if (!check) check_sub = true
+      })
+    }
+    
+    return !(check_override || check_sub)
+  }
+}
+function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
+  return [default_fallback, ...status.overrides[instance_path].fun]
+    
+  function default_fallback () {
+    const data = fallback()
+
+    data.overrider = status.overrides[instance_path].by[0]
+    merge_trees(data, modulepath)
     return data
+
+    function merge_trees (data, path) {
+      if (data._) {
+        Object.entries(data._).forEach(([type, data]) => merge_trees(data, path + '/' + type.split('$')[0].replace('.', '/')))
+      } else {
+        const id = db.read(['state', path]).id
+        data._ = status.tree_pointers[id]._
+      }
+    }
   }
 }
 function check_version () {
   if (db.read(['playproject_version']) != VERSION) {
     localStorage.clear()
-    status.fallback_check = true
-    db.add(['playproject_version'], VERSION)
+    return true
   }
 }
 
 // Public Function
-function create_statedb_interface (local_status, modulepath) {
+function create_statedb_interface (local_status, node_id, xtype) {
   return {
     watch, get_sub, req_access
   }
   async function watch (listener) {
-    const data = db.read(['state', local_status.id])
-    listeners[data.id] = listener
-    const input_map = []
-    
-    if (data.inputs) {
-      await Promise.all(data.inputs.map(async input => {
-        const input_state = db.read(['state', input])
-        const input_data = await fetch_save(input_state)
-        input_map.push({ type: input_state.type, data: [input_data] })
-      }))
+    const data = db.read(['state', node_id])
+    if(listener){
+      listeners[data.id] = listener
+      const input_map = []
+      
+      if (data.inputs) {
+        await Promise.all(data.inputs.map(async input => {
+          const input_state = db.read(['state', input])
+          const input_data = await get_input(input_state)
+          input_map.push({ type: input_state.type, data: [input_data] })
+        }))
+      }
+      
+      listener(input_map)
     }
-    
-    listener(input_map)
-    return local_status.subs
+    return xtype === 'module' ? local_status.sub_modules : local_status.sub_instances[node_id]
   }
   function get_sub (type) {
     return local_status.subs.filter(sub => {

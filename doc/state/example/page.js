@@ -1,29 +1,21 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-function fallback_module () { // -> set database defaults or load from database
+function fallback_module () { 
 	return {
-    api: fallback_instance,
     _: {
-      "app": {},
-    }
-  }
-  function fallback_instance () {
-    return {
-      _: {
-        "app": {
-          0: override_app
-        }
-      },
-      drive: {
-        inputs: {
-          "page.css": {
-            data: `
-              body{
-                font-family: 'system-ui';
-              }
-            `
-          }
+      "app": {
+        0: override_app
+      }
+    },
+    drive: {
+      inputs: {
+        "page.css": {
+          data: `
+            body{
+              font-family: 'system-ui';
+            }
+          `
         }
       }
     }
@@ -77,11 +69,11 @@ async function boot (opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid)
   const on = {
     css: inject,
   }
   const subs = await sdb.watch(onbatch)
+  console.log(subs)
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -94,7 +86,7 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[0]))
+    shadow.append(await app(subs[1]))
   }
   // ----------------------------------------
   // INIT
@@ -104,7 +96,7 @@ async function boot (opts) {
 
   function onbatch(batch){
     for (const {type, data} of batch) {
-      on[type](data)
+      on[type] && on[type](data)
     }
   }
 }
