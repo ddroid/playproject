@@ -73,7 +73,6 @@ async function boot (opts) {
     css: inject,
   }
   const subs = await sdb.watch(onbatch)
-  console.log(subs)
   const status = {}
   // ----------------------------------------
   // TEMPLATE
