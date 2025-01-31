@@ -61,9 +61,13 @@ theme_name = ['file1_content', 'file2_content', ....]
 }
 ```
 
-## IO
+## Terminologies
+### Module
+A file that returns a function or multiple functions.
+### Instance
+A return of data by calling a function provided by a module.
 ### Node
-Module or instances which communicate through IO module with each other.
+Used to refer to either Module or Instance in general cases.
 
 ## Graph Explorer
 ### Entry
