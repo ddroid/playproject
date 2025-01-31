@@ -3,16 +3,6 @@ const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 function fallback_module () { // -> set database defaults or load from database
 	return {
-     // drive: {},
-     api: fallback_instance,
-     // on (subpath, overrides) {},
-    _: {
-      "app": {},
-    }
-  }
-}
-function fallback_instance () {
-  return {
     _: {
       "app": {
         0: override_app
@@ -30,38 +20,38 @@ function fallback_instance () {
       }
     }
   }
-}
-function override_app ([app]) {
-  const data = app()
-  console.log(JSON.parse(JSON.stringify(data._.head)))
-  data._.head[0] = page$head_override
-  return data
-}
-function page$head_override ([head]) {
-  const data = head()
-  data._['foo.nav'] = {
-    0: page$nav_override
+  function override_app ([app]) {
+    const data = app()
+    console.log(JSON.parse(JSON.stringify(data._.head)))
+    data._.head[0] = page$head_override
+    return data
   }
-  return data
-}
-function page$foo_override ([foo]) {
-  const data = foo()
-  data._.nav[0] = page$nav_override
-  return data
-}
-function page$nav_override ([nav]) {
-  const data = nav()
-  data._.menu[0] = page$menu_override
-  return data
-}
-function page$menu_override ([menu]) {
-  const data = menu()
-  console.log(data)
-  data.drive.inputs['menu.json'].data = {
-    links: ['custom', 'menu'],
-    title: 'Custom'
+  function page$head_override ([head]) {
+    const data = head()
+    data._['foo.nav'] = {
+      0: page$nav_override
+    }
+    return data
   }
-  return data
+  function page$foo_override ([foo]) {
+    const data = foo()
+    data._.nav[0] = page$nav_override
+    return data
+  }
+  function page$nav_override ([nav]) {
+    const data = nav()
+    data._.menu[0] = page$menu_override
+    return data
+  }
+  function page$menu_override ([menu]) {
+    const data = menu()
+    console.log(data)
+    data.drive.inputs['menu.json'].data = {
+      links: ['custom', 'menu'],
+      title: 'Custom'
+    }
+    return data
+  }
 }
 /******************************************************************************
   PAGE
@@ -96,7 +86,6 @@ async function boot () {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get('')
   const on = {
     css: inject,
   }
@@ -113,7 +102,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[0]))
+    shadow.append(await app(subs[1]))
   }
   // ----------------------------------------
   // INIT
@@ -123,7 +112,7 @@ async function boot () {
 
   function onbatch(batch){
     for (const {type, data} of batch) {
-      on[type](data)
+      on[type] && on[type](data)
     }
   }
 }

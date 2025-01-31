@@ -2,7 +2,7 @@
 patch_cache_in_browser(arguments[4], arguments[5])
 
 function patch_cache_in_browser (source_cache, module_cache) {
-  const meta = { modulepath: [], paths: {} }
+  const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
     const dependencies = names || {}
@@ -80,7 +80,6 @@ const listeners = {}
 const s2i = {}
 const i2s = {}
 let admins = [0]
-let timer
 
 // Inner Function
 function STATE (address, modulepath) {
@@ -118,34 +117,6 @@ function STATE (address, modulepath) {
       // sub_modules
     }
   }
-  function init_module () {
-    const {statedata, state_entries, newstatus, updated_local_status} = get_module_data(local_status.fallback_module)
-    statedata.orphan && (local_status.orphan = true)
-    //side effects
-    if (status.fallback_check) {
-      Object.assign(status, newstatus)
-      console.log('Main module: ', statedata.name, '\n', state_entries)
-      local_status = updated_local_status ? updated_local_status : local_status
-      local_status.fallback_instance = statedata.api
-      db.append(['state'], state_entries)
-      add_source_code(statedata.inputs) // TODO: remove side effect
-    }
-
-    [local_status.sub_modules, symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
-    Object.assign(s2i, symbol2ID)
-    Object.assign(i2s, ID2Symbol)
-    
-    //Setup local data (module level)
-    if(status.root_module){
-      status.root_module = false
-      statedata.admins && admins.push(...statedata.admins)
-    }
-    // TDO: handle sub_modules when dynamic require is implemented
-    // const sub_modules = {}
-    // statedata.subs && statedata.subs.forEach(id => {
-    //   sub_modules[db.read(['state', id]).type] = id
-    // })
-  }
   function append_tree_node (id, status) {
     const [super_id, name] = id.split(/\/(?=[^\/]*$)/)
 
@@ -173,11 +144,42 @@ function STATE (address, modulepath) {
     }
     return status
   }
+  function init_module () {
+    const {statedata, state_entries, newstatus, updated_local_status} = get_module_data(local_status.fallback_module)
+    statedata.orphan && (local_status.orphan = true)
+    //side effects
+    if (status.fallback_check) {
+      Object.assign(status.root_module, newstatus.root_module)
+      Object.assign(status.overrides, newstatus.overrides)
+      console.log('Main module: ', statedata.name, '\n', state_entries)
+      local_status = updated_local_status ? updated_local_status : local_status
+      local_status.fallback_instance = statedata.api
+      db.append(['state'], state_entries)
+      add_source_code(statedata.inputs) // @TODO: remove side effect
+    }
+
+    [local_status.sub_modules, symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
+    Object.assign(s2i, symbol2ID)
+    Object.assign(i2s, ID2Symbol)
+    
+    //Setup local data (module level)
+    if(status.root_module){
+      status.root_module = false
+      statedata.admins && admins.push(...statedata.admins)
+    }
+    // @TODO: handle sub_modules when dynamic require is implemented
+    // const sub_modules = {}
+    // statedata.subs && statedata.subs.forEach(id => {
+    //   sub_modules[db.read(['state', id]).type] = id
+    // })
+  }
   function get (sid) {
     const {statedata, state_entries, newstatus} = get_instance_data(sid)
 
     if (status.fallback_check) {
-      Object.assign(status, newstatus)
+      Object.assign(status.root_module, newstatus.root_module)
+      Object.assign(status.overrides, newstatus.overrides)
+      Object.assign(status.tree, newstatus.tree)
       console.log('Main instance: ', statedata.name, '\n', state_entries)
       db.append(['state'], state_entries)
     }
@@ -548,24 +550,7 @@ function register_overrides ({overrides, ...args}) {
   }
 }
 function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
-  return [default_fallback, ...status.overrides[instance_path].fun]
-    
-  function default_fallback () {
-    const data = fallback()
-
-    data.overrider = status.overrides[instance_path].by[0]
-    merge_trees(data, modulepath)
-    return data
-
-    function merge_trees (data, path) {
-      if (data._) {
-        Object.entries(data._).forEach(([type, data]) => merge_trees(data, path + '/' + type.split('$')[0].replace('.', '/')))
-      } else {
-        const id = db.read(['state', path]).id
-        data._ = status.tree_pointers[id]._
-      }
-    }
-  }
+  return [fallback, ...status.overrides[instance_path].fun]
 }
 function check_version () {
   if (db.read(['playproject_version']) != VERSION) {
@@ -639,15 +624,16 @@ function fallback_module () { // -> set database defaults or load from database
       "foot": {},
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      "head": {},
-      "foot": {},
+  function fallback_instance () {
+    return {
+      _: {
+        "head": {},
+        "foot": {},
+      }
     }
   }
 }
+
 /******************************************************************************
   PAGE
 ******************************************************************************/
@@ -708,17 +694,17 @@ function fallback_module () {
       icon: {}
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      icon: {}
-    },
-    drive: {
-      inputs: {
-        'btn.json': {
-          data: {
-            title: 'Click me'
+  function fallback_instance () {
+    return {
+      _: {
+        icon: {}
+      },
+      drive: {
+        inputs: {
+          'btn.json': {
+            data: {
+              title: 'Click me'
+            }
           }
         }
       }
@@ -887,11 +873,11 @@ function fallback_module () {
       text: {}
     }
   }
-}
-function fallback_instance () {
-  return {
-    _:{
-      text: {}
+  function fallback_instance () {
+    return {
+      _:{
+        text: {}
+      }
     }
   }
 }
@@ -954,11 +940,11 @@ function fallback_module () { // -> set database defaults or load from database
       "foo": {}
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      "foo": {},
+  function fallback_instance () {
+    return {
+      _: {
+        "foo": {},
+      }
     }
   }
 }
@@ -1018,9 +1004,9 @@ function fallback_module () {
   return {
     api: fallback_instance,
   }
-}
-function fallback_instance () {
-  return {}
+  function fallback_instance () {
+    return {}
+  }
 }
 /******************************************************************************
   ICON
@@ -1077,44 +1063,44 @@ function fallback_module () {
       btn: {},
     }
   }
-}
-function fallback_instance () {
-  return {
-    _: {
-      btn: {},
-      'btn$small': {},
-    },
-    drive: {
-      inputs: {
-        'menu.json': {
-          data: {
-            title: 'menu',
-            links: ['link1', 'link2'],
+  function fallback_instance () {
+    return {
+      _: {
+        btn: {},
+        'btn$small': {},
+      },
+      drive: {
+        inputs: {
+          'menu.json': {
+            data: {
+              title: 'menu',
+              links: ['link1', 'link2'],
+            }
+          },
+          'menu.css': {
+            data: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
           }
-        },
-        'menu.css': {
-          data: `
-            .title{
-              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-              transition: color .5s ease, background-size .5s;
-              cursor: pointer;
-            }
-            .title:hover{
-              --underline-width: 100%
-            }
-            ul{
-              background: #273d3d;
-              list-style: none;
-              display: none;
-              position: absolute;
-              padding: 10px;
-              box-shadow: 0px 1px 6px 1px gray;
-              border-radius: 5px;
-            }
-            ul.active{
-              display: block;
-            }
-          `
         }
       }
     }
@@ -1254,69 +1240,69 @@ const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () { // -> set database defaults or load from database
 	return {
-      api: fallback_instance,
-      _: {
-        'menu':{},
-      }
+    api: fallback_instance,
+    _: {
+      'menu':{},
     }
   }
-function fallback_instance () {
-  return {
-    _: {
-      'menu':{
-        0: override_menu
-      },
-      'menu$hover': {
-        0: override_menu_hover
-      }
-    },
-    drive: {
-      inputs: {
-        'nav.css': {
-          data: `
-            nav{
-              display: flex;
-              gap: 20px;
-              padding: 20px;
-              background: #4b6d6d;
-              color: white;
-              box-shadow: 0px 1px 6px 1px gray;
-              margin: 5px;
-            }
-            .title{
-              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-              transition: color .5s ease, background-size .5s;
-              cursor: pointer;
-            }
-            .title:hover{
-              --underline-width: 100%
-            }
-          `
+  function fallback_instance () {
+    return {
+      _: {
+        'menu':{
+          0: override_menu
         },
-        'nav.json': {
-          data: {
-            links: ['Home', 'About', 'Contact']
+        'menu$hover': {
+          0: override_menu_hover
+        }
+      },
+      drive: {
+        inputs: {
+          'nav.css': {
+            data: `
+              nav{
+                display: flex;
+                gap: 20px;
+                padding: 20px;
+                background: #4b6d6d;
+                color: white;
+                box-shadow: 0px 1px 6px 1px gray;
+                margin: 5px;
+              }
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+            `
+          },
+          'nav.json': {
+            data: {
+              links: ['Home', 'About', 'Contact']
+            }
           }
         }
       }
     }
   }
-}
-function override_menu ([menu], path){
-  const data = menu()
-  data.drive.inputs['menu.json'].data = {
-    title: 'Services',
-    links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+  function override_menu ([menu], path){
+    const data = menu()
+    data.drive.inputs['menu.json'].data = {
+      title: 'Services',
+      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    }
+    return data
   }
-  return data
-}
-function override_menu_hover ([menu], path){
-  const data = menu()
-  data.drive.inputs['menu.json'].data = {
-    title: 'Services#hover',
-    links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+  function override_menu_hover ([menu], path){
+    const data = menu()
+    data.drive.inputs['menu.json'].data = {
+      title: 'Services#hover',
+      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    }
+    return data
   }
-  return data
 }
 /******************************************************************************
   NAV
@@ -1384,9 +1370,9 @@ function fallback_module () {
   return {
     api: fallback_instance,
   }
-}
-function fallback_instance () {
-  return {}
+  function fallback_instance () {
+    return {}
+  }
 }
 /******************************************************************************
   TEXT
@@ -1437,16 +1423,6 @@ const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 function fallback_module () { // -> set database defaults or load from database
 	return {
-     // drive: {},
-     api: fallback_instance,
-     // on (subpath, overrides) {},
-    _: {
-      "app": {},
-    }
-  }
-}
-function fallback_instance () {
-  return {
     _: {
       "app": {
         0: override_app
@@ -1464,38 +1440,38 @@ function fallback_instance () {
       }
     }
   }
-}
-function override_app ([app]) {
-  const data = app()
-  console.log(JSON.parse(JSON.stringify(data._.head)))
-  data._.head[0] = page$head_override
-  return data
-}
-function page$head_override ([head]) {
-  const data = head()
-  data._['foo.nav'] = {
-    0: page$nav_override
+  function override_app ([app]) {
+    const data = app()
+    console.log(JSON.parse(JSON.stringify(data._.head)))
+    data._.head[0] = page$head_override
+    return data
   }
-  return data
-}
-function page$foo_override ([foo]) {
-  const data = foo()
-  data._.nav[0] = page$nav_override
-  return data
-}
-function page$nav_override ([nav]) {
-  const data = nav()
-  data._.menu[0] = page$menu_override
-  return data
-}
-function page$menu_override ([menu]) {
-  const data = menu()
-  console.log(data)
-  data.drive.inputs['menu.json'].data = {
-    links: ['custom', 'menu'],
-    title: 'Custom'
+  function page$head_override ([head]) {
+    const data = head()
+    data._['foo.nav'] = {
+      0: page$nav_override
+    }
+    return data
   }
-  return data
+  function page$foo_override ([foo]) {
+    const data = foo()
+    data._.nav[0] = page$nav_override
+    return data
+  }
+  function page$nav_override ([nav]) {
+    const data = nav()
+    data._.menu[0] = page$menu_override
+    return data
+  }
+  function page$menu_override ([menu]) {
+    const data = menu()
+    console.log(data)
+    data.drive.inputs['menu.json'].data = {
+      links: ['custom', 'menu'],
+      title: 'Custom'
+    }
+    return data
+  }
 }
 /******************************************************************************
   PAGE
@@ -1530,7 +1506,6 @@ async function boot () {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get('')
   const on = {
     css: inject,
   }
@@ -1547,7 +1522,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[0]))
+    shadow.append(await app(subs[1]))
   }
   // ----------------------------------------
   // INIT
@@ -1557,7 +1532,7 @@ async function boot () {
 
   function onbatch(batch){
     for (const {type, data} of batch) {
-      on[type](data)
+      on[type] && on[type](data)
     }
   }
 }

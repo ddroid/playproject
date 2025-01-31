@@ -63,7 +63,7 @@ theme_name = ['file1_content', 'file2_content', ....]
 
 ## IO
 ### Node
-Module instances which communicate through IO module with each other.
+Module or instances which communicate through IO module with each other.
 
 ## Graph Explorer
 ### Entry
