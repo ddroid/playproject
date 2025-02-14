@@ -1,9 +1,9 @@
 ## Fallbacks
 
-Modules and instances are entities created to have their behavior dictated by the input data. The fallback system is designed to manage this data, allowing each entity (module or instance) to inherit or override functionality from a parent. This system supports multiple levels of overrides and fallbacks, with constraints on how IDs are used to uniquely identify each sub-instance within a hierarchy. Moreover, it makes sure that the website never reaches a situation where entities have no data to be guided.
+Modules and instances are entities created to have their behavior dictated by the input data. The fallback system is designed to manage this data, allowing each node (module or instance) to inherit or override functionality from a parent. This system supports multiple levels of overrides and fallbacks, with constraints on how IDs are used to uniquely identify each sub-instance within a hierarchy. Moreover, it makes sure that the website never reaches a situation where entities have no data to be guided.
 
 **Rules**:
-- Each entity (module/instance) has a unique ID in a component except for ID `0`.
+- Each node (module/instance) has a unique ID in a component except for ID `0`.
 - ID `0` is reserved for the root module/instance and is responsible for managing the primary state and possible sub-instances `subs`.
 - Sub-instances use IDs `n`, which needs to be unique within the fallbacks inside a component.
 - Fallbacks allow for cascading behavior, where higher-level modules or instances can define behaviors or structures which can override default behaviors of lower-level elements.
@@ -15,20 +15,31 @@ Each fallback consists of two main parts:
   ```js
   function fallback_module(){
     return {
-      0: {
-        slot1: [1, 2, ...],
-        slot2: ['data.json', 'style.css', ...],
-        .
-        .
-        .
+      _: {
+        "<submodule1>": {
+          0: override_function || '',
+          1: override_function || '',
+          ...
+          mapping: {
+            sub_dataset1: dataset1,
+            sub_dataset2: dataset2,
+            ...
+          }
+        }
+        "<submodule2>": {
+          ...
+        }
       },
-      1: { type: '<module_name1>'},
-      2: { type: '<module_name2>'},
-      'data.json': { data: {} || '' },
-      'style.css': { data: {} || '' },
-      .
-      .
-      .
+      drive: {
+        dataset1: {
+          file1,
+          file2,
+          ...
+        },
+        dataset2: {
+          ...
+        }
+      }
     }
   }
   ```
@@ -36,97 +47,95 @@ Each fallback consists of two main parts:
   ```js
   function fallback_instance(){
     return {
-      0: {
-        slot1: [3, 4, ...],
-        slot2: ['data.json', 'style.css', ...],
-        .
-        .
-        .
+      _: {
+        "<submodule1>": {
+          0: override_function || '',
+          1: override_function || '',
+          ...
+          mapping: {
+            sub_dataset1: dataset1,
+            sub_dataset2: dataset2,
+            ...
+          }
+        },
+        "<submodule2>": {
+          ...
+        },
+        ...
       },
-      3: { idx: 1 },
-      4: { idx: 2 },
-      'data.json': { data: {} || '' },
-      'style.css': { data: {} || '' },
-      .
-      .
-      .
+      drive: {
+        dataset1: {
+          file1,
+          file2,
+          ...
+        },
+        dataset2: {
+          ...
+        },
+        ...
+      }
     }
   }
   ```
 **Explanation**:
-- entry `0`, the main entry, is always required.
-- Number entry represents modules or instances (alive data).
-- string entry represents files of any type (dead data).
-- IDs except 0 are not been repeated (inside a single component).
-- Slot is an array with IDs pointing to other entries (Slotnames and mapping yet to be defined).
-- `idx` in instance sub-entries points to modules inside `fallback_module`.
-- Both module and instance fallbacks have almost the same structure with the only difference being `type` in module sub-entries and `idx` in instance sub-entries.
+- Root props `_` and `drive` are optional
+- `_` represents sub-modules.
+- `drive` represents the local drive.
+- The direct sub-entries of `_` are always sub-modules.
+- Sub-modules contains their instances which may consist of an override function
+- Mapping is required to match a dataset being passed down to sub-node's dataset having same type but differnet name.
+- `drive` contains datasets which are similar to folders but have amazing capabilities of groupiing and switch same kind of data.
+- `dataset` contains files.
+
 
 ## Overrides
 
-Overrides allow specific instances or sub-modules to change the default behavior of their sub-entities. These overrides are defined at the both module and instance level. The behavior of a module or instance is defined the by the data it is fed which is what the overrides will deal with.
+Overrides allow specific instances or sub-modules to change the default behavior of their sub-nodes. These overrides are defined at the both module and instance level. The behavior of a module or instance is defined the by the data it is fed which is what the overrides will deal with.
 
 ### Format
 
 The system supports multiple levels of modules and instances, with each level being able to define its own fallbacks and overrides for lower levels. Since, both module and instance fallback have similar structure, only module's format will be shown. The format involves:
-- **Override level-1**: When an entity overrides the default data of a sub-entity.
+- **Shallow Override**: When an node overrides the default data of a sub-node.
 ```js
-function fallback_module(){
-  return {
-    0: {
-      slot1: [1],
-      slot2: ['data.json']
-    },
-    1: { type: '<module1_name>', fallback: {
-      <host_module_name>: fallback_<module1_name>_module
-    }},
-    'data.json': { data: {} || '' }
+function fallback_module () { 
+	return {
+    _: {
+      "submodule": override_submodule
+    }
   }
-}
-function fallback_<module1_name>_module(data){
-  data[0]['new_field'] = 'new_value' //changes to data
-  return data
+  function override_submodule ([submodule]) {
+    const state = submodule()
+    state.drive.dataset = {
+      new_file: {
+        raw: 'content'
+      }
+    }
+    return state
+  }
 }
 ```
-- **Override level-2**: When an entity overrides the default data of a sub-sub-entity, leaving sub-entity untouched.
+- **Deep Override**: When a node overrides deep sub-nodes using the component tree provided by STATE.
 ```js
-function fallback_module(){
-  return {
-    0: {
-      slot1: [1],
-      slot2: ['data.json']
-    },
-    1: { type: '<module1_name>', slot1: [2] },
-    2: { type: '<module2_name>', fallback: {
-      <host_module_name>: fallback_<module2_name>_module
-    }},
-    'data.json': { data: {} || '' }
+function fallback_module () { 
+	return {
+    _: {
+      "submodule": override_submodule
+    }
   }
-}
-function fallback_<module2_name>_module(data){
-  data[0]['new_field'] = 'new_value' //changes to data
-  return data
-}
-```
-- **Overriding an override**: When an entity overrides a sub-sub-entity through a sub-entity.
-```js
-function fallback_module(){
-  return {
-    0: {
-      slot1: [1],
-      slot2: ['data.json']
-    },
-    1: { type: '<module1_name>', slot1: [2] },
-    2: { type: '<module2_name>', fallback: {
-      <host_module_name>: fallback_<module_name2>_module,
-      <module_name1>: null //module1 will fill this with its override
-    }},
-    'data.json': { data: {} || '' }
+  function override_submodule ([submodule]) {
+    const state = submodule()
+    state._.sub_module1._sub_module2 = deep_override_submodule
+    return state
   }
-}
-function fallback_<module_name2>_module(data){
-  data[0]['new_field'] = 'new_value' //changes to data
-  return data
+  function deep_override_submodule ([deep_submodule]) {
+    const state = deep_submodule()
+    state.drive.dataset = {
+      new_file: {
+        raw: 'content'
+      }
+    }
+    return state
+  }
 }
 ```
 

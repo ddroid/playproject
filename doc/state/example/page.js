@@ -6,19 +6,13 @@ function fallback_module () {
     _: {
       "app": {
         0: override_app,
-        mapping: {
-          'style.css': 'style.css'
-        }
       }
     },
     drive: {
-      'theme': 'style.css',
-      'style.css': {
-        raw: `
-          body{
-            font-family: 'system-ui';
-          }
-        `
+      'theme/': {
+        'style.css': {
+          raw: `body { font-family: 'system-ui'; }`,
+        }
       }
     }
   }
