@@ -9,7 +9,7 @@ function fallback_module () {
       }
     },
     drive: {
-      'theme/': {
+      'theme': {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
@@ -22,7 +22,7 @@ function fallback_module () {
     data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
       const data = menu()
       // console.log(nav$menu([menu]))
-      data.drive['en-us.json'].raw = {
+      data.drive.lang['en-us.json'].raw = {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
@@ -66,7 +66,7 @@ async function boot (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const on = {
-    css: inject,
+    theme: inject,
   }
   const subs = await sdb.watch(onbatch)
   const status = {}

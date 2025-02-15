@@ -58,17 +58,14 @@ function fallback_module () { // -> set database defaults or load from database
   function fallback_instance () {
     return {
       _: {
-        "head": {
-          mapping: {
-            'style.css': 'style.css'
-          }
-        },
+        "head": {},
         "foot": {},
       },
       drive: {
-        'theme': 'style.css',
-        'style.css': {
-          raw: ''
+        'theme': {
+          'style.css': {
+            raw: ''
+          }
         }
       }
     }
@@ -88,8 +85,8 @@ async function app(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    theme: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -141,12 +138,13 @@ function fallback_module () {
         icon: {}
       },
       drive: {
-        'lang': 'en-us.json',
-        json: {
-          raw: {
-            title: 'Click me'
+        'lang': {
+          'en-us.json': {
+            raw: {
+              title: 'Click me'
+            }
           }
-        }
+        },
       }
     }
   }
@@ -165,8 +163,8 @@ async function btn(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    theme: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -194,7 +192,7 @@ async function btn(opts) {
 
   function onbatch(batch){
     for (const {type, data} of batch) {
-      on[type](data)
+      on[type] && on[type](data)
     }
   }
   async function inject (data){
@@ -235,7 +233,7 @@ async function btn_small(opts) {
 
   function onbatch(batch){
     for (const {type, data} of batch) {
-      on[type](data)
+      on[type] && on[type](data)
     }
   }
   async function inject (data){
@@ -393,16 +391,14 @@ function fallback_module () { // -> set database defaults or load from database
     return {
       _: {
         "foo": {
-          0: {},
-          mapping: {
-            'style.css': 'style.css'
-          }
+          0: {}
         },
       },
       drive: {
-        'theme': 'style.css',
-        'style.css': {
-          raw: ''
+        'theme': {
+          'style.css': {
+            raw: ''
+          }
         }
       }
     }
@@ -420,8 +416,8 @@ async function head(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    theme: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -479,8 +475,8 @@ async function icon(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    theme: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -531,38 +527,40 @@ function fallback_module () {
         'btn$small': {},
       },
       drive: {
-        'theme': 'theme.css',
-        'lang': 'en-us.json',
-        'en-us.json': {
-          raw: {
-            title: 'menu',
-            links: ['link1', 'link2'],
+        'style': {
+          'theme.css': {
+            raw: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
           }
         },
-        'theme.css': {
-          raw: `
-            .title{
-              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-              transition: color .5s ease, background-size .5s;
-              cursor: pointer;
+        'lang': {
+          'en-us.json': {
+            raw: {
+              title: 'menu',
+              links: ['link1', 'link2'],
             }
-            .title:hover{
-              --underline-width: 100%
-            }
-            ul{
-              background: #273d3d;
-              list-style: none;
-              display: none;
-              position: absolute;
-              padding: 10px;
-              box-shadow: 0px 1px 6px 1px gray;
-              border-radius: 5px;
-            }
-            ul.active{
-              display: block;
-            }
-          `
-        }
+          },
+        },
       }
     }
   }
@@ -582,8 +580,8 @@ async function menu(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    style: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -640,8 +638,8 @@ async function menu_hover(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    style: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -713,43 +711,45 @@ function fallback_module () { // -> set database defaults or load from database
         'menu':{
           0: override_menu,
           mapping: {
-            'theme.css': 'style.css'
+            'style': 'theme'
           }
         },
         'menu$hover': {
           0: override_menu_hover,
           mapping: {
-            'theme.css': 'style.css'
+            'style': 'theme'
           }
         }
       },
       drive: {
-        'theme': 'style.css',
-        'lang': 'en-us.json',
-        'style.css': {
-          raw: `
-            nav{
-              display: flex;
-              gap: 20px;
-              padding: 20px;
-              background: #4b6d6d;
-              color: white;
-              box-shadow: 0px 1px 6px 1px gray;
-              margin: 5px;
-            }
-            .title{
-              background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-              transition: color .5s ease, background-size .5s;
-              cursor: pointer;
-            }
-            .title:hover{
-              --underline-width: 100%
-            }
-          `
+        'theme': {
+          'style.css': {
+            raw: `
+              nav{
+                display: flex;
+                gap: 20px;
+                padding: 20px;
+                background: #4b6d6d;
+                color: white;
+                box-shadow: 0px 1px 6px 1px gray;
+                margin: 5px;
+              }
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+            `
+          }
         },
-        'en-us.json': {
-          raw: {
-            links: ['Home', 'About', 'Contact']
+        'lang': {
+          'en-us.json': {
+            raw: {
+              links: ['Home', 'About', 'Contact']
+            }
           }
         }
       }
@@ -757,7 +757,7 @@ function fallback_module () { // -> set database defaults or load from database
   }
   function override_menu ([menu], path){
     const data = menu()
-    data.drive['en-us.json'].raw = {
+    data.drive.lang['en-us.json'].raw = {
       title: 'Services',
       links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
     }
@@ -765,7 +765,7 @@ function fallback_module () { // -> set database defaults or load from database
   }
   function override_menu_hover ([menu], path){
     const data = menu()
-    data.drive['en-us.json'].raw = {
+    data.drive.lang['en-us.json'].raw = {
       title: 'Services#hover',
       links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
     }
@@ -785,8 +785,8 @@ async function nav(opts) {
   // ----------------------------------------
   const { id, sdb } = await get(opts?.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
-    css: inject,
-    json: fill
+    theme: inject,
+    lang: fill
   }
   // ----------------------------------------
   // TEMPLATE
@@ -895,19 +895,13 @@ function fallback_module () {
     _: {
       "app": {
         0: override_app,
-        mapping: {
-          'style.css': 'style.css'
-        }
       }
     },
     drive: {
-      'theme': 'style.css',
-      'style.css': {
-        raw: `
-          body{
-            font-family: 'system-ui';
-          }
-        `
+      'theme': {
+        'style.css': {
+          raw: `body { font-family: 'system-ui'; }`,
+        }
       }
     }
   }
@@ -917,7 +911,7 @@ function fallback_module () {
     data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
       const data = menu()
       // console.log(nav$menu([menu]))
-      data.drive['en-us.json'].raw = {
+      data.drive.lang['en-us.json'].raw = {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
@@ -961,7 +955,7 @@ async function boot (opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const on = {
-    css: inject,
+    theme: inject,
   }
   const subs = await sdb.watch(onbatch)
   const status = {}
@@ -1018,7 +1012,8 @@ const status = {
   inits: [],
   open_branches: {},
   db,
-  local_statuses: {}
+  local_statuses: {},
+  dataset_api: {}
 }
 window.STATEMODULE = status
 
@@ -1061,10 +1056,12 @@ function STATE (address, modulepath) {
 
     if(!Object.values(status.open_branches).reduce((acc, curr) => acc + curr, 0))
       status.inits.forEach(init => init())
-
+    
+    const sdb = create_statedb_interface(local_status, modulepath, xtype = 'module')
+    status.dataset_api[modulepath] = sdb.list
     return {
       id: modulepath,
-      sdb: create_statedb_interface(local_status, modulepath, xtype = 'module'),
+      sdb,
       subs: [get],
       // sub_modules
     }
@@ -1107,7 +1104,7 @@ function STATE (address, modulepath) {
       local_status = updated_local_status ? updated_local_status : local_status
       local_status.fallback_instance = statedata.api
       db.append(['state'], state_entries)
-      add_source_code(statedata.inputs) // @TODO: remove side effect
+      // add_source_code(statedata.inputs) // @TODO: remove side effect
     }
 
     [local_status.sub_modules, symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
@@ -1138,10 +1135,11 @@ function STATE (address, modulepath) {
     [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
     Object.assign(s2i, symbol2ID)
     Object.assign(i2s, ID2Symbol)
-
+    const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
+    status.dataset_api[statedata.id] = sdb.list
     return {
       id: statedata.id,
-      sdb: create_statedb_interface(local_status, statedata.id, xtype = 'instance')
+      sdb
     }
   }
   function get_module_data (fallback) {
@@ -1254,9 +1252,8 @@ function STATE (address, modulepath) {
       entries = {...sanitize_subs({ local_id, entry, path, local_tree, xtype, mapping })}
       
       delete entry._
-      delete entry.drive
       entries[entry.id] = entry
-      console.log('Entry: ', entry)
+      // console.log('Entry: ', entry)
       return {entries, entry}
     }
     function extract_data ({ local_id, entry, path, hub_entry, xtype }) {
@@ -1281,10 +1278,11 @@ function STATE (address, modulepath) {
           entry.type = local_status.module_id
         } else {
           local_tree = JSON.parse(JSON.stringify(entry))
+          // @TODO Handle JS file entry
           // console.log('pre_id:', pre_id)
-          const file_id = local_status.name + '.js'
-          entry.drive || (entry.drive = {})
-          entry.drive[file_id] = { $ref: address }
+          // const file_id = local_status.name + '.js'
+          // entry.drive || (entry.drive = {})
+          // entry.drive[file_id] = { $ref: address }
           entry.type = local_status.name
         }
         pre_hubs && (entry.hubs = pre_hubs)
@@ -1298,7 +1296,6 @@ function STATE (address, modulepath) {
         if(entry._){
           //@TODO refactor when fallback structure improves
           Object.entries(entry._).forEach(([local_id, value]) => {
-            console.log(local_id, value['mapping'])
             const sub_entry = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype, mapping: value['mapping'] }).entry
             entries[sub_entry.id] = JSON.parse(JSON.stringify(sub_entry))
             entry.subs.push(sub_entry.id)
@@ -1315,37 +1312,49 @@ function STATE (address, modulepath) {
           // entry.drive.theme && (entry.theme = entry.drive.theme)
           // entry.drive.lang && (entry.lang = entry.drive.lang)
           entry.inputs = []
-          Object.entries(entry.drive).forEach(([key, value]) => {
-            if (key.includes('.')) {
-              const sanitized_file = sanitize_file(key, value, entry, mapping)
+          const new_drive = []
+          Object.entries(entry.drive).forEach(([dataset_name, dataset]) => {
+            const new_dataset = { files: [], mapping: [] }
+            Object.entries(dataset).forEach(([key, value]) => {
+              const sanitized_file = sanitize_file(key, value, entry)
               entries[sanitized_file.id] = sanitized_file
-              if(entry.drive.theme === key || entry.drive.lang === key)
-                entry.inputs.push(sanitized_file.id)
+              new_dataset.files.push(sanitized_file.id)
+            })
+            new_dataset.id = local_status.name + '.' + dataset_name + '.dataset'
+            new_dataset.name = dataset_name
+            const copies = Object.keys(db.read_all(['state', new_dataset.id]))
+            if (copies.length) {
+              const id = copies.sort().at(-1).split(':')[1]
+              new_dataset.id = new_dataset.id + ':' + (Number(id || 0) + 1)
+            }
+            entries[new_dataset.id] = new_dataset
+            entry.inputs.push(new_dataset.id)
+            new_drive.push(new_dataset.id)
+
+
+            if(!status.root_module){
+              const hub_entry = db.read(['state', entry.hubs[0]])
+              const mapped_file_name = mapping?.[dataset_name] || dataset_name
+              hub_entry.inputs.forEach(input_id => {
+                const input = db.read(['state', input_id])
+                if(mapped_file_name === input.name){
+                  input.mapping.push(new_dataset.id)
+                  entries[input_id] = input
+                  return
+                }
+              })
             }
           })
+          entry.drive = new_drive
         }
       }
       return entries
     }
-    function sanitize_file (file_id, file, entry, mapping) {
+    function sanitize_file (file_id, file, entry) {
       const type = file_id.split('.').at(-1)
 
       if (!isNaN(Number(file_id))) return file_id
-      if(status.root_module){
-        file.dataset = file_id
-      } 
-      else if(type !== 'js'){
-        console.log("entry:", entry)
-        const hub_entry = db.read(['state', entry.hubs[0]])
-        const mapped_file_name = mapping[file_id]
-        hub_entry.inputs.forEach(input_id => {
-          const input = db.read(['state', input_id])
-          if(mapped_file_name === input.local_name){
-             file.dataset = input.dataset
-             return
-          }
-        })
-      }
+
 
       file.id = local_status.name + '.' + type
       file.name = file.name || file.id
@@ -1449,7 +1458,7 @@ async function get_input ({ id, name, $ref, type, raw }) {
   let result = db.read([type, id])
   
   if (!result) {
-    result = raw || await((await fetch($ref))[xtype === 'json' ? 'json' : 'text']())
+    result = raw !== undefined ? raw : await((await fetch($ref))[xtype === 'json' ? 'json' : 'text']())
   }
   return result
 }
@@ -1551,7 +1560,7 @@ function check_version () {
 // Public Function
 function create_statedb_interface (local_status, node_id, xtype) {
   return {
-    watch, get_sub, req_access
+    watch, get_sub, req_access, list
   }
   async function watch (listener) {
     const data = db.read(['state', node_id])
@@ -1561,9 +1570,13 @@ function create_statedb_interface (local_status, node_id, xtype) {
       
       if (data.inputs) {
         await Promise.all(data.inputs.map(async input => {
-          const input_state = db.read(['state', input])
-          const input_data = await get_input(input_state)
-          input_map.push({ type: input_state.type, data: [input_data] })
+          let data = []
+          const dataset = db.read(['state', input])
+          await Promise.all(dataset.files.map(async file_id => {
+            const input_state = db.read(['state', file_id])
+            data.push(await get_input(input_state))
+          }))
+          input_map.push({ type: dataset.name, data })
         }))
       }
       
@@ -1593,6 +1606,28 @@ function create_statedb_interface (local_status, node_id, xtype) {
           window.location.reload()
         }
       }
+    }
+  }
+  function list (dataset_name) {
+    if(dataset_name){
+      const data = db.read(['state', node_id])
+      let target_dataset
+      data.drive.forEach(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if (dataset.name === dataset_name){
+          target_dataset = dataset
+          return 
+        }
+      })
+      return target_dataset
+    }
+    else{
+      const data = db.read(['state', node_id])
+      const datasets = []
+      data.drive.forEach(dataset_id => {
+        datasets.push(db.read(['state', dataset_id]).name)
+      })
+      return datasets
     }
   }
 }
