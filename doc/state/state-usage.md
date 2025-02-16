@@ -12,17 +12,23 @@ Modules and instances are entities created to have their behavior dictated by th
 
 Each fallback consists of two main parts:
 - **Module Fallback**: Defines the hierarchical structure of modules that is critical for defining the next structure.
+- **Instance Fallback**: Defines the hierarchical structure of instances which are the building blocks of the website.
   ```js
   function fallback_module(){
+    const old_dataset_name1 = 'foo'
+    const old_dataset_name2 = 'bar'
+    const new_dataset_name1 = 'baz'
+    const new_dataset_name2 = 'meh'
     return {
+      api: fallback_instance
       _: {
         "<submodule1>": {
           0: override_function || '',
           1: override_function || '',
           ...
           mapping: {
-            sub_dataset1: dataset1,
-            sub_dataset2: dataset2,
+            [new_dataset_name1]: old_dataset_name1,
+            [new_dataset_name2]: old_dataset_name2,
             ...
           }
         }
@@ -41,38 +47,39 @@ Each fallback consists of two main parts:
         }
       }
     }
-  }
-  ```
-- **Instance Fallback**: Defines the hierarchical structure of instances which are the building blocks of the website.
-  ```js
-  function fallback_instance(){
-    return {
-      _: {
-        "<submodule1>": {
-          0: override_function || '',
-          1: override_function || '',
-          ...
-          mapping: {
-            sub_dataset1: dataset1,
-            sub_dataset2: dataset2,
+    function fallback_instance(){
+      const old_dataset_name1 = 'foo'
+      const old_dataset_name2 = 'bar'
+      const new_dataset_name1 = 'baz'
+      const new_dataset_name2 = 'meh'
+      return {
+        _: {
+          "<submodule1>": {
+            0: override_function || '',
+            1: override_function || '',
             ...
+            mapping: {
+              [new_dataset_name1]: old_dataset_name1,
+              [new_dataset_name2]: old_dataset_name2,
+              ...
+            }
           }
-        },
-        "<submodule2>": {
+          "<submodule2>": {
+            ...
+          },
           ...
         },
-        ...
-      },
-      drive: {
-        dataset1: {
-          file1,
-          file2,
+        drive: {
+          dataset1: {
+            file1,
+            file2,
+            ...
+          },
+          dataset2: {
+            ...
+          },
           ...
-        },
-        dataset2: {
-          ...
-        },
-        ...
+        }
       }
     }
   }
@@ -95,7 +102,7 @@ Overrides allow specific instances or sub-modules to change the default behavior
 ### Format
 
 The system supports multiple levels of modules and instances, with each level being able to define its own fallbacks and overrides for lower levels. Since, both module and instance fallback have similar structure, only module's format will be shown. The format involves:
-- **Shallow Override**: When an node overrides the default data of a sub-node.
+- **Shallow Override**: When a node overrides the default data of a sub-node.
 ```js
 function fallback_module () { 
 	return {
@@ -148,18 +155,21 @@ function fallback_module () {
 // demo.js
 function FB_MD () {
   return {
-    0: {
-      subs: ['app/foo/head/nav/1']
-    },
-    '1': {
-      type: 'menu',
-      override: [override_menu]
+    _ {
+      app: app_override
     }
   }
-}
-function override_menu (data) {
-  data.menu.items.push('demo')
-  return data
+  function app_override ([app]) {
+    const state = app()
+    state._.foo._.head._.nav._.menu[0] = menu_override
+    return state
+  }
+  function menu_override ([menu]) {
+    const state = menu()
+    state.drive.theme['style.css'].raw = 'content'
+    return state
+  }
+  //for more info visit: https://github.com/alyhxn/playproject/blob/main/doc/state/example/page.js#L19
 }
 // app.js
 // foo.js
@@ -169,21 +179,19 @@ function override_menu (data) {
 // nav.js
 function FB_IN () {
   return {
-    0: {
-      subs: ['1']
-    },
-    '1': {
-      type: 'menu',
-      override: [override_menu]
-    },
+    _: {
+      menu: {
+        0: menu_override
+      }
+    }
   }
-}
-function override_menu (data) {
-  Object.entries(data).forEach(([id, value]) => {
-    if(value.type.includes('btn'))
-      data[id].override = null
-  })
-  return data
+  function menu_override (menu) {
+    const state = menu()
+    Object.keys(state._.btn).forEach(id => {
+      state._.btn[id] = null
+    })
+    return state
+  }
 }
 
 // 5. make menu code require 2 button module instances, one for small button, one for normal button
@@ -191,33 +199,33 @@ function override_menu (data) {
 // menu.js
 function FB_MM () {
   return {
-    0: {
-      subs: ['btn']
+    api: FB_IM,
+    _: {
+      btn: {},
     }
   }
-}
-function FB_IM () {
-  return {
-    0: {
-      subs: ['1', '2']
-    },
-    '1': {
-      type: 'btn:small',
-      override: [override_btn]
-    },
-    '2': {
-      type: 'btn:normal',
-      override: [override_btn]
+  function FB_IM () {
+    return {
+      _: {
+        btn: {
+          0: override_btn
+        },
+        'btn$small': {
+          0: override_btn
+        },
+      }
     }
+  }// For more info visit: https://github.com/alyhxn/playproject/blob/main/doc/state/example/node_modules/menu.js#L12
+  function override_btn (btn) {
+    const state = btn()
+    state.drive.lang['en-us.json'].raw.label ='beep boop'
+    Object.keys(state._.icon).forEach(id => {
+      state._.icon[id] = null
+    })
+    return state
   }
 }
-function override_btn (data) {
-  data.label = 'beep boop'
-  Object.entries(data).forEach(([id, value]) => {
-    if(value.type.includes('icon'))
-      data[id].override = null
-  })
-}
+
 
 // 3. make button override icon `image.svg`
 // 2. set button default fallback (=`FB_IB1` + `FB_IB2`) to `label/size`
@@ -225,32 +233,39 @@ function override_btn (data) {
 // FB_MB
 function FB_IB () {
   return {
-    0: {
-      subs: [1],
-      data: {
-        label: 'button',
-        size: 'small',
+    _ {
+      icon: {
+        0: icon_override
       }
     },
-    1: {
-      type: 'icon',
-      override: [override_icon]
+    drive:{
+      lang: {
+        'en-us.json': {
+          raw: {
+            label: 'button',
+            size: 'small',
+          }
+        }
+      }
     }
   }
-}
-function override_icon (data) {
-  data[0].data['image.svg'] = `<svg>🧸</svg>`
-  return data
-}
+  function icon_override (icon) {
+    const state = icon()
+    state.drive.svgs['image.svg'].raw = `<svg>🧸</svg>`
+    return state
+  }
+} //For more info visit: https://github.com/alyhxn/playproject/blob/main/doc/state/example/node_modules/nav.js#L62
 
 // 1. make icon set its default fallback (=`FB_II`) using the `image.svg` in the above snippet
 // icon.js
 // FB_MI
 function FB_II () {
-  return { 
-    0: {
-      data: {
-        'image.svg': `<svg>▶️</svg>` 
+  return {
+    drive:{
+      svgs: {
+        'image.svg': {
+          raw: `<svg>▶️</svg>`
+        }
       }
     }
 }
