@@ -16,9 +16,12 @@ function fallback_module () {
       }
     }
   }
+
   function override_app ([app]) {
     const data = app()
     console.log(data)
+    //@ISSUE#1
+    // Either remove app override or update the menu override to match you component tree (easy fix comment the line below)
     data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
       const data = menu()
       // console.log(nav$menu([menu]))
