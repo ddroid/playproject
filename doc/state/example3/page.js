@@ -7,16 +7,19 @@ function fallback_module () {
       app: {
         0: override_app
       }
-    },
-    drive: {
-      theme: {
-        'style.css': {
-          raw: 'body { font-family: \'system-ui\'; }'
+    }
+  }
+  function override_app ([app]) {
+    return {
+      drive: {
+        theme: {
+          'style.css': {
+            raw: 'body { font-family: \'system-ui\'; }'
+          }
         }
       }
     }
   }
-  function override_app ([app]) {}
 }
 
 /******************************************************************************

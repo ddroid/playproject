@@ -56,29 +56,29 @@ function fallback_module () {
       btn3: {},
       btn4: {},
       text: {}
-    },
-    drive: {
-      style: {
-        'theme.css': {
-          raw: `
-					.menu {
-						display: flex;
-						gap: 10px;
-						margin-bottom: 10px;
-					}
-					.text-container {
-						border: 1px solid #ccc;
-						padding: 10px;
-					}`
+    }
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        style: {
+          'theme.css': {
+            raw: `
+            .menu {
+              display: flex;
+              gap: 10px;
+              margin-bottom: 10px;
+            }
+            .text-container {
+              border: 1px solid #ccc;
+              padding: 10px;
+            }`
+          }
         }
       }
     }
   }
-  function fallback_instance () {
-    return {}
-  }
 }
-
 // @ISSUE#2
 // 1. fallback_instance should be inside fallback_module function (repeat this for all sub-modules here)
 // 2. button instances are defined inside fallback_module instead of fallback_instance
@@ -144,21 +144,21 @@ const textitle = 'Text from Button 1'
 function fallback_module () {
   return {
     api: fallback_instance,
-    drive: {
-      lang: {
-        'en-us.json': {
-          raw: {
-            label: 'Button 1'
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        lang: {
+          'en-us.json': {
+            raw: {
+              label: 'Button 1'
+            }
           }
         }
       }
     }
   }
-  function fallback_instance () {
-    return {}
-  }
 }
-
 module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
@@ -207,21 +207,21 @@ const textitle = 'Text from Button 1'
 function fallback_module () {
   return {
     api: fallback_instance,
-    drive: {
-      lang: {
-        'en-us.json': {
-          raw: {
-            label: 'Button 1'
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        lang: {
+          'en-us.json': {
+            raw: {
+              label: 'Button 1'
+            }
           }
         }
       }
     }
   }
-  function fallback_instance () {
-    return {}
-  }
 }
-
 module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
@@ -270,21 +270,21 @@ const textitle = 'Text from Button 1'
 function fallback_module () {
   return {
     api: fallback_instance,
-    drive: {
-      lang: {
-        'en-us.json': {
-          raw: {
-            label: 'Button 1'
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        lang: {
+          'en-us.json': {
+            raw: {
+              label: 'Button 1'
+            }
           }
         }
       }
     }
   }
-  function fallback_instance () {
-    return {}
-  }
 }
-
 module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
@@ -333,21 +333,21 @@ const textitle = 'Text from Button 1'
 function fallback_module () {
   return {
     api: fallback_instance,
-    drive: {
-      lang: {
-        'en-us.json': {
-          raw: {
-            label: 'Button 1'
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        lang: {
+          'en-us.json': {
+            raw: {
+              label: 'Button 1'
+            }
           }
         }
       }
     }
   }
-  function fallback_instance () {
-    return {}
-  }
 }
-
 module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
@@ -393,14 +393,7 @@ const { sdb, subs: [get] } = statedb(fallback_module)
 
 function fallback_module () {
   return {
-    api: fallback_instance,
-    drive: {
-      text: {
-        'content.txt': {
-          raw: 'Initial Text'
-        }
-      }
-    }
+    api: fallback_instance
   }
   function fallback_instance () {
     return {
@@ -458,12 +451,17 @@ function fallback_module () {
   return {
     _: {
       app: {
+        0: override_app
       }
-    },
-    drive: {
-      theme: {
-        'style.css': {
-          raw: 'body { font-family: \'system-ui\'; }'
+    }
+  }
+  function override_app ([app]) {
+    return {
+      drive: {
+        theme: {
+          'style.css': {
+            raw: 'body { font-family: \'system-ui\'; }'
+          }
         }
       }
     }
