@@ -6,19 +6,20 @@ function fallback_module () {
     _: {
       app: {
         0: override_app
-      }
     }
-  }
-  function override_app ([app]) {
-    return {
-      drive: {
-        theme: {
-          'style.css': {
-            raw: 'body { font-family: \'system-ui\'; }'
-          }
+    },
+    drive: {
+      theme: {
+        'style.css': {
+          raw: 'body { font-family: \'system-ui\'; }',
         }
       }
     }
+  }
+
+  function override_app ([app]) {
+    const data = app()
+    return data
   }
 }
 
