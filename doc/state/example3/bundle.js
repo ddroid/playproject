@@ -60,6 +60,13 @@ function fallback_module () {
   }
   function fallback_instance () {
     return {
+      _: {
+        btn1: {},
+        btn2: {},
+        btn3: {},
+        btn4: {},
+        text: {}
+      },
       drive: {
         style: {
           'theme.css': {
@@ -110,6 +117,8 @@ async function test_menu (opts) {
   const text_container_el = shadow.querySelector('.text-container')
   const style_el = shadow.querySelector('style')
   const subs = await sdb.watch(onbatch)
+  console.log(subs)
+  console.dir(subs)
 
   menu_el.append(
     await btn1(subs[0]),
@@ -452,19 +461,20 @@ function fallback_module () {
     _: {
       app: {
         0: override_app
-      }
     }
-  }
-  function override_app ([app]) {
-    return {
-      drive: {
-        theme: {
-          'style.css': {
-            raw: 'body { font-family: \'system-ui\'; }'
-          }
+    },
+    drive: {
+      theme: {
+        'style.css': {
+          raw: 'body { font-family: \'system-ui\'; }',
         }
       }
     }
+  }
+
+  function override_app ([app]) {
+    const data = app()
+    return data
   }
 }
 
