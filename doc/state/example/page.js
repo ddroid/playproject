@@ -13,6 +13,11 @@ function fallback_module () {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
+      },
+      'theme:1': {
+        'style.css': {
+          raw: `body { font-family: cursive; }`,
+        }
       }
     }
   }
