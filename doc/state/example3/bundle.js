@@ -73,8 +73,8 @@ function fallback_module () {
             raw: `
             .menu {
               display: flex;
-              gap: 10px;
-              margin-bottom: 10px;
+              justify-content: space-around;
+              margin: 10px 0px 10px 0px;
             }
             .text-container {
               border: 1px solid #ccc;
@@ -86,13 +86,7 @@ function fallback_module () {
     }
   }
 }
-// @ISSUE#2
-// 1. fallback_instance should be inside fallback_module function (repeat this for all sub-modules here)
-// 2. button instances are defined inside fallback_module instead of fallback_instance
-// 3. Drive declared inside module fallback but used for instances
 
-// @ISSUE#3
-// Don't use `./` when requiring modules
 const btn1 = require('btn1')
 const btn2 = require('btn2')
 const btn3 = require('btn3')
@@ -117,16 +111,17 @@ async function test_menu (opts) {
   const text_container_el = shadow.querySelector('.text-container')
   const style_el = shadow.querySelector('style')
   const subs = await sdb.watch(onbatch)
-  console.log(subs)
-  console.dir(subs)
+  // console.log(subs)
+  // console.dir(subs)
 
   menu_el.append(
     await btn1(subs[0]),
     await btn2(subs[1]),
     await btn3(subs[2]),
     await btn4(subs[3]))
-  text_container_el.append(await text_module(subs[4])
-	)
+  text_container_el.append(await text_module(subs[4]))
+  
+  return el
 
   function onbatch (batch) {
     for (const { type, data } of batch) {
@@ -137,8 +132,6 @@ async function test_menu (opts) {
   async function inject (data) {
     style_el.innerHTML = data.join('\n')
   }
-
-  return el
 }
 
 }).call(this)}).call(this,"/doc/state/example3/node_modules/app.js")
@@ -148,7 +141,7 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-const textitle = 'Text from Button 1'
+const textitle = 'first text'
 
 function fallback_module () {
   return {
@@ -157,6 +150,14 @@ function fallback_module () {
   function fallback_instance () {
     return {
       drive: {
+        style: {
+          'theme.css': {
+            raw: `
+            button{
+              padding: 8px 16px;
+            }`
+          }
+        },
         lang: {
           'en-us.json': {
             raw: {
@@ -172,6 +173,7 @@ module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
   const on = {
+    style: inject,
     lang: fill
   }
 
@@ -179,11 +181,7 @@ async function btn1 (opts) {
   const shadow = el.attachShadow({ mode: 'closed' })
   shadow.innerHTML = `
 	<button></button>
-	<style>
-		button {
-			padding: 8px 16px;
-		}
-	</style>`
+	<style></style>`
 
   const button_el = shadow.querySelector('button')
   const style_el = shadow.querySelector('style')
@@ -197,10 +195,13 @@ async function btn1 (opts) {
     }
   }
   async function fill (data) {
-    button_el.textContent = data.label
+    button_el.textContent = data[0].label
   }
   async function btn_click(params) {
-    button_el.style.color = 'black'
+    console.log(params)
+  }
+  async function inject (data) {
+    style_el.innerHTML = data.join('\n')
   }
 }
 
@@ -211,7 +212,7 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-const textitle = 'Text from Button 1'
+const textitle = 'second text'
 
 function fallback_module () {
   return {
@@ -220,10 +221,18 @@ function fallback_module () {
   function fallback_instance () {
     return {
       drive: {
+        style: {
+          'theme.css': {
+            raw: `
+            button{
+              padding: 8px 16px;
+            }`
+          }
+        },
         lang: {
           'en-us.json': {
             raw: {
-              label: 'Button 1'
+              label: 'Button 2'
             }
           }
         }
@@ -235,6 +244,7 @@ module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
   const on = {
+    style: inject,
     lang: fill
   }
 
@@ -242,11 +252,7 @@ async function btn1 (opts) {
   const shadow = el.attachShadow({ mode: 'closed' })
   shadow.innerHTML = `
 	<button></button>
-	<style>
-		button {
-			padding: 8px 16px;
-		}
-	</style>`
+	<style></style>`
 
   const button_el = shadow.querySelector('button')
   const style_el = shadow.querySelector('style')
@@ -260,10 +266,13 @@ async function btn1 (opts) {
     }
   }
   async function fill (data) {
-    button_el.textContent = data.label
+    button_el.textContent = data[0].label
   }
   async function btn_click(params) {
-    button_el.style.color = 'black'
+    console.log(params)
+  }
+  async function inject (data) {
+    style_el.innerHTML = data.join('\n')
   }
 }
 
@@ -274,7 +283,7 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-const textitle = 'Text from Button 1'
+const textitle = 'third text'
 
 function fallback_module () {
   return {
@@ -283,10 +292,18 @@ function fallback_module () {
   function fallback_instance () {
     return {
       drive: {
+        style: {
+          'theme.css': {
+            raw: `
+            button{
+              padding: 8px 16px;
+            }`
+          }
+        },
         lang: {
           'en-us.json': {
             raw: {
-              label: 'Button 1'
+              label: 'Button 3'
             }
           }
         }
@@ -298,6 +315,7 @@ module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
   const on = {
+    style: inject,
     lang: fill
   }
 
@@ -305,11 +323,7 @@ async function btn1 (opts) {
   const shadow = el.attachShadow({ mode: 'closed' })
   shadow.innerHTML = `
 	<button></button>
-	<style>
-		button {
-			padding: 8px 16px;
-		}
-	</style>`
+	<style></style>`
 
   const button_el = shadow.querySelector('button')
   const style_el = shadow.querySelector('style')
@@ -323,10 +337,13 @@ async function btn1 (opts) {
     }
   }
   async function fill (data) {
-    button_el.textContent = data.label
+    button_el.textContent = data[0].label
   }
   async function btn_click(params) {
-    button_el.style.color = 'black'
+    console.log(params)
+  }
+  async function inject (data) {
+    style_el.innerHTML = data.join('\n')
   }
 }
 
@@ -337,7 +354,7 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-const textitle = 'Text from Button 1'
+const textitle = 'forth text'
 
 function fallback_module () {
   return {
@@ -346,10 +363,18 @@ function fallback_module () {
   function fallback_instance () {
     return {
       drive: {
+        style: {
+          'theme.css': {
+            raw: `
+            button{
+              padding: 8px 16px;
+            }`
+          }
+        },
         lang: {
           'en-us.json': {
             raw: {
-              label: 'Button 1'
+              label: 'Button 4'
             }
           }
         }
@@ -361,6 +386,7 @@ module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
   const on = {
+    style: inject,
     lang: fill
   }
 
@@ -368,11 +394,7 @@ async function btn1 (opts) {
   const shadow = el.attachShadow({ mode: 'closed' })
   shadow.innerHTML = `
 	<button></button>
-	<style>
-		button {
-			padding: 8px 16px;
-		}
-	</style>`
+	<style></style>`
 
   const button_el = shadow.querySelector('button')
   const style_el = shadow.querySelector('style')
@@ -386,10 +408,13 @@ async function btn1 (opts) {
     }
   }
   async function fill (data) {
-    button_el.textContent = data.label
+    button_el.textContent = data[0].label
   }
   async function btn_click(params) {
-    button_el.style.color = 'black'
+    console.log(params)
+  }
+  async function inject (data) {
+    style_el.innerHTML = data.join('\n')
   }
 }
 
@@ -409,7 +434,7 @@ function fallback_module () {
       drive: {
         text: {
           'content.txt': {
-            raw: '2nd text'
+            raw: 'third text'
           }
         }
       }
@@ -461,12 +486,12 @@ function fallback_module () {
     _: {
       app: {
         0: override_app
-    }
+      }
     },
     drive: {
       theme: {
         'style.css': {
-          raw: 'body { font-family: \'system-ui\'; }',
+          raw: 'body { font-family: \'system-ui\'; }'
         }
       }
     }
@@ -490,9 +515,9 @@ async function config () {
   const html = document.documentElement
   const meta = document.createElement('meta')
   const appleTouch = '<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">'
-  const icon32 = '<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">'
-  const icon16 = '<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">'
-  const webmanifest = '<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>'
+  // const icon32 = '<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">'
+  // const icon16 = '<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">'
+  // const webmanifest = '<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>'
   const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
   const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
   html.setAttribute('lang', 'en')
@@ -500,7 +525,7 @@ async function config () {
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
   // @TODO: use font api and cache to avoid re-downloading the font data every time
   document.head.append(meta)
-  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest + loadFont
+  document.head.innerHTML += appleTouch + loadFont // + icon16 + icon32 + webmanifest
   document.adoptedStyleSheets = [sheet]
   await document.fonts.ready // @TODO: investigate why there is a FOUC
 }
@@ -523,6 +548,8 @@ async function boot (opts) {
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
   shadow.adoptedStyleSheets = [sheet]
+  document.body.style.margin = 0
+
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
@@ -656,7 +683,7 @@ function STATE (address, modulepath) {
     if (status.fallback_check) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
-      console.log('Main module: ', statedata.name, '\n', state_entries)
+      // console.log('Main module: ', statedata.name, '\n', state_entries)
       local_status = updated_local_status ? updated_local_status : local_status
       local_status.fallback_instance = statedata.api
       db.append(['state'], state_entries)
@@ -685,7 +712,7 @@ function STATE (address, modulepath) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
       Object.assign(status.tree, newstatus.tree)
-      console.log('Main instance: ', statedata.name, '\n', state_entries)
+      // console.log('Main instance: ', statedata.name, '\n', state_entries)
       db.append(['state'], state_entries)
     }
     [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
@@ -789,7 +816,7 @@ function STATE (address, modulepath) {
       fallback_data = fallback()
 
     fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
-    console.log('overrides: ', fun_status.overrides)
+    // console.log('overrides: ', fun_status.overrides)
     orphan_check && (fallback_data.orphan = orphan_check)
     //This function makes changes in fun_status (side effect)
     return {

@@ -68,8 +68,6 @@ async function boot (opts) {
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
   shadow.adoptedStyleSheets = [sheet]
-  document.body.style.margin = 0
-
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------

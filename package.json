@@ -11,7 +11,11 @@
     "start:doc2": "budo doc/state/example2/boot.js:doc/state/example2/bundle.js  --dir ./ --live --open",
     "build:doc2": "browserify doc/state/example2/boot.js > doc/state/example2/bundle.js",
     "start:doc3": "budo doc/state/example3/boot.js:doc/state/example3/bundle.js  --dir ./ --live --open",
-    "build:doc3": "browserify doc/state/example3/boot.js > doc/state/example3/bundle.js"
+    "build:doc3": "browserify doc/state/example3/boot.js > doc/state/example3/bundle.js",
+    "start:doc4": "budo doc/state/example4/boot.js:doc/state/example4/bundle.js  --dir ./ --live --open",
+    "build:doc4": "browserify doc/state/example4/boot.js > doc/state/example4/bundle.js",
+    "start:doc5": "budo doc/state/example5/boot.js:doc/state/example5/bundle.js  --dir ./ --live --open",
+    "build:doc5": "browserify doc/state/example5/boot.js > doc/state/example5/bundle.js"
   },
   "repository": {
     "type": "git",

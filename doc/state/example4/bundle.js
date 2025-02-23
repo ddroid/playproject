@@ -1,3 +1,363 @@
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+patch_cache_in_browser(arguments[4], arguments[5])
+
+function patch_cache_in_browser (source_cache, module_cache) {
+  const meta = { modulepath: ['page'], paths: {} }
+  for (const key of Object.keys(source_cache)) {
+    const [module, names] = source_cache[key]
+    const dependencies = names || {}
+    source_cache[key][0] = patch(module, dependencies, meta)
+  }
+  function patch (module, dependencies, meta) {
+    const MAP = {}
+    for (const [name, number] of Object.entries(dependencies)) MAP[name] = number
+    return (...args) => {
+      const original = args[0]
+      require.cache = module_cache
+      require.resolve = resolve
+      args[0] = require
+      return module(...args)
+      function require (name) {
+        const identifier = resolve(name)
+        if (name.endsWith('node_modules/STATE')) {
+          const modulepath = meta.modulepath.join('/')
+          const original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
+          const exports = (...args) => original_export(...args, modulepath)
+          return exports
+        } else if (require.cache[identifier]) return require.cache[identifier]
+        else {
+          const counter = meta.modulepath.concat(name).join('/')
+          if (!meta.paths[counter]) meta.paths[counter] = 0
+          const localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
+          meta.paths[counter]++
+          meta.modulepath.push(localid)
+        }
+        const exports = require.cache[identifier] = original(name)
+        if (!name.endsWith('node_modules/STATE')) meta.modulepath.pop(name)
+        return exports
+      }
+    }
+    function resolve (name) { return MAP[name] }
+  }
+}
+require('./page') // or whatever is otherwise the main entry of our project
+},{"./page":5}],2:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module)
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+    _: {
+      btn: {
+        0: btn_overider,
+        1: btn_overider,
+        2: btn_overider,
+        // 3: btn_overider
+      },
+      text: {}
+    }
+  }
+  function fallback_instance () {
+    return {
+      _: {
+        btn: {
+          0: btn_overider,
+          1: btn_overider,
+          2: btn_overider,
+          // 3: btn_overider
+        },
+        text: {}
+      },
+      drive: {
+        style: {
+          'theme.css': {
+            raw: `
+            .menu {
+              display: flex;
+              gap: 10px;
+              margin-bottom: 10px;
+            }
+            .text-container {
+              border: 1px solid #ccc;
+              padding: 10px;
+            }`
+          }
+        }
+      }
+    }
+  }
+  function btn_overider([btn]){
+    console.log(btn)
+    const data = btn()
+    console.log(data)
+    return data
+  }
+}
+
+const btn = require('btn')
+const text_module = require('text')
+
+module.exports = test_menu
+async function test_menu (opts) {
+  const { id, sdb } = await get(opts.sid)
+  const on = {
+    style: inject
+  }
+
+  const el = document.createElement('div')
+  const shadow = el.attachShadow({ mode: 'closed' })
+  shadow.innerHTML = `
+	<div class="menu"></div>
+	<div class="text-container"></div>
+	<style></style>`
+
+  const menu_el = shadow.querySelector('.menu')
+  const text_container_el = shadow.querySelector('.text-container')
+  const style_el = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  console.log(subs)
+  console.dir(subs)
+  console.dir(subs[0])
+
+  menu_el.append(
+    await btn(subs[0]),
+    // await btn(subs[0][1]),
+    // await btn(subs[0][2]),
+    // await btn(subs[0][3])
+    )
+  text_container_el.append(await text_module(subs[1]))
+  
+  return el
+
+  function onbatch (batch) {
+    for (const { type, data } of batch) {
+      on[type] && on[type](data)
+    }
+  }
+
+  async function inject (data) {
+    style_el.innerHTML = data.join('\n')
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example4/node_modules/app.js")
+},{"../../../../src/node_modules/STATE":6,"btn":3,"text":4}],3:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module)
+
+const textitle = 'Text from Button 1'
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        lang: {
+          'en-us.json': {
+            raw: {
+              label: 'Button 1'
+            }
+          }
+        }
+      }
+    }
+  }
+}
+module.exports = btn1
+async function btn1 (opts) {
+  const { id, sdb } = await get(opts.sid)
+  const on = {
+    lang: fill
+  }
+
+  const el = document.createElement('div')
+  const shadow = el.attachShadow({ mode: 'closed' })
+  shadow.innerHTML = `
+	<button></button>
+	<style>
+		button {
+			padding: 8px 16px;
+		}
+	</style>`
+
+  const button_el = shadow.querySelector('button')
+  const style_el = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+
+  button_el.onclick = btn_click
+  return el
+  function onbatch (batch) {
+    for (const { type, data } of batch) {
+      on[type] && on[type](data)
+    }
+  }
+  async function fill (data) {
+    button_el.textContent = data.label
+  }
+  async function btn_click(params) {
+    button_el.style.color = 'black'
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example4/node_modules/btn.js")
+},{"../../../../src/node_modules/STATE":6}],4:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module)
+
+function fallback_module () {
+  return {
+    api: fallback_instance
+  }
+  function fallback_instance () {
+    return {
+      drive: {
+        text: {
+          'content.txt': {
+            raw: '2nd text'
+          }
+        }
+      }
+    }
+  }
+}
+
+module.exports = text
+async function text (opts) {
+  const { id, sdb } = await get(opts.sid)
+  const on = {
+    text: fill
+  }
+
+  const el = document.createElement('div')
+  const shadow = el.attachShadow({ mode: 'closed' })
+  shadow.innerHTML = `
+	<span></span>
+	<style>
+		span {
+			display: block;
+			padding: 10px;
+      }
+	</style>`
+
+  const span_el = shadow.querySelector('span')
+  const style_el = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+
+  return el
+  function onbatch (batch) {
+    for (const { type, data } of batch) {
+      on[type] && on[type](data)
+    }
+  }
+  async function fill ([data]) {
+    span_el.textContent = data
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example4/node_modules/text.js")
+},{"../../../../src/node_modules/STATE":6}],5:[function(require,module,exports){
+(function (__filename,__dirname){(function (){
+const STATE = require('../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, subs: [get] } = statedb(fallback_module)
+function fallback_module () {
+  return {
+    _: {
+      app: {
+        0: override_app
+      }
+    },
+    drive: {
+      theme: {
+        'style.css': {
+          raw: 'body { font-family: \'system-ui\'; }'
+        }
+      }
+    }
+  }
+
+  function override_app ([app]) {
+    const data = app()
+    return data
+  }
+}
+
+/******************************************************************************
+  PAGE
+******************************************************************************/
+const app = require('app')
+const sheet = new CSSStyleSheet()
+config().then(() => boot({ sid: '' }))
+
+async function config () {
+  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
+  const html = document.documentElement
+  const meta = document.createElement('meta')
+  const appleTouch = '<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">'
+  // const icon32 = '<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">'
+  // const icon16 = '<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">'
+  // const webmanifest = '<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>'
+  const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
+  const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
+  html.setAttribute('lang', 'en')
+  meta.setAttribute('name', 'viewport')
+  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
+  // @TODO: use font api and cache to avoid re-downloading the font data every time
+  document.head.append(meta)
+  document.head.innerHTML += appleTouch + loadFont // + icon16 + icon32 + webmanifest
+  document.adoptedStyleSheets = [sheet]
+  await document.fonts.ready // @TODO: investigate why there is a FOUC
+}
+/******************************************************************************
+  PAGE BOOT
+******************************************************************************/
+async function boot (opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const on = {
+    theme: inject
+  }
+  const subs = await sdb.watch(onbatch)
+  const status = {}
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.body
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.adoptedStyleSheets = [sheet]
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // desktop
+    shadow.append(await app(subs[1]))
+  }
+  // ----------------------------------------
+  // INIT
+  // ----------------------------------------
+
+  function onbatch (batch) {
+    for (const { type, data } of batch) {
+      on[type] && on[type](data)
+    }
+  }
+}
+async function inject (data) {
+  sheet.replaceSync(data.join('\n'))
+}
+
+}).call(this)}).call(this,"/doc/state/example4/page.js","/doc/state/example4")
+},{"../../../src/node_modules/STATE":6,"app":2}],6:[function(require,module,exports){
 const localdb = require('localdb')
 const db = localdb()
 /** Data stored in a entry in db by STATE (Schema): 
@@ -673,3 +1033,103 @@ function create_statedb_interface (local_status, node_id, xtype) {
 
 
 module.exports = STATE
+},{"localdb":7}],7:[function(require,module,exports){
+/******************************************************************************
+  LOCALDB COMPONENT
+******************************************************************************/
+module.exports = localdb
+
+function localdb () {
+  const prefix = '153/'
+  return { add, read_all, read, drop, push, length, append, find }
+
+  function length (keys) {
+    const address = prefix + keys.join('/')
+    return Object.keys(localStorage).filter(key => key.includes(address)).length
+  }
+  /**
+   * Assigns value to the key of an object already present in the DB
+   * 
+   * @param {String[]} keys 
+   * @param {any} value 
+   */
+  function add (keys, value, precheck) {
+    localStorage[(precheck ? '' : prefix) + keys.join('/')] = JSON.stringify(value)
+  }
+  /**
+   * Appends values into an object already present in the DB
+   * 
+   * @param {String[]} keys 
+   * @param {any} value 
+   */
+  function append (keys, data) {
+    const pre = keys.join('/')
+    Object.entries(data).forEach(([key, value]) => {
+      localStorage[prefix + pre+'/'+key] = JSON.stringify(value)
+    })
+  }
+  /**
+   * Pushes value to an array already present in the DB
+   * 
+   * @param {String[]} keys
+   * @param {any} value 
+   */
+  function push (keys, value) {
+    const independent_key = keys.slice(0, -1)
+    const data = JSON.parse(localStorage[prefix + independent_key.join('/')])
+    console.log(independent_key, keys.at(-1))
+    data[keys.at(-1)].push(value)
+    localStorage[prefix + independent_key.join('/')] = JSON.stringify(data)
+  }
+  function read (keys) {
+    const result = localStorage[prefix + keys.join('/')]
+    return result && JSON.parse(result)
+  }
+  function read_all (keys) {
+    const address = prefix + keys.join('/')
+    let result = {}
+    Object.entries(localStorage).forEach(([key, value]) => {
+      if(key.includes(address))
+        result[key.split('/').at(-1)] = JSON.parse(value)
+      })
+    return result
+  }
+  function drop (keys) {
+    if(keys.length > 1){
+      const data = JSON.parse(localStorage[keys[0]])
+      let temp = data
+      keys.slice(1, -1).forEach(key => {
+        temp = temp[key]
+      })
+      if(Array.isArray(temp))
+        temp.splice(keys[keys.length - 1], 1)
+      else
+        delete(temp[keys[keys.length - 1]])
+      localStorage[keys[0]] = JSON.stringify(data)
+    }
+    else
+      delete(localStorage[keys[0]])
+  }
+  function find (keys, filters, index = 0) {
+    let index_count = 0
+    const address = prefix + keys.join('/')
+    const target_key = Object.keys(localStorage).find(key => {
+      if(key.includes(address)){
+        const entry = JSON.parse(localStorage[key])
+        let count = 0
+        Object.entries(filters).some(([search_key, value]) => {
+          if(entry[search_key] !== value)
+            return
+          count++
+        })
+        if(count === Object.keys(filters).length){
+          if(index_count === index)
+            return key
+          index_count++
+        }
+      }
+    }, undefined)
+    return target_key && JSON.parse(localStorage[target_key])
+  } 
+}
+},{}]},{},[1]);
