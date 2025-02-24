@@ -60,7 +60,6 @@ function fallback_module () {
     return {
       _: {
         btn: {
-          $: override, // ? why is this here
           0: override0,
           1: override1,
           2: override2,
@@ -85,19 +84,6 @@ function fallback_module () {
         }
       }
     }
-  }
-  function override ([btn]) {
-    data = btn()
-    data.drive = {
-      lang: {
-        'en-us.json': {
-          raw: {
-            label: 'Button'
-          }
-        }
-      }
-    }
-    return data
   }
   function override0 ([btn]) {
     data = btn()
@@ -437,7 +423,8 @@ const status = {
   open_branches: {},
   db,
   local_statuses: {},
-  dataset_api: {}
+  dataset_api: {},
+  listeners: {}
 }
 window.STATEMODULE = status
 
@@ -447,7 +434,6 @@ status.fallback_check && db.add(['playproject_version'], VERSION)
 
 
 // Symbol mappings
-const listeners = {}
 const s2i = {}
 const i2s = {}
 let admins = [0]
@@ -524,7 +510,7 @@ function STATE (address, modulepath) {
     if (status.fallback_check) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
-      // console.log('Main module: ', statedata.name, '\n', state_entries)
+      console.log('Main module: ', statedata.name, '\n', state_entries)
       local_status = updated_local_status ? updated_local_status : local_status
       local_status.fallback_instance = statedata.api
       db.append(['state'], state_entries)
@@ -553,14 +539,14 @@ function STATE (address, modulepath) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
       Object.assign(status.tree, newstatus.tree)
-      // console.log('Main instance: ', statedata.name, '\n', state_entries)
+      console.log('Main instance: ', statedata.name, '\n', state_entries)
       db.append(['state'], state_entries)
     }
     [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
     Object.assign(s2i, symbol2ID)
     Object.assign(i2s, ID2Symbol)
     const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
-    status.dataset_api[statedata.id] = sdb.list
+    status.dataset_api[statedata.id] = sdb.private_api
     return {
       id: statedata.id,
       sdb: sdb.public_api,
@@ -623,18 +609,42 @@ function STATE (address, modulepath) {
   }
   function find_super ({ xtype, fallback, fun_status, local_status }) {
     const modulepath_super = modulepath.split(/\/(?=[^\/]*$)/)[0]
+    const modulepath_grand = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
     const split = modulepath.split('/')
     const name = split.at(-2) + '.' + split.at(-1)
     let data
-
+    const entries = {}
     if(xtype === 'module'){
       data = db.read(['state', modulepath_super])
       data.path = data.id = modulepath
       local_status.name = name
+
+      const super_data = db.read(['state', modulepath_grand])
+      super_data.subs.forEach((sub_id, i) => {
+        if(sub_id === modulepath_super){
+          super_data.subs.splice(i, 1)
+          return
+        }
+      })
+      super_data.subs.push(data.id)
+      entries[super_data.id] = super_data
     }
     else{
-      data = db.read(['state', modulepath_super + ':0'])
+      //@TODO: Make the :0 dynamic
+      const instance_path_super = modulepath_super + ':0'
+      data = db.read(['state', instance_path_super])
       data.path = data.id = get_instance_path(modulepath)
+
+      
+      const super_data = db.read(['state', modulepath_grand + ':0'])
+      super_data.subs.forEach((sub_id, i) => {
+        if(sub_id === instance_path_super){
+          super_data.subs.splice(i, 1)
+          return
+        }
+      })
+      super_data.subs.push(data.id)
+      entries[super_data.id] = super_data
     }
     data.name = split.at(-1)
     return { updated_local_status: local_status,
@@ -642,9 +652,9 @@ function STATE (address, modulepath) {
       fun_status,
       fallback, xtype, 
       pre_data: data, 
-      orphan_check: true }) }
+      orphan_check: true, entries }) }
   }
-  function validate_and_preprocess ({ fallback, xtype, pre_data = {}, orphan_check, fun_status }) {
+  function validate_and_preprocess ({ fallback, xtype, pre_data = {}, orphan_check, fun_status, entries }) {
     let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
 
     validate(fallback())
@@ -657,11 +667,11 @@ function STATE (address, modulepath) {
       fallback_data = fallback()
 
     fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
-    // console.log('overrides: ', fun_status.overrides)
+    console.log('overrides: ', fun_status.overrides)
     orphan_check && (fallback_data.orphan = orphan_check)
     //This function makes changes in fun_status (side effect)
     return {
-      sanitized_data: sanitize_state({ local_id: '', entry: fallback_data, path: pre_id, xtype, mapping }),
+      sanitized_data: sanitize_state({ local_id: '', entry: fallback_data, path: pre_id, xtype, mapping, entries }),
       updated_status: fun_status
     }
     
@@ -672,7 +682,7 @@ function STATE (address, modulepath) {
       entry.name = entry.name || local_id.split(':')[0] || local_status.name
       mapping && (entry.mapping = mapping)
       
-      entries = {...sanitize_subs({ local_id, entry, path, local_tree, xtype, mapping })}
+      entries = {...entries, ...sanitize_subs({ local_id, entry, path, local_tree, xtype, mapping })}
       
       delete entry._
       entries[entry.id] = entry
@@ -736,9 +746,9 @@ function STATE (address, modulepath) {
           entry.inputs = []
           const new_drive = []
           Object.entries(entry.drive).forEach(([dataset_name, dataset]) => {
-            const new_dataset = { files: [], mapping: [] }
+            const new_dataset = { files: [], mapping: {} }
             Object.entries(dataset).forEach(([key, value]) => {
-              const sanitized_file = sanitize_file(key, value, entry)
+              const sanitized_file = sanitize_file(key, value, entry, entries)
               entries[sanitized_file.id] = sanitized_file
               new_dataset.files.push(sanitized_file.id)
             })
@@ -750,7 +760,13 @@ function STATE (address, modulepath) {
               new_dataset.id = new_dataset.id + ':' + (Number(id || 0) + 1)
             }
             entries[new_dataset.id] = new_dataset
-            entry.inputs.push(new_dataset.id)
+            let check_name = true
+            entry.inputs.forEach(dataset_id => {
+              const dataset = entries[dataset_id]
+              if(dataset.name.split(':')[0] === new_dataset.name.split(':')[0])
+                check_name = false
+            })
+            check_name && entry.inputs.push(new_dataset.id)
             new_drive.push(new_dataset.id)
 
 
@@ -760,7 +776,7 @@ function STATE (address, modulepath) {
               hub_entry.inputs.forEach(input_id => {
                 const input = db.read(['state', input_id])
                 if(mapped_file_name === input.name){
-                  input.mapping.push(new_dataset.id)
+                  input.mapping[entry.id] = new_dataset.id
                   entries[input_id] = input
                   return
                 }
@@ -772,7 +788,7 @@ function STATE (address, modulepath) {
       }
       return entries
     }
-    function sanitize_file (file_id, file, entry) {
+    function sanitize_file (file_id, file, entry, entries) {
       const type = file_id.split('.').at(-1)
 
       if (!isNaN(Number(file_id))) return file_id
@@ -786,8 +802,12 @@ function STATE (address, modulepath) {
       
       const copies = Object.keys(db.read_all(['state', file.id]))
       if (copies.length) {
-        const id = copies.sort().at(-1).split(':')[1]
-        file.id = file.id + ':' + (Number(id || 0) + 1)
+        const no = copies.sort().at(-1).split(':')[1]
+        file.id = file.id + ':' + (Number(no || 0) + 1)
+      }
+      while(entries[file.id]){
+        const no = file.id.split(':')[1]
+        file.id = file.id + ':' + (Number(no || 0) + 1)
       }
       return file
     }
@@ -986,28 +1006,14 @@ function create_statedb_interface (local_status, node_id, xtype) {
       watch, get_sub, req_access
     },
     private_api: {
-      list, register
+      list, register, swtch
     }
   }
   async function watch (listener) {
     const data = db.read(['state', node_id])
     if(listener){
-      listeners[data.id] = listener
-      const input_map = []
-      
-      if (data.inputs) {
-        await Promise.all(data.inputs.map(async input => {
-          let data = []
-          const dataset = db.read(['state', input])
-          await Promise.all(dataset.files.map(async file_id => {
-            const input_state = db.read(['state', file_id])
-            data.push(await get_input(input_state))
-          }))
-          input_map.push({ type: dataset.name, data })
-        }))
-      }
-      
-      listener(input_map)
+      status.listeners[data.id] = listener
+      listener(await make_input_map(data.inputs))
     }
     return xtype === 'module' ? local_status.sub_modules : local_status.sub_instances[node_id]
   }
@@ -1052,14 +1058,33 @@ function create_statedb_interface (local_status, node_id, xtype) {
     }
     else{
       const datasets = []
-      entry.drive.forEach(dataset_id => {
+      entry.drive && entry.drive.forEach(dataset_id => {
         datasets.push(db.read(['state', dataset_id]).name)
       })
       return datasets
     }
   }
   function register (dataset_name, files, mapping) {
-    const new_dataset = { files, mapping: mapping?.subs }
+    const new_dataset = { files: [], mapping: mapping?.subs }
+
+    Object.entries(files).forEach(([file_id, file]) => {
+      const type = file_id.split('.').at(-1)
+      
+      file.id = local_status.name + '.' + type
+      file.local_name = file_id
+      file.type = type
+      file[file.type === 'js' ? 'subs' : 'hubs'] = [node_id]
+      
+      const copies = Object.keys(db.read_all(['state', file.id]))
+      if (copies.length) {
+        const no = copies.sort().at(-1).split(':')[1]
+        file.id = file.id + ':' + (Number(no || 0) + 1)
+      }  
+      db.add(['state', file.id], file)
+      new_dataset.files.push(file.id)
+    })
+
+
     new_dataset.id = local_status.name + '.' + dataset_name + '.dataset'
     new_dataset.name = dataset_name
     const copies = Object.keys(db.read_all(['state', new_dataset.id]))
@@ -1072,7 +1097,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
     db.push(['state', node_id, 'drive'], new_dataset.id)
     db.add(['state', new_dataset.id], new_dataset)
     if(entry.hubs){
-      const hub_drive = db.read(['state', entry.hubs[0]])
+      const hub_drive = db.read(['state', entry.hubs[0]]).drive
       hub_drive.forEach(id => {
         const super_dataset = db.read(['state', id])
         if(super_dataset.name === mapping?.super){
@@ -1084,6 +1109,53 @@ function create_statedb_interface (local_status, node_id, xtype) {
     }
     return node_id + ' registered ' + dataset_name
   }
+  function swtch (dataset_name) {
+    recurse(dataset_name, node_id)
+
+    async function recurse (target_dataset_name, id) {
+      const entry = db.read(['state', id])
+      
+      let target_dataset
+      entry.drive && entry.drive.forEach(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if(target_dataset_name === dataset.name){
+          target_dataset = dataset
+          return
+        }
+      })
+      if(target_dataset){
+        entry.inputs.forEach((dataset_id, i) => {
+          const dataset = db.read(['state', dataset_id])
+          if(dataset.name.split(':')[0] === target_dataset_name.split(':')[0]){
+            entry.inputs.splice(i, 1)
+            return
+          }
+        })
+        entry.inputs.push(target_dataset.id)
+      }
+      db.add(['state', id], entry)
+      status.listeners[id] && status.listeners[id](await make_input_map(entry.inputs))
+      entry.subs && entry.subs.forEach(sub_id => {
+        const subdataset_id = target_dataset?.mapping?.[sub_id] 
+        recurse(db.read(['state', subdataset_id])?.name || target_dataset_name, sub_id)
+      })
+    }
+  }
+}
+async function make_input_map (inputs) {
+  const input_map = []   
+  if (inputs) {
+    await Promise.all(inputs.map(async input => {
+      let files = []
+      const dataset = db.read(['state', input])
+      await Promise.all(dataset.files.map(async file_id => {
+        const input_state = db.read(['state', file_id])
+        files.push(await get_input(input_state))
+      }))
+      input_map.push({ type: dataset.name.split(':')[0], data: files })
+    }))
+  }
+  return input_map
 }
 
 
