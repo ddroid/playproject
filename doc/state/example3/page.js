@@ -31,7 +31,7 @@ const sheet = new CSSStyleSheet()
 config().then(() => boot({ sid: '' }))
 
 async function config () {
-  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
+  // const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
   const meta = document.createElement('meta')
   const appleTouch = '<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">'
@@ -60,7 +60,7 @@ async function boot (opts) {
     theme: inject
   }
   const subs = await sdb.watch(onbatch)
-  const status = {}
+  // const status = {}
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -68,14 +68,12 @@ async function boot (opts) {
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
   shadow.adoptedStyleSheets = [sheet]
-  document.body.style.margin = 0
-
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
-  { // desktop
-    shadow.append(await app(subs[1]))
-  }
+  // desktop
+  shadow.append(await app(subs[1]))
+
   // ----------------------------------------
   // INIT
   // ----------------------------------------

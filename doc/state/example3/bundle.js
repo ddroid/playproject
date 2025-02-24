@@ -41,30 +41,31 @@ function patch_cache_in_browser (source_cache, module_cache) {
   }
 }
 require('./page') // or whatever is otherwise the main entry of our project
-},{"./page":8}],2:[function(require,module,exports){
+},{"./page":5}],2:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
+// app.js
 function fallback_module () {
   return {
     api: fallback_instance,
     _: {
-      btn1: {},
-      btn2: {},
-      btn3: {},
-      btn4: {},
-      text: {}
+      btn: { $: ([btn]) => btn() }, //here
+      text: { $: ([text]) => text() },
     }
   }
   function fallback_instance () {
     return {
       _: {
-        btn1: {},
-        btn2: {},
-        btn3: {},
-        btn4: {},
+        btn: {
+          $: override, // ? why is this here
+          0: override0,
+          1: override1,
+          2: override2,
+          3: override3
+        },
         text: {}
       },
       drive: {
@@ -85,12 +86,73 @@ function fallback_module () {
       }
     }
   }
+  function override ([btn]) {
+    data = btn()
+    data.drive = {
+      lang: {
+        'en-us.json': {
+          raw: {
+            label: 'Button'
+          }
+        }
+      }
+    }
+    return data
+  }
+  function override0 ([btn]) {
+    data = btn()
+    data.drive = {
+      lang: {
+        'en-us.json': {
+          raw: {
+            label: 'Button 1'
+          }
+        }
+      }
+    }
+    return data
+  }
+  function override1 ([btn]) {
+    data = btn()
+    data.drive = {
+      lang: {
+        'en-us.json': {
+          raw: {
+            label: 'Button 2'
+          }
+        }
+      }
+    }
+    return data
+  }
+  function override2 ([btn]) {
+    data = btn()
+    data.drive = {
+      lang: {
+        'en-us.json': {
+          raw: {
+            label: 'Button 3'
+          }
+        }
+      }
+    }
+    return data
+  }
+  function override3 ([btn]) {
+    data = btn()
+    data.drive = {
+      lang: {
+        'en-us.json': {
+          raw: {
+            label: 'Button 4'
+          }
+        }
+      }
+    }
+    return data
+  }
 }
-
-const btn1 = require('btn1')
-const btn2 = require('btn2')
-const btn3 = require('btn3')
-const btn4 = require('btn4')
+const btn = require('btn')
 const text_module = require('text')
 
 module.exports = test_menu
@@ -111,16 +173,18 @@ async function test_menu (opts) {
   const text_container_el = shadow.querySelector('.text-container')
   const style_el = shadow.querySelector('style')
   const subs = await sdb.watch(onbatch)
-  // console.log(subs)
+  console.log(subs)
   // console.dir(subs)
+  // console.dir(subs[0])
 
   menu_el.append(
-    await btn1(subs[0]),
-    await btn2(subs[1]),
-    await btn3(subs[2]),
-    await btn4(subs[3]))
-  text_container_el.append(await text_module(subs[4]))
-  
+    await btn(subs[0]),
+    await btn(subs[0]),
+    await btn(subs[0]),
+    await btn(subs[0])
+  )
+  text_container_el.append(await text_module(subs[1]))
+  console.log(subs)
   return el
 
   function onbatch (batch) {
@@ -135,13 +199,13 @@ async function test_menu (opts) {
 }
 
 }).call(this)}).call(this,"/doc/state/example3/node_modules/app.js")
-},{"../../../../src/node_modules/STATE":9,"btn1":3,"btn2":4,"btn3":5,"btn4":6,"text":7}],3:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":6,"btn":3,"text":4}],3:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-const textitle = 'first text'
+const textitle = 'Text from Button 1'
 
 function fallback_module () {
   return {
@@ -150,14 +214,6 @@ function fallback_module () {
   function fallback_instance () {
     return {
       drive: {
-        style: {
-          'theme.css': {
-            raw: `
-            button{
-              padding: 8px 16px;
-            }`
-          }
-        },
         lang: {
           'en-us.json': {
             raw: {
@@ -173,7 +229,6 @@ module.exports = btn1
 async function btn1 (opts) {
   const { id, sdb } = await get(opts.sid)
   const on = {
-    style: inject,
     lang: fill
   }
 
@@ -181,7 +236,11 @@ async function btn1 (opts) {
   const shadow = el.attachShadow({ mode: 'closed' })
   shadow.innerHTML = `
 	<button></button>
-	<style></style>`
+	<style>
+		button {
+			padding: 8px 16px;
+		}
+	</style>`
 
   const button_el = shadow.querySelector('button')
   const style_el = shadow.querySelector('style')
@@ -195,231 +254,15 @@ async function btn1 (opts) {
     }
   }
   async function fill (data) {
-    button_el.textContent = data[0].label
+    button_el.textContent = data.label
   }
   async function btn_click(params) {
-    console.log(params)
-  }
-  async function inject (data) {
-    style_el.innerHTML = data.join('\n')
+    button_el.style.color = 'black'
   }
 }
 
-}).call(this)}).call(this,"/doc/state/example3/node_modules/btn1.js")
-},{"../../../../src/node_modules/STATE":9}],4:[function(require,module,exports){
-(function (__filename){(function (){
-const STATE = require('../../../../src/node_modules/STATE')
-const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
-
-const textitle = 'second text'
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-  }
-  function fallback_instance () {
-    return {
-      drive: {
-        style: {
-          'theme.css': {
-            raw: `
-            button{
-              padding: 8px 16px;
-            }`
-          }
-        },
-        lang: {
-          'en-us.json': {
-            raw: {
-              label: 'Button 2'
-            }
-          }
-        }
-      }
-    }
-  }
-}
-module.exports = btn1
-async function btn1 (opts) {
-  const { id, sdb } = await get(opts.sid)
-  const on = {
-    style: inject,
-    lang: fill
-  }
-
-  const el = document.createElement('div')
-  const shadow = el.attachShadow({ mode: 'closed' })
-  shadow.innerHTML = `
-	<button></button>
-	<style></style>`
-
-  const button_el = shadow.querySelector('button')
-  const style_el = shadow.querySelector('style')
-  const subs = await sdb.watch(onbatch)
-
-  button_el.onclick = btn_click
-  return el
-  function onbatch (batch) {
-    for (const { type, data } of batch) {
-      on[type] && on[type](data)
-    }
-  }
-  async function fill (data) {
-    button_el.textContent = data[0].label
-  }
-  async function btn_click(params) {
-    console.log(params)
-  }
-  async function inject (data) {
-    style_el.innerHTML = data.join('\n')
-  }
-}
-
-}).call(this)}).call(this,"/doc/state/example3/node_modules/btn2.js")
-},{"../../../../src/node_modules/STATE":9}],5:[function(require,module,exports){
-(function (__filename){(function (){
-const STATE = require('../../../../src/node_modules/STATE')
-const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
-
-const textitle = 'third text'
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-  }
-  function fallback_instance () {
-    return {
-      drive: {
-        style: {
-          'theme.css': {
-            raw: `
-            button{
-              padding: 8px 16px;
-            }`
-          }
-        },
-        lang: {
-          'en-us.json': {
-            raw: {
-              label: 'Button 3'
-            }
-          }
-        }
-      }
-    }
-  }
-}
-module.exports = btn1
-async function btn1 (opts) {
-  const { id, sdb } = await get(opts.sid)
-  const on = {
-    style: inject,
-    lang: fill
-  }
-
-  const el = document.createElement('div')
-  const shadow = el.attachShadow({ mode: 'closed' })
-  shadow.innerHTML = `
-	<button></button>
-	<style></style>`
-
-  const button_el = shadow.querySelector('button')
-  const style_el = shadow.querySelector('style')
-  const subs = await sdb.watch(onbatch)
-
-  button_el.onclick = btn_click
-  return el
-  function onbatch (batch) {
-    for (const { type, data } of batch) {
-      on[type] && on[type](data)
-    }
-  }
-  async function fill (data) {
-    button_el.textContent = data[0].label
-  }
-  async function btn_click(params) {
-    console.log(params)
-  }
-  async function inject (data) {
-    style_el.innerHTML = data.join('\n')
-  }
-}
-
-}).call(this)}).call(this,"/doc/state/example3/node_modules/btn3.js")
-},{"../../../../src/node_modules/STATE":9}],6:[function(require,module,exports){
-(function (__filename){(function (){
-const STATE = require('../../../../src/node_modules/STATE')
-const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
-
-const textitle = 'forth text'
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-  }
-  function fallback_instance () {
-    return {
-      drive: {
-        style: {
-          'theme.css': {
-            raw: `
-            button{
-              padding: 8px 16px;
-            }`
-          }
-        },
-        lang: {
-          'en-us.json': {
-            raw: {
-              label: 'Button 4'
-            }
-          }
-        }
-      }
-    }
-  }
-}
-module.exports = btn1
-async function btn1 (opts) {
-  const { id, sdb } = await get(opts.sid)
-  const on = {
-    style: inject,
-    lang: fill
-  }
-
-  const el = document.createElement('div')
-  const shadow = el.attachShadow({ mode: 'closed' })
-  shadow.innerHTML = `
-	<button></button>
-	<style></style>`
-
-  const button_el = shadow.querySelector('button')
-  const style_el = shadow.querySelector('style')
-  const subs = await sdb.watch(onbatch)
-
-  button_el.onclick = btn_click
-  return el
-  function onbatch (batch) {
-    for (const { type, data } of batch) {
-      on[type] && on[type](data)
-    }
-  }
-  async function fill (data) {
-    button_el.textContent = data[0].label
-  }
-  async function btn_click(params) {
-    console.log(params)
-  }
-  async function inject (data) {
-    style_el.innerHTML = data.join('\n')
-  }
-}
-
-}).call(this)}).call(this,"/doc/state/example3/node_modules/btn4.js")
-},{"../../../../src/node_modules/STATE":9}],7:[function(require,module,exports){
+}).call(this)}).call(this,"/doc/state/example3/node_modules/btn.js")
+},{"../../../../src/node_modules/STATE":6}],4:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
@@ -434,7 +277,7 @@ function fallback_module () {
       drive: {
         text: {
           'content.txt': {
-            raw: 'third text'
+            raw: '2nd text'
           }
         }
       }
@@ -476,8 +319,8 @@ async function text (opts) {
 }
 
 }).call(this)}).call(this,"/doc/state/example3/node_modules/text.js")
-},{"../../../../src/node_modules/STATE":9}],8:[function(require,module,exports){
-(function (__filename,__dirname){(function (){
+},{"../../../../src/node_modules/STATE":6}],5:[function(require,module,exports){
+(function (__filename){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
@@ -511,7 +354,7 @@ const sheet = new CSSStyleSheet()
 config().then(() => boot({ sid: '' }))
 
 async function config () {
-  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
+  // const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
   const meta = document.createElement('meta')
   const appleTouch = '<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">'
@@ -540,7 +383,7 @@ async function boot (opts) {
     theme: inject
   }
   const subs = await sdb.watch(onbatch)
-  const status = {}
+  // const status = {}
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -548,14 +391,12 @@ async function boot (opts) {
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
   shadow.adoptedStyleSheets = [sheet]
-  document.body.style.margin = 0
-
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
-  { // desktop
-    shadow.append(await app(subs[1]))
-  }
+  // desktop
+  shadow.append(await app(subs[1]))
+
   // ----------------------------------------
   // INIT
   // ----------------------------------------
@@ -570,8 +411,8 @@ async function inject (data) {
   sheet.replaceSync(data.join('\n'))
 }
 
-}).call(this)}).call(this,"/doc/state/example3/page.js","/doc/state/example3")
-},{"../../../src/node_modules/STATE":9,"app":2}],9:[function(require,module,exports){
+}).call(this)}).call(this,"/doc/state/example3/page.js")
+},{"../../../src/node_modules/STATE":6,"app":2}],6:[function(require,module,exports){
 const localdb = require('localdb')
 const db = localdb()
 /** Data stored in a entry in db by STATE (Schema): 
@@ -1247,7 +1088,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
 
 
 module.exports = STATE
-},{"localdb":10}],10:[function(require,module,exports){
+},{"localdb":7}],7:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/
