@@ -65,7 +65,7 @@ function fallback_module () {
           2: override2,
           3: override3
         },
-        text: {}
+        text: {0: {}}
       },
       drive: {
         style: {
