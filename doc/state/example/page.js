@@ -9,16 +9,12 @@ function fallback_module () {
       }
     },
     drive: {
-      'theme': {
+      'theme/': {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
       },
-      'theme:1': {
-        'style.css': {
-          raw: `body { font-family: cursive; }`,
-        }
-      }
+      'lang/': {}
     }
   }
   function override_app ([app]) {
@@ -27,7 +23,7 @@ function fallback_module () {
     data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
       const data = menu()
       // console.log(nav$menu([menu]))
-      data.drive.lang['en-us.json'].raw = {
+      data.drive['lang/']['en-us.json'].raw = {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
@@ -74,6 +70,7 @@ async function boot (opts) {
     theme: inject,
   }
   const subs = await sdb.watch(onbatch)
+  
   const status = {}
   // ----------------------------------------
   // TEMPLATE

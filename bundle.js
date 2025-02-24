@@ -613,128 +613,627 @@ async function app (opts) {
 
 }).call(this)}).call(this,"/src/app.js")
 },{"STATE":3,"footer":4,"header":9,"io":10,"theme_widget":14,"topnav":16}],3:[function(require,module,exports){
-// STATE.js
-
 const localdb = require('localdb')
 const db = localdb()
+/** Data stored in a entry in db by STATE (Schema): 
+ * id (String): Node Path 
+ * name (String/Optional): Any (To be used theme_widget)
+ * type (String): Module Name for module / Module id for instances
+ * hubs (Array): List of hub-nodes
+ * subs (Array): List of sub-nodes
+ * inputs (Array): List of input files
+ */
+// Constants and initial setup (global level)
+const VERSION = 10
+const ROOT_ID = 'page'
+
 const status = {
   root_module: true, 
   root_instance: true, 
-  module_index: {}, 
   overrides: {},
   tree: {},
-  tree_pointers: {}
+  tree_pointers: {},
+  modulepaths: {},
+  inits: [],
+  open_branches: {},
+  db,
+  local_statuses: {},
+  listeners: {},
 }
-//@TODO Where devs can define slots
-const default_slots = ['hubs', '_', 'inputs', 'outputs']
+window.STATEMODULE = status
 
-const version = 8
-if(db.read(['playproject_version']) != version){
-  localStorage.clear()
-  status.fallback_check = true
-  db.add(['playproject_version'], version)
-}
-// db.read(['state']) || db.add(['state'], {})
+// Version check and initialization
+status.fallback_check = Boolean(check_version())
+status.fallback_check && db.add(['playproject_version'], VERSION)
 
-const listeners = {}
+
+// Symbol mappings
 const s2i = {}
 const i2s = {}
-var admins = [0]
+let admins = [0, 'menu']
 
-module.exports = STATE
-function STATE (address) {
-  const local_status = {
+// Inner Function
+function STATE (address, modulepath) {
+  status.modulepaths[modulepath] = 0
+  //Variables (module-level)
+
+  let local_status = {
     name: extract_filename(address),
-    deny: {}, subs: []
+    module_id: modulepath,
+    deny: {},
+    sub_modules: [],
+    sub_instances: {}
   }
-
-  const sdb = { watch, get_sub, req_access }
-  const subs = [get]
-  const admin = { xget, get_all, add_admins, load }
+  status.local_statuses[modulepath] = local_status
   return statedb
+  
+  function statedb (fallback) {
+    const data = fallback()
+    if(data._)
+      status.open_branches[modulepath] = Object.keys(data._).length
 
-  function extract_filename (address) {
-    const parts = address.split('/node_modules/')
-    const last = parts.at(-1).split('/')
-    return last.at(-1).slice(0, -3)
-  }
-  function statedb (fallback_module, fallback_instance) {
-    local_status.fallback_instance = fallback_instance
-    const search_filters = {'type': local_status.name}
-    let data = db.find(['state'], search_filters, status.module_index[local_status.name])
-    if (status.fallback_check) {
-      preprocess(fallback_module, 'module', data || {id: 0})
-      data = db.find(['state'], search_filters, status.module_index[local_status.name])
+    local_status.fallback_module = new Function(`return ${fallback.toString()}`)()
+    const updated_status = append_tree_node(modulepath, status)
+    Object.assign(status.tree_pointers, updated_status.tree_pointers)
+    Object.assign(status.open_branches, updated_status.open_branches)
+    status.inits.push(init_module)
+
+    if(!Object.values(status.open_branches).reduce((acc, curr) => acc + curr, 0))
+      status.inits.forEach(init => init())
+    
+    const sdb = create_statedb_interface(local_status, modulepath, xtype = 'module')
+    status.dataset = sdb.private_api
+    return {
+      id: modulepath,
+      sdb: sdb.public_api,
+      subs: [get],
+      // sub_modules
     }
-    if(data.id == 0){
-      data.admins && add_admins(data.admins)
-    }
-    local_status.id = data.id
-    local_status.module_id = data.id
-    data.hubs && add_source(data.hubs)
-    const sub_modules = {}
-    data.subs && data.subs.forEach(id => {
-      sub_modules[db.read(['state', id]).type] = id
-    })
-    return { id: data.id, sdb, subs, sub_modules }
   }
-  function add_source (hubs) {
-    hubs.forEach(id => {
-      const data = db.read(['state', id])
-      if(data.type === 'js'){
-        fetch_save(data)
+  function append_tree_node (id, status) {
+    const [super_id, name] = id.split(/\/(?=[^\/]*$)/)
+
+    if(name){
+      if(status.tree_pointers[super_id]){
+        status.tree_pointers[super_id]._[name] = { _: {} }
+        status.tree_pointers[id] = status.tree_pointers[super_id]._[name]
+        status.open_branches[super_id]--
       }
-    })
+      else{
+        let temp_name, new_name = name
+        let new_super_id = super_id
+        while(!status.tree_pointers[new_super_id]){
+          [new_super_id, temp_name] = new_super_id.split(/\/(?=[^\/]*$)/)
+          new_name = temp_name + '.' + new_name
+        }
+        status.tree_pointers[new_super_id]._[new_name] = { _: {} }
+        status.tree_pointers[id] = status.tree_pointers[new_super_id]._[new_name]
+        status.open_branches[new_super_id]--
+      }
+    }
+    else{
+      status.tree[id] = { _: {} }
+      status.tree_pointers[id] = status.tree[id]
+    }
+    return status
   }
-  function symbolfy (data) {
-    data.subs && data.subs.forEach(sub => {
-      const substate = db.read(['state', sub])
-      s2i[i2s[sub] = Symbol(sub)] = sub
-      local_status.subs.push({ sid: i2s[sub], type: substate.type })
-    })
-  }
-  function load (snapshot) {
-    localStorage.clear()
-    Object.entries(snapshot).forEach(([key, value]) => {
-      db.add([key], JSON.parse(value), true)
-    })
-    window.location.reload()
+  function init_module () {
+    const {statedata, state_entries, newstatus, updated_local_status} = get_module_data(local_status.fallback_module)
+    statedata.orphan && (local_status.orphan = true)
+    //side effects
+    if (status.fallback_check) {
+      Object.assign(status.root_module, newstatus.root_module)
+      Object.assign(status.overrides, newstatus.overrides)
+      console.log('Main module: ', statedata.name, '\n', state_entries)
+      local_status = updated_local_status ? updated_local_status : local_status
+      local_status.fallback_instance = statedata.api
+      db.append(['state'], state_entries)
+      // add_source_code(statedata.inputs) // @TODO: remove side effect
+    }
+
+    [local_status.sub_modules, symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
+    Object.assign(s2i, symbol2ID)
+    Object.assign(i2s, ID2Symbol)
+    
+    //Setup local data (module level)
+    if(status.root_module){
+      status.root_module = false
+      statedata.admins && admins.push(...statedata.admins)
+    }
+    // @TODO: handle sub_modules when dynamic require is implemented
+    // const sub_modules = {}
+    // statedata.subs && statedata.subs.forEach(id => {
+    //   sub_modules[db.read(['state', id]).type] = id
+    // })
   }
   function get (sid) {
-    const id = s2i[sid]
-    let data = db.read(['state', id])
-    if(status.fallback_check){
-      preprocess(local_status.fallback_instance, 'instance', data)
-      data = db.read(['state', id])
+    const {statedata, state_entries, newstatus} = get_instance_data(sid)
+
+    if (status.fallback_check) {
+      Object.assign(status.root_module, newstatus.root_module)
+      Object.assign(status.overrides, newstatus.overrides)
+      Object.assign(status.tree, newstatus.tree)
+      console.log('Main instance: ', statedata.name, '\n', state_entries)
+      db.append(['state'], state_entries)
     }
-    if(status.root_instance){
-      data = db.find(['state'], {'type': 0})
-      status.root_instance = false
+    [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
+    Object.assign(s2i, symbol2ID)
+    Object.assign(i2s, ID2Symbol)
+    const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
+    return {
+      id: statedata.id,
+      sdb: sdb.public_api,
     }
-    local_status.id = data.id
-    symbolfy(data)
-    return {id, sdb}
   }
+  function get_module_data (fallback) {
+    let data = db.read(['state', modulepath])
+
+    if (status.fallback_check) {
+      if (data) {
+        var {sanitized_data, updated_status} = validate_and_preprocess({ fun_status: status, fallback, xtype: 'module', pre_data: data })
+      } 
+      else if (status.root_module) {
+        var {sanitized_data, updated_status} = validate_and_preprocess({ fun_status: status, fallback, xtype: 'module', pre_data: {id: modulepath}})
+      } 
+      else {
+        var {sanitized_data, updated_status, updated_local_status} = find_super({ xtype: 'module', fallback, fun_status:status, local_status })
+      }
+      data = sanitized_data.entry
+    }
+    return {
+      statedata: data,
+      state_entries: sanitized_data?.entries,
+      newstatus: updated_status,
+      updated_local_status
+    }
+  }
+  function get_instance_data (sid) {
+    let id = s2i[sid]
+    let data = id && db.read(['state', id])
+    let sanitized_data, updated_status = status
+    if (status.fallback_check) {
+      if (!data && !status.root_instance) {
+        ({sanitized_data, updated_status} = find_super({ xtype: 'instance', fallback: local_status.fallback_instance, fun_status: status }))
+      } else {
+        ({sanitized_data, updated_status} = validate_and_preprocess({
+          fun_status: status,
+          fallback: local_status.fallback_instance, 
+          xtype: 'instance',
+          pre_data: data || {id: get_instance_path(modulepath)}
+        }))
+        updated_status.root_instance = false
+      }
+      data = sanitized_data.entry
+    }
+    else if (status.root_instance) {
+      data = db.read(['state', id || get_instance_path(modulepath)])
+      updated_status.tree = JSON.parse(JSON.stringify(status.tree))
+      updated_status.root_instance = false
+    }
+    
+    if (!data && local_status.orphan) {
+      data = db.read(['state', get_instance_path(modulepath)])
+    }
+    return {
+      statedata: data,
+      state_entries: sanitized_data?.entries,
+      newstatus: updated_status,
+    }
+  }
+  function find_super ({ xtype, fallback, fun_status, local_status }) {
+    const modulepath_super = modulepath.split(/\/(?=[^\/]*$)/)[0]
+    const modulepath_grand = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
+    const split = modulepath.split('/')
+    const name = split.at(-2) + '.' + split.at(-1)
+    let data
+    const entries = {}
+    if(xtype === 'module'){
+      data = db.read(['state', modulepath_super])
+      data.path = data.id = modulepath
+      local_status.name = name
+
+      const super_data = db.read(['state', modulepath_grand])
+      super_data.subs.forEach((sub_id, i) => {
+        if(sub_id === modulepath_super){
+          super_data.subs.splice(i, 1)
+          return
+        }
+      })
+      super_data.subs.push(data.id)
+      entries[super_data.id] = super_data
+    }
+    else{
+      //@TODO: Make the :0 dynamic
+      const instance_path_super = modulepath_super + ':0'
+      data = db.read(['state', instance_path_super])
+      data.path = data.id = get_instance_path(modulepath)
+
+      
+      const super_data = db.read(['state', modulepath_grand + ':0'])
+      super_data.subs.forEach((sub_id, i) => {
+        if(sub_id === instance_path_super){
+          super_data.subs.splice(i, 1)
+          return
+        }
+      })
+      super_data.subs.push(data.id)
+      entries[super_data.id] = super_data
+    }
+    data.name = split.at(-1)
+    return { updated_local_status: local_status,
+      ...validate_and_preprocess({ 
+      fun_status,
+      fallback, xtype, 
+      pre_data: data, 
+      orphan_check: true, entries }) }
+  }
+  function validate_and_preprocess ({ fallback, xtype, pre_data = {}, orphan_check, fun_status, entries }) {
+    let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
+
+    validate(fallback())
+    if(fun_status.overrides[pre_id]){
+      fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
+      fun_status.overrides[pre_id].by.splice(0, 1)
+      fun_status.overrides[pre_id].fun.splice(0, 1)
+    }
+    else
+      fallback_data = fallback()
+
+    fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
+    console.log('overrides: ', fun_status.overrides)
+    orphan_check && (fallback_data.orphan = orphan_check)
+    //This function makes changes in fun_status (side effect)
+    return {
+      sanitized_data: sanitize_state({ local_id: '', entry: fallback_data, path: pre_id, xtype, mapping, entries }),
+      updated_status: fun_status
+    }
+    
+    function sanitize_state ({ local_id, entry, path, hub_entry, local_tree, entries = {}, xtype, mapping }) {
+      [path, entry, local_tree] = extract_data({ local_id, entry, path, hub_entry, local_tree, xtype })
+      
+      entry.id = path
+      entry.name = entry.name || local_id.split(':')[0] || local_status.name
+      mapping && (entry.mapping = mapping)
+      
+      entries = {...entries, ...sanitize_subs({ local_id, entry, path, local_tree, xtype, mapping })}
+      
+      delete entry._
+      entries[entry.id] = entry
+      // console.log('Entry: ', entry)
+      return {entries, entry}
+    }
+    function extract_data ({ local_id, entry, path, hub_entry, xtype }) {
+      if (local_id) {
+        entry.hubs = [hub_entry.id]
+        if (xtype === 'instance') {
+          let temp_path = path.split(':')[0]
+          temp_path = temp_path ? temp_path + '/' : temp_path
+          const module_id = temp_path + local_id.split('$')[0]
+          entry.type = module_id
+          path = module_id + ':' + (status.modulepaths[module_id]++ || 0)
+        }
+        else {
+          entry.type = local_id
+          path = path ? path + '/' : ''
+          path = path + local_id
+        }
+      } 
+      else {
+        if (xtype === 'instance') {
+          entry.type = local_status.module_id
+        } else {
+          local_tree = JSON.parse(JSON.stringify(entry))
+          // @TODO Handle JS file entry
+          // console.log('pre_id:', pre_id)
+          // const file_id = local_status.name + '.js'
+          // entry.drive || (entry.drive = {})
+          // entry.drive[file_id] = { $ref: address }
+          entry.type = local_status.name
+        }
+        pre_hubs && (entry.hubs = pre_hubs)
+      }
+      return [path, entry, local_tree]
+    }
+    function sanitize_subs ({ local_id, entry, path, local_tree, xtype, mapping }) {
+      const entries = {}
+      if (!local_id) {
+        entry.subs = []
+        if(entry._){
+          //@TODO refactor when fallback structure improves
+          Object.entries(entry._).forEach(([local_id, value]) => {
+            const sub_entry = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype, mapping: value['mapping'] }).entry
+            entries[sub_entry.id] = JSON.parse(JSON.stringify(sub_entry))
+            entry.subs.push(sub_entry.id)
+            if(xtype === 'module')
+              Object.keys(value).forEach(override => {
+                if(!isNaN(parseInt(override))){
+                  const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: 'instance', mapping: value['mapping'] }).entry
+                  entries[sub_instance.id] = sub_instance
+                  entry.subs.push(sub_instance.id)
+                }
+              })
+        })}
+        if (entry.drive) {
+          // entry.drive.theme && (entry.theme = entry.drive.theme)
+          // entry.drive.lang && (entry.lang = entry.drive.lang)
+          entry.inputs = []
+          const new_drive = []
+          Object.entries(entry.drive).forEach(([dataset_type, dataset]) => {
+            dataset_type = dataset_type.split('/')[0]
+            const new_dataset = { files: [], mapping: {} }
+            Object.entries(dataset).forEach(([key, value]) => {
+              const sanitized_file = sanitize_file(key, value, entry, entries)
+              entries[sanitized_file.id] = sanitized_file
+              new_dataset.files.push(sanitized_file.id)
+            })
+            new_dataset.id = local_status.name + '.' + dataset_type + '.dataset'
+            new_dataset.type = dataset_type
+            new_dataset.name = 'default'
+            const copies = Object.keys(db.read_all(['state', new_dataset.id]))
+            if (copies.length) {
+              const id = copies.sort().at(-1).split(':')[1]
+              new_dataset.id = new_dataset.id + ':' + (Number(id || 0) + 1)
+            }
+            entries[new_dataset.id] = new_dataset
+            let check_name = true
+            entry.inputs.forEach(dataset_id => {
+              const ds = entries[dataset_id]
+              if(ds.type === new_dataset.type)
+                check_name = false
+            })
+            check_name && entry.inputs.push(new_dataset.id)
+            new_drive.push(new_dataset.id)
+
+
+            if(!status.root_module){
+              const hub_entry = db.read(['state', entry.hubs[0]])
+              const mapped_file_type = mapping?.[dataset_type] || dataset_type
+              hub_entry.inputs.forEach(input_id => {
+                const input = db.read(['state', input_id])
+                if(mapped_file_type === input.type){
+                  input.mapping[entry.id] = new_dataset.id
+                  entries[input_id] = input
+                  return
+                }
+              })
+            }
+          })
+          entry.drive = new_drive
+        }
+      }
+      return entries
+    }
+    function sanitize_file (file_id, file, entry, entries) {
+      const type = file_id.split('.').at(-1)
+
+      if (!isNaN(Number(file_id))) return file_id
+
+
+      file.id = local_status.name + '.' + type
+      file.name = file.name || file.id
+      file.local_name = file_id
+      file.type = type
+      file[file.type === 'js' ? 'subs' : 'hubs'] = [entry.id]
+      
+      const copies = Object.keys(db.read_all(['state', file.id]))
+      if (copies.length) {
+        const no = copies.sort().at(-1).split(':')[1]
+        file.id = file.id + ':' + (Number(no || 0) + 1)
+      }
+      while(entries[file.id]){
+        const no = file.id.split(':')[1]
+        file.id = file.id + ':' + (Number(no || 0) + 1)
+      }
+      return file
+    }
+  }
+}
+
+// External Function (helper)
+function validate (data) {
+  /**  Expected structure and types
+   * Sample : "key1|key2:*:type1|type2"
+   * ":" : separator
+   * "|" : OR
+   * "*" : Required key
+   * 
+   * */
+  const expected_structure = {
+    '_': {
+      ":*": { // Required key, any name allowed
+        "0": () => {}, // Optional key
+      },
+    },
+    'drive': {
+      ":*:object|string": { // Required key, any name allowed
+        "raw|link:*:object|string": {}, // data or link are names, required, object or string are types
+        "link": "string"
+      },
+    },
+  };
+
+
+  const errors = validate_shape(data, expected_structure)
+  // if (errors.length > 0) 
+  //   console.error("Validation failed:\n", errors.join('\n'))
+
+  function validate_shape (obj, expected, super_node = 'root', path = '') {
+    const errors = []
+    const keys = Object.keys(obj)
+    const values = Object.values(obj)
+
+    Object.entries(expected).forEach(([expected_key, expected_value]) => {
+      let [expected_key_names, required, expected_types] = expected_key.split(':')
+      expected_types = expected_types ? expected_types.split('|') : [typeof(expected_value)]
+      let absent = true
+
+      if(expected_key_names)
+        expected_key_names.split('|').forEach(expected_key_name => {
+          const value = obj[expected_key_name]
+          if(value !== undefined){
+            const type = typeof(value)
+            absent = false
+
+            if(expected_types.includes(type))
+              type === 'object' && errors.push(...validate_shape(value, expected_value, expected_key_name, path + '/' + expected_key_name))
+            else
+              console.error(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${expected_key_name}" at:`, obj, "of", path)
+          }
+        })
+      else if(required){
+        values.forEach((value, index) => {
+          absent = false
+          const type = typeof(value)
+
+          if(expected_types.includes(type))
+            type === 'object' && errors.push(...validate_shape(value, expected_value, keys[index], path + '/' + keys[index]))
+          else
+            console.error(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${keys[index]}" at: `, obj, "of", path)
+        })
+      }
+
+      if(absent && required){
+        if(expected_key_names)
+          errors.push(`Can't find required key "${expected_key_names.replace('|', ' or ')}" at: `, obj, "of", path)
+        else
+          errors.push(`No subs found for super key "${super_node}" at sub:`, obj, "of", path)
+      }
+    })
+    return errors
+  }
+}
+function extract_filename (address) {
+  const parts = address.split('/node_modules/')
+  const last = parts.at(-1).split('/')
+  return last.at(-1).slice(0, -3)
+}
+function get_instance_path (modulepath, modulepaths = status.modulepaths) {
+  return modulepath + ':' + modulepaths[modulepath]++
+}
+async function get_input ({ id, name, $ref, type, raw }) {
+  const xtype = (typeof(id) === "number" ? name : id).split('.').at(-1)
+  let result = db.read([type, id])
+  
+  if (!result) {
+    result = raw !== undefined ? raw : await((await fetch($ref))[xtype === 'json' ? 'json' : 'text']())
+  }
+  return result
+}
+//Unavoidable side effect
+function add_source_code (hubs) {
+  hubs.forEach(async id => {
+    const data = db.read(['state', id])
+    if (data.type === 'js') {
+      data.data = await get_input(data)
+      db.add(['state', data.id], data)
+      return
+    }
+  })
+}
+function symbolfy (data) {
+  const s2i = {}
+  const i2s = {}
+  const subs = []
+  data.subs && data.subs.forEach(sub => {
+    const substate = db.read(['state', sub])
+    s2i[i2s[sub] = Symbol(sub)] = sub
+    subs.push({ sid: i2s[sub], type: substate.type })
+  })
+  return [subs, s2i, i2s]
+}
+function register_overrides ({overrides, ...args}) {
+  recurse(args)
+  return overrides
+  function recurse ({ tree, path = '', id, xtype = 'instance', local_modulepaths = {} }) {
+    let check_override = true
+    let check_sub = false
+    local_modulepaths[path] = 0
+    if(xtype === 'module'){
+      Object.entries(([id, override]) => {
+        if(!isNaN(parseInt(id))){
+          check_override = true
+          let resultant_path = path + ':' + id
+          if(overrides[resultant_path]){
+            overrides[resultant_path].fun.push(override)
+            overrides[resultant_path].by.push(id)
+          }
+          else
+            overrides[resultant_path] = {fun: [override], by: [id]}
+        }
+      })
+    }
+    else{
+      check_override = Boolean(tree[0])
+      if (check_override) {
+        const resultant_path = get_instance_path(path.split('$')[0], local_modulepaths)
+        if(overrides[resultant_path]){
+          overrides[resultant_path].fun.push(tree[0])
+          overrides[resultant_path].by.push(id)
+        }
+        else
+          overrides[resultant_path] = {fun: [tree[0]], by: [id]}
+      }
+    }
+    
+    path = path ? path + '/' : path
+    
+    if (tree._) {
+      Object.entries(tree._).forEach(([type, data]) => {
+        const check = recurse({ tree: data, path: path + type.replace('.', '/'), id, xtype, local_modulepaths })
+        if (!check) check_sub = true
+      })
+    }
+    
+    return !(check_override || check_sub)
+  }
+}
+function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
+  return [mutated_fallback, ...status.overrides[instance_path].fun]
+    
+  function mutated_fallback () {
+    const data = fallback()
+
+    data.overrider = status.overrides[instance_path].by[0]
+    merge_trees(data, modulepath)
+    return data
+
+    function merge_trees (data, path) {
+      if (data._) {
+        Object.entries(data._).forEach(([type, data]) => merge_trees(data, path + '/' + type.split('$')[0].replace('.', '/')))
+      } else {
+        const id = db.read(['state', path]).id
+        data._ = status.tree_pointers[id]._
+      }
+    }
+  }
+}
+function check_version () {
+  if (db.read(['playproject_version']) != VERSION) {
+    localStorage.clear()
+    return true
+  }
+}
+
+// Public Function
+function create_statedb_interface (local_status, node_id, xtype) {
+  const api =  {
+    public_api: {
+      watch, get_sub, req_access
+    },
+    private_api: {
+      list, register, swtch
+    }
+  }
+  api.public_api.admin = node_id === ROOT_ID && api.private_api
+  return api
+
   async function watch (listener) {
-    const data = db.read(['state', local_status.id])
-    listeners[data.id] = listener
-    const input_map = []
-    data.inputs && await Promise.all(data.inputs.map(async input => {
-      const input_state = db.read(['state', input])
-      const input_data = await fetch_save(input_state)
-      input_map.push({ type: input_state.type, data: [input_data] })
-    }))
-    listener(input_map)
-    return local_status.subs
-  }
-  async function fetch_save({ id, name, $ref, type, data }) {
-    const xtype = (typeof(id) === "number" ? name : id).split('.').at(-1)
-    let result = db.read([ type, id ])
-    if(!result){
-      result = data || await((await fetch($ref))[xtype === 'json' ?'json' :'text']())
-      db.add([type, id], result)
+    const data = db.read(['state', node_id])
+    if(listener){
+      status.listeners[data.id] = listener
+      listener(await make_input_map(data.inputs))
     }
-    return result
+    return xtype === 'module' ? local_status.sub_modules : local_status.sub_instances[node_id]
   }
   function get_sub (type) {
     return local_status.subs.filter(sub => {
@@ -742,146 +1241,149 @@ function STATE (address) {
       return dad.type === type
     })
   }
-  async function add_admins (ids) {
-    admins.push(...ids)
-  }
   function req_access (sid) {
     if (local_status.deny[sid]) throw new Error('access denied')
     const el = db.read(['state', s2i[sid]])
-    if(admins.includes(s2i[sid]) || admins.includes(el?.name))
-      return admin
-  }
-  function xget (id) {
-    return db.read(['state', id])
-  }
-  function get_all () {
-    return db.read_all(['state'])
-  }
-  function preprocess (fallback, xtype, super_data = {}) {
-    let count = db.length(['state'])
-    let {id: super_id, hubs, subs} = super_data
-    let subs_data = {}, subs_types, id_map = {}
-    if(subs){
-      subs.forEach(id => subs_data[id] = db.read(['state', id]))
-      subs_types = new Set(Object.values(subs_data).map(sub => sub.type))
-    }
-    let host_data
-    if(super_data.fallback){
-      host_data = status.overrides[super_data.fallback]([fallback], status.tree_pointers[super_data.type])
-    }
-    else
-      host_data = fallback()
-
-    const on = {
-      _: clean_node,
-      inputs: clean_file,
-    }
-    clean_node('', host_data)
-
-    function clean_node (local_id, entry, hub_entry, hub_module, local_tree) {
-      let module
-      const split = local_id.split(':')
-      if(local_id){
-        entry.hubs = [hub_entry.id]
-        if(xtype === 'instance')
-          hub_module?.subs && hub_module.subs.forEach(id => {
-            const module_data = db.read(['state', id])
-            if(module_data.idx == split[0]){
-              entry.type = module_data.id
-              module = module_data
-              return
-            }
+    if (admins.includes(s2i[sid]) || admins.includes(el?.name)) {
+      return {
+        xget: (id) => db.read(['state', id]),
+        get_all: () => db.read_all(['state']),
+        add_admins: (ids) => { admins.push(...ids) },
+        list,
+        register,
+        load: (snapshot) => {
+          localStorage.clear()
+          Object.entries(snapshot).forEach(([key, value]) => {
+            db.add([key], JSON.parse(value), true)
           })
-        else{
-          entry.idx = local_id
-          entry.type = split[0]
-          status.tree_pointers[count] = local_tree
-        }
-        //Check if sub-entries are already initialized by a super
-        if(subs_types && subs_types.has(entry.type)){
-          const super_entry = Object.values(subs_data).find(sub => sub.type == entry.type)
-          //continue a fallback chain
-          const index = super_entry?.fallback?.find(key => key == hub_entry.type)
-          if(index){
-            const key = 'f' + Object.keys(status.overrides).length
-            super_entry.fallback[index] = key
-            const fun = entry.fallback.find(v => typeof(v) === 'function')
-            status.overrides[key] = fun
-            db.add(['state', super_entry.id], super_entry)
-          }
-          return super_entry.id
-        }
+          window.location.reload()
+        },
+        swtch
       }
-      else{
-        if(xtype === 'instance'){
-          module = db.read(['state', local_status.module_id])
-          entry.type = module.id
-        }
-        else{
-          local_tree = JSON.parse(JSON.stringify(entry))
-          if(super_id)
-            status.tree_pointers[super_id]._[super_data.idx] = local_tree
-          else
-            status.tree[local_id] = local_tree
-          const file_id = local_status.name+'.js'
-          entry.inputs || (entry.inputs = {})
-          entry.inputs[file_id] = { $ref: new URL(address, location).href }
-          entry.type = entry.type || local_status.name
-          entry.idx = super_data.idx
-        }
-        hubs && (entry.hubs = hubs)
-      }
-      entry.id = local_id ? count++ : super_id || count++
-      entry.name = entry.name || module?.type || entry.type || local_status.name
-      
-      id_map[local_id] = entry.type
-      //start a fallback chain
-      if(entry[0]){
-        const key = 'f' + Object.keys(status.overrides).length
-        status.overrides[key] = entry[0]
-        delete(entry[0])
-        entry.fallback = key
-        // const new_fallback = []
-        // entry[0].forEach(handler => {
-        //   if(typeof(handler) === 'function'){
-        //     const key = 'f' + Object.keys(status.overrides).length
-        //     new_fallback.push(key)
-        //     status.overrides[key] = handler
-        //   }
-        //   else
-        //     new_fallback.push(id_map[handler])
-        // })
-        // entry.fallback = new_fallback
-      }
-      // console.log(JSON.parse(JSON.stringify(entry)))
-      default_slots.forEach(slot => {
-        if(entry[slot] && on[slot])
-          entry[slot === '_' ? 'subs' : slot] = Object.entries(entry[slot])
-          .map(([key, value]) => on[slot](key, value, entry, module, local_tree))
-      })
-      delete(entry._)
-      db.add(['state', entry.id], entry)
-      return entry.id
-    }
-    function clean_file (file_id, entry, hub_entry){
-      if(!isNaN(Number(file_id)))
-        return file_id
-      const file = entry
-      file.id = file_id
-      file.name = file.name || file_id
-      file.type = file.type || file.id.split('.').at(-1)
-      file[file.type === 'js' ? 'subs' : 'hubs' ] = [hub_entry.id]
-      const copies = Object.keys(db.read_all(['state', file_id]))
-      if(copies.length){
-        const id = copies.sort().at(-1).split(':')[1]
-        file.id = file_id + ':' + (Number(id || 0) + 1)
-      }
-      db.add(['state', file.id], file)
-      return file.id
     }
   }
+  function list (dataset_type, dataset_name) {
+    const entry = db.read(['state', ROOT_ID])
+    if(dataset_type){
+      const dataset_list = []
+      entry.drive.forEach(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if(dataset.type === dataset_type)
+          dataset_list.push(dataset.name)
+      })
+      if(dataset_name){
+        return recurse(ROOT_ID, dataset_type)
+      }
+      return dataset_list
+    }
+    const datasets = []
+    entry.drive && entry.drive.forEach(dataset_id => {
+      datasets.push(db.read(['state', dataset_id]).type)
+    })
+    return datasets
   
+    function recurse (node_id, dataset_type){
+      const node_list = []
+      const entry = db.read(['state', node_id])
+      const temp = entry.mapping ? Object.keys(entry.mapping).find(key => entry.mapping[key] === dataset_type) : null
+      const mapped_type = temp || dataset_type
+      entry.drive && entry.drive.forEach(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if(dataset.name === dataset_name && dataset.type === mapped_type){
+          node_list.push(node_id)
+          return
+        }
+      })
+      entry.subs && entry.subs.forEach(sub_id => node_list.push(...recurse(sub_id, mapped_type)))
+      return node_list
+    }
+  }
+  function register (dataset_type, dataset_name, dataset) {
+    Object.entries(dataset).forEach(([node_id, files]) => {
+      console.log(node_id)
+      const new_dataset = { files: [] }
+      Object.entries(files).forEach(([file_id, file]) => {
+        const type = file_id.split('.').at(-1)
+        
+        file.id = local_status.name + '.' + type
+        file.local_name = file_id
+        file.type = type
+        file[file.type === 'js' ? 'subs' : 'hubs'] = [node_id]
+        
+        const copies = Object.keys(db.read_all(['state', file.id]))
+        if (copies.length) {
+          const no = copies.sort().at(-1).split(':')[1]
+          file.id = file.id + ':' + (Number(no || 0) + 1)
+        }  
+        db.add(['state', file.id], file)
+        new_dataset.files.push(file.id)
+      })
+  
+      const node = db.read(['state', node_id])
+      new_dataset.id = node.name + '.' + dataset_type + '.dataset'
+      new_dataset.name = dataset_name
+      new_dataset.type = dataset_type
+      const copies = Object.keys(db.read_all(['state', new_dataset.id]))
+      if (copies.length) {
+        const id = copies.sort().at(-1).split(':')[1]
+        new_dataset.id = new_dataset.id + ':' + (Number(id || 0) + 1)
+      }
+      db.push(['state', node_id, 'drive'], new_dataset.id)
+      db.add(['state', new_dataset.id], new_dataset)
+    })
+    return ' registered ' + dataset_name + '.' + dataset_type
+  }
+  function swtch (dataset_type, dataset_name) {
+    recurse(dataset_type, dataset_name, ROOT_ID)
+
+    async function recurse (target_type, target_name, id) {
+      const node = db.read(['state', id])
+      
+      let target_dataset
+      node.drive && node.drive.forEach(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if(target_name === dataset.name && target_type === dataset.type){
+          target_dataset = dataset
+          return
+        }
+      })
+      if(target_dataset){
+        node.inputs.forEach((dataset_id, i) => {
+          const dataset = db.read(['state', dataset_id])
+          if(target_type === dataset.type){
+            node.inputs.splice(i, 1)
+            return
+          }
+        })
+        node.inputs.push(target_dataset.id)
+      }
+      db.add(['state', id], node)
+      status.listeners[id] && status.listeners[id](await make_input_map(node.inputs))
+      node.subs && node.subs.forEach(sub_id => {
+        const subdataset_id = target_dataset?.mapping?.[sub_id] 
+        recurse(target_type, db.read(['state', subdataset_id])?.name || target_name, sub_id)
+      })
+    }
+  }
 }
+async function make_input_map (inputs) {
+  const input_map = []   
+  if (inputs) {
+    await Promise.all(inputs.map(async input => {
+      let files = []
+      const dataset = db.read(['state', input])
+      await Promise.all(dataset.files.map(async file_id => {
+        const input_state = db.read(['state', file_id])
+        files.push(await get_input(input_state))
+      }))
+      input_map.push({ type: dataset.type, data: files })
+    }))
+  }
+  return input_map
+}
+
+
+module.exports = STATE
 },{"localdb":12}],4:[function(require,module,exports){
 (function (__filename){(function (){
 const graphic = require('graphic')
@@ -2008,13 +2510,10 @@ function localdb () {
    * @param {any} value 
    */
   function push (keys, value) {
-    const data = JSON.parse(localStorage[keys[0]])
-    let temp = data
-    keys.slice(1).forEach(key => {
-      temp = temp[key]
-    })
-    temp.push(value)
-    localStorage[keys[0]] = JSON.stringify(data)
+    const independent_key = keys.slice(0, -1)
+    const data = JSON.parse(localStorage[prefix + independent_key.join('/')])
+    data[keys.at(-1)].push(value)
+    localStorage[prefix + independent_key.join('/')] = JSON.stringify(data)
   }
   function read (keys) {
     const result = localStorage[prefix + keys.join('/')]
@@ -2813,12 +3312,13 @@ async function topnav (opts) {
 patch_cache_in_browser(arguments[4], arguments[5])
 
 function patch_cache_in_browser (source_cache, module_cache) {
+  const meta = { modulepath: [], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
     const dependencies = names || {}
-    source_cache[key][0] = patch(module, dependencies)
+    source_cache[key][0] = patch(module, dependencies, meta)
   }
-  function patch (module, dependencies) {
+  function patch (module, dependencies, meta) {
     const MAP = {}
     for (const [name, number] of Object.entries(dependencies)) MAP[name] = number
     return (...args) => {
@@ -2829,8 +3329,21 @@ function patch_cache_in_browser (source_cache, module_cache) {
       return module(...args)
       function require (name) {
         const identifier = resolve(name)
-        if (require.cache[identifier]) return require.cache[identifier]
+        if (name.endsWith('node_modules/STATE')) {
+          const modulepath = meta.modulepath.join('/')
+          const original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
+          const exports = (...args) => original_export(...args, modulepath)
+          return exports
+        } else if (require.cache[identifier]) return require.cache[identifier]
+        else {
+          const counter = meta.modulepath.concat(name).join('/')
+          if (!meta.paths[counter]) meta.paths[counter] = 0
+          const localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
+          meta.paths[counter]++
+          meta.modulepath.push(localid)
+        }
         const exports = require.cache[identifier] = original(name)
+        if (!name.endsWith('node_modules/STATE')) meta.modulepath.pop(name)
         return exports
       }
     }
