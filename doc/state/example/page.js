@@ -5,6 +5,7 @@ function fallback_module () {
 	return {
     _: {
       "app": {
+        $: '',
         0: override_app,
       }
     },
@@ -83,7 +84,7 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[1]))
+    shadow.append(await app(subs[0]))
   }
   // ----------------------------------------
   // INIT

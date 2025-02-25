@@ -51,15 +51,23 @@ function fallback_module () { // -> set database defaults or load from database
 	return {
     api: fallback_instance,
     _: {
-      "head": {},
-      "foot": {},
+      "head": {
+        $: '',
+      },
+      "foot": {
+        $: '',
+      },
     }
   }
   function fallback_instance () {
     return {
       _: {
-        "head": {},
-        "foot": {},
+        "head": {
+          0: ''
+        },
+        "foot": {
+          0: ''
+        },
       },
       drive: {
         'theme/': {
@@ -129,13 +137,17 @@ function fallback_module () {
   return {
     api: fallback_instance,
     _: {
-      icon: {}
+      icon: {
+        $: ''
+      }
     }
   }
   function fallback_instance () {
     return {
       _: {
-        icon: {}
+        icon: {
+          0: ''
+        }
       },
       drive: {
         'lang/': {
@@ -316,13 +328,17 @@ function fallback_module () {
   return {
     api: fallback_instance,
     _:{
-      text: {}
+      text: {
+        $: ''
+      }
     }
   }
   function fallback_instance () {
     return {
       _:{
-        text: {}
+        text: {
+          0: ''
+        }
       }
     }
   }
@@ -384,13 +400,17 @@ function fallback_module () { // -> set database defaults or load from database
 	return {
     api: fallback_instance,
     _: {
-      "foo": {}
+      "foo": {
+        $: ''
+      }
     }
   }
   function fallback_instance () {
     return {
       _: {
-        "foo": {},
+        "foo": {
+          0: ''
+        },
       },
       drive: {
         'theme/': {
@@ -515,14 +535,20 @@ function fallback_module () {
   return {
     api: fallback_instance,
     _: {
-      btn: {},
+      btn: {
+        $: ''
+      },
     }
   }
   function fallback_instance () {
     return {
       _: {
-        btn: {},
-        'btn$small': {},
+        btn: {
+          0: ''
+        },
+        'btn$small': {
+          0: ''
+        },
       },
       drive: {
         'style/': {
@@ -736,7 +762,9 @@ function fallback_module () { // -> set database defaults or load from database
 	return {
     api: fallback_instance,
     _: {
-      'menu':{},
+      'menu':{
+        $: ''
+      },
     }
   }
   function fallback_instance () {
@@ -937,6 +965,7 @@ function fallback_module () {
 	return {
     _: {
       "app": {
+        $: '',
         0: override_app,
       }
     },
@@ -1015,7 +1044,7 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[1]))
+    shadow.append(await app(subs[0]))
   }
   // ----------------------------------------
   // INIT
@@ -1362,17 +1391,11 @@ function STATE (address, modulepath) {
         if(entry._){
           //@TODO refactor when fallback structure improves
           Object.entries(entry._).forEach(([local_id, value]) => {
-            const sub_entry = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype, mapping: value['mapping'] }).entry
-            entries[sub_entry.id] = JSON.parse(JSON.stringify(sub_entry))
-            entry.subs.push(sub_entry.id)
-            if(xtype === 'module')
-              Object.keys(value).forEach(override => {
-                if(!isNaN(parseInt(override))){
-                  const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: 'instance', mapping: value['mapping'] }).entry
-                  entries[sub_instance.id] = sub_instance
-                  entry.subs.push(sub_instance.id)
-                }
-              })
+            Object.keys(value).forEach(key => {
+              const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: key === '$' ? 'module' : 'instance', mapping: value['mapping'] }).entry
+              entries[sub_instance.id] = JSON.parse(JSON.stringify(sub_instance))
+              entry.subs.push(sub_instance.id)
+            })
         })}
         if (entry.drive) {
           // entry.drive.theme && (entry.theme = entry.drive.theme)
@@ -1462,7 +1485,7 @@ function validate (data) {
   const expected_structure = {
     '_': {
       ":*": { // Required key, any name allowed
-        "0": () => {}, // Optional key
+        "*:function|string": () => {}, // Optional key
       },
     },
     'drive': {
@@ -1571,7 +1594,7 @@ function register_overrides ({overrides, ...args}) {
     local_modulepaths[path] = 0
     if(xtype === 'module'){
       Object.entries(([id, override]) => {
-        if(!isNaN(parseInt(id))){
+        if(typeof(override) === 'function'){
           check_override = true
           let resultant_path = path + ':' + id
           if(overrides[resultant_path]){
@@ -1684,10 +1707,10 @@ function create_statedb_interface (local_status, node_id, xtype) {
     }
   }
   function list (dataset_type, dataset_name) {
-    const entry = db.read(['state', ROOT_ID])
+    const node = db.read(['state', ROOT_ID])
     if(dataset_type){
       const dataset_list = []
-      entry.drive.forEach(dataset_id => {
+      node.drive.forEach(dataset_id => {
         const dataset = db.read(['state', dataset_id])
         if(dataset.type === dataset_type)
           dataset_list.push(dataset.name)
@@ -1698,7 +1721,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
       return dataset_list
     }
     const datasets = []
-    entry.drive && entry.drive.forEach(dataset_id => {
+    node.inputs && node.inputs.forEach(dataset_id => {
       datasets.push(db.read(['state', dataset_id]).type)
     })
     return datasets
