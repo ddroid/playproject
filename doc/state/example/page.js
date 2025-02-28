@@ -20,8 +20,7 @@ function fallback_module () {
   }
   function override_app ([app]) {
     const data = app()
-    console.log(data)
-    data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
+    data._.head.$._['foo.nav'].$._.menu[0] = ([menu, nav$menu]) => {
       const data = menu()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
