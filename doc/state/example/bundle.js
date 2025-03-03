@@ -611,41 +611,6 @@ async function menu(opts) {
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
-  admin.register('theme', 'rainbow', {
-    'page': {
-      'style.css': {
-        raw: `body { font-family: cursive; }`,
-      }
-    },
-    'page/app/head/foo/nav:0': {
-      'style.css': {
-            raw: `
-              nav{
-                display: flex;
-                gap: 20px;
-                padding: 20px;
-                background: #4b2d6d;
-                color: white;
-                box-shadow: 0px 1px 6px 1px gray;
-                margin: 5px;
-              }
-              .title{
-                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-                transition: color .5s ease, background-size .5s;
-                cursor: pointer;
-              }
-              .box{
-                display: flex;
-                gap: 20px;
-              }
-              .title:hover{
-                --underline-width: 100%
-              }
-            `
-          }
-    },
-    
-  })
   const el = document.createElement('div')
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
@@ -663,6 +628,41 @@ async function menu(opts) {
   // ----------------------------------------
   title.onclick = () => {
     main.classList.toggle('active')
+    admin.register('theme', 'rainbow', {
+      'page': {
+        'style.css': {
+          raw: `body { font-family: cursive; }`,
+        }
+      },
+      'page/app/head/foo/nav:0': {
+        'style.css': {
+              raw: `
+                nav{
+                  display: flex;
+                  gap: 20px;
+                  padding: 20px;
+                  background: #4b2d6d;
+                  color: white;
+                  box-shadow: 0px 1px 6px 1px gray;
+                  margin: 5px;
+                }
+                .title{
+                  background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                  transition: color .5s ease, background-size .5s;
+                  cursor: pointer;
+                }
+                .box{
+                  display: flex;
+                  gap: 20px;
+                }
+                .title:hover{
+                  --underline-width: 100%
+                }
+              `
+            }
+      },
+      
+    })
   }
   title.onblur = () => {
     main.classList.remove('active')
@@ -763,7 +763,15 @@ function fallback_module () { // -> set database defaults or load from database
     api: fallback_instance,
     _: {
       'menu':{
-        $: ''
+        $: ([menu]) => {
+          const state = menu()
+          state.api = ([menu_instance]) => {
+            const data = menu_instance()
+            data.drive['lang/']['en-us.json'].raw.links = ['temp1', 'temp2']
+            return data
+          }
+          return state
+        }
       },
     }
   }
@@ -772,6 +780,8 @@ function fallback_module () { // -> set database defaults or load from database
       _: {
         'menu':{
           0: override_menu,
+          1: override_menu1,
+          2: '',
           mapping: {
             'style': 'theme'
           }
@@ -829,6 +839,14 @@ function fallback_module () { // -> set database defaults or load from database
     }
     return data
   }
+  function override_menu1 ([menu], path){
+    const data = menu()
+    data.drive['lang/']['en-us.json'].raw = {
+      title: 'Services',
+      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    }
+    return data
+  }
   function override_menu_hover ([menu], path){
     const data = menu()
     data.drive['lang/']['en-us.json'].raw = {
@@ -875,7 +893,7 @@ async function nav(opts) {
   // ELEMENTS
   // ----------------------------------------
   { //menu
-    main.append(await menu(subs[0]), await menu_hover(subs[1]))
+    main.append(await menu(subs[0]), await menu(subs[1]), await menu(subs[2]), await menu_hover(subs[3]))
   }
   return el
 
@@ -980,8 +998,7 @@ function fallback_module () {
   }
   function override_app ([app]) {
     const data = app()
-    console.log(data)
-    data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
+    data._.head.$._['foo.nav'].$._.menu[0] = ([menu, nav$menu]) => {
       const data = menu()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
@@ -1067,7 +1084,7 @@ const localdb = require('localdb')
 const db = localdb()
 /** Data stored in a entry in db by STATE (Schema): 
  * id (String): Node Path 
- * name (String/Optional): Any (To be used theme_widget)
+ * name (String/Optional): Any (To be used in theme_widget)
  * type (String): Module Name for module / Module id for instances
  * hubs (Array): List of hub-nodes
  * subs (Array): List of sub-nodes
@@ -1107,7 +1124,7 @@ function STATE (address, modulepath) {
   status.modulepaths[modulepath] = 0
   //Variables (module-level)
 
-  let local_status = {
+  const local_status = {
     name: extract_filename(address),
     module_id: modulepath,
     deny: {},
@@ -1119,6 +1136,8 @@ function STATE (address, modulepath) {
   
   function statedb (fallback) {
     const data = fallback()
+    local_status.fallback_instance = data.api
+
     if(data._)
       status.open_branches[modulepath] = Object.keys(data._).length
 
@@ -1145,8 +1164,8 @@ function STATE (address, modulepath) {
 
     if(name){
       if(status.tree_pointers[super_id]){
-        status.tree_pointers[super_id]._[name] = { _: {} }
-        status.tree_pointers[id] = status.tree_pointers[super_id]._[name]
+        status.tree_pointers[super_id]._[name] = { $: { _: {} } }
+        status.tree_pointers[id] = status.tree_pointers[super_id]._[name].$
         status.open_branches[super_id]--
       }
       else{
@@ -1156,14 +1175,14 @@ function STATE (address, modulepath) {
           [new_super_id, temp_name] = new_super_id.split(/\/(?=[^\/]*$)/)
           new_name = temp_name + '.' + new_name
         }
-        status.tree_pointers[new_super_id]._[new_name] = { _: {} }
-        status.tree_pointers[id] = status.tree_pointers[new_super_id]._[new_name]
+        status.tree_pointers[new_super_id]._[new_name] = { $: { _: {} } }
+        status.tree_pointers[id] = status.tree_pointers[new_super_id]._[new_name].$
         status.open_branches[new_super_id]--
       }
     }
     else{
-      status.tree[id] = { _: {} }
-      status.tree_pointers[id] = status.tree[id]
+      status.tree[id] = { $: { _: {} } }
+      status.tree_pointers[id] = status.tree[id].$
     }
     return status
   }
@@ -1175,8 +1194,9 @@ function STATE (address, modulepath) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
       console.log('Main module: ', statedata.name, '\n', state_entries)
-      local_status = updated_local_status ? updated_local_status : local_status
-      local_status.fallback_instance = statedata.api
+      updated_local_status && Object.assign(local_status, updated_local_status)
+      const old_fallback = local_status.fallback_instance
+      local_status.fallback_instance = () => statedata.api([old_fallback])
       db.append(['state'], state_entries)
       // add_source_code(statedata.inputs) // @TODO: remove side effect
     }
@@ -1319,18 +1339,21 @@ function STATE (address, modulepath) {
   }
   function validate_and_preprocess ({ fallback, xtype, pre_data = {}, orphan_check, fun_status, entries }) {
     let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
+    let fallback_data
 
     validate(fallback())
     if(fun_status.overrides[pre_id]){
       fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
       fun_status.overrides[pre_id].by.splice(0, 1)
       fun_status.overrides[pre_id].fun.splice(0, 1)
+      console.log(fallback_data)
     }
     else
       fallback_data = fallback()
 
+    // console.log('fallback_data: ', fallback_data)
     fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
-    console.log('overrides: ', fun_status.overrides)
+    console.log('overrides: ', Object.keys(fun_status.overrides))
     orphan_check && (fallback_data.orphan = orphan_check)
     //This function makes changes in fun_status (side effect)
     return {
@@ -1358,7 +1381,7 @@ function STATE (address, modulepath) {
         if (xtype === 'instance') {
           let temp_path = path.split(':')[0]
           temp_path = temp_path ? temp_path + '/' : temp_path
-          const module_id = temp_path + local_id.split('$')[0]
+          const module_id = temp_path + local_id
           entry.type = module_id
           path = module_id + ':' + (status.modulepaths[module_id]++ || 0)
         }
@@ -1391,7 +1414,9 @@ function STATE (address, modulepath) {
         if(entry._){
           //@TODO refactor when fallback structure improves
           Object.entries(entry._).forEach(([local_id, value]) => {
-            Object.keys(value).forEach(key => {
+            Object.entries(value).forEach(([key, override]) => {
+              if(key === 'mapping' || typeof(override) === 'object')
+                return
               const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: key === '$' ? 'module' : 'instance', mapping: value['mapping'] }).entry
               entries[sub_instance.id] = JSON.parse(JSON.stringify(sub_instance))
               entry.subs.push(sub_instance.id)
@@ -1589,14 +1614,12 @@ function register_overrides ({overrides, ...args}) {
   recurse(args)
   return overrides
   function recurse ({ tree, path = '', id, xtype = 'instance', local_modulepaths = {} }) {
-    let check_override = true
-    let check_sub = false
-    local_modulepaths[path] = 0
-    if(xtype === 'module'){
-      Object.entries(([id, override]) => {
+
+    tree._ && Object.entries(tree._).forEach(([type, instances]) => {
+      const sub_path = path + '/' + type.replace('.', '/')
+      Object.entries(instances).forEach(([id, override]) => {
         if(typeof(override) === 'function'){
-          check_override = true
-          let resultant_path = path + ':' + id
+          let resultant_path = id === '$' ? sub_path : sub_path + ':' + id
           if(overrides[resultant_path]){
             overrides[resultant_path].fun.push(override)
             overrides[resultant_path].by.push(id)
@@ -1604,31 +1627,11 @@ function register_overrides ({overrides, ...args}) {
           else
             overrides[resultant_path] = {fun: [override], by: [id]}
         }
-      })
-    }
-    else{
-      check_override = Boolean(tree[0])
-      if (check_override) {
-        const resultant_path = get_instance_path(path.split('$')[0], local_modulepaths)
-        if(overrides[resultant_path]){
-          overrides[resultant_path].fun.push(tree[0])
-          overrides[resultant_path].by.push(id)
+        else{
+          recurse({ tree: override, path: sub_path, id, xtype, local_modulepaths })
         }
-        else
-          overrides[resultant_path] = {fun: [tree[0]], by: [id]}
-      }
-    }
-    
-    path = path ? path + '/' : path
-    
-    if (tree._) {
-      Object.entries(tree._).forEach(([type, data]) => {
-        const check = recurse({ tree: data, path: path + type.replace('.', '/'), id, xtype, local_modulepaths })
-        if (!check) check_sub = true
       })
-    }
-    
-    return !(check_override || check_sub)
+    })
   }
 }
 function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
@@ -1645,8 +1648,7 @@ function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
       if (data._) {
         Object.entries(data._).forEach(([type, data]) => merge_trees(data, path + '/' + type.split('$')[0].replace('.', '/')))
       } else {
-        const id = db.read(['state', path]).id
-        data._ = status.tree_pointers[id]._
+        data.$ = { _: status.tree_pointers[path]._ }
       }
     }
   }
@@ -1665,7 +1667,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
       watch, get_sub, req_access
     },
     private_api: {
-      list, register, swtch
+      list, register, swtch, unregister
     }
   }
   api.public_api.admin = node_id === ROOT_ID && api.private_api
@@ -1744,7 +1746,6 @@ function create_statedb_interface (local_status, node_id, xtype) {
   }
   function register (dataset_type, dataset_name, dataset) {
     Object.entries(dataset).forEach(([node_id, files]) => {
-      console.log(node_id)
       const new_dataset = { files: [] }
       Object.entries(files).forEach(([file_id, file]) => {
         const type = file_id.split('.').at(-1)
@@ -1777,7 +1778,31 @@ function create_statedb_interface (local_status, node_id, xtype) {
     })
     return ' registered ' + dataset_name + '.' + dataset_type
   }
-  function swtch (dataset_type, dataset_name) {
+  function unregister (dataset_type, dataset_name) {
+    return recurse(ROOT_ID)
+
+    function recurse (node_id){
+      const node = db.read(['state', node_id])
+      node.drive && node.drive.some(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if(dataset.name === dataset_name && dataset.type === dataset_type){
+          node.drive.splice(node.drive.indexOf(dataset_id), 1)
+          return true
+        }
+      })
+      node.inputs && node.inputs.some(dataset_id => {
+        const dataset = db.read(['state', dataset_id])
+        if(dataset.name === dataset_name && dataset.type === dataset_type){
+          node.inputs.splice(node.inputs.indexOf(dataset_id), 1)
+          swtch(dataset_type)
+          return true
+        }
+      })
+      db.add(['state', node_id], node)
+      node.subs.forEach(sub_id => recurse(sub_id))
+    }
+  }
+  function swtch (dataset_type, dataset_name = 'default') {
     recurse(dataset_type, dataset_name, ROOT_ID)
 
     async function recurse (target_type, target_name, id) {
