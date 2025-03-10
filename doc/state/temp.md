@@ -7,7 +7,7 @@ const state_db = STATE(__filename);
 const { sdb, subs: [get] } = state_db(fallback_module);
 ```
 1. Import `STATE` and pass `__filename` (a built-in variable containing the file's path) to it.
-2. The returned `state_db` function registers fallbacks and provides `sdb` (the main interface) and `get` (a function for accessing state data).
+2. The returned `state_db` function registers fallbacks and provides `sdb` (the main interface) and `get` (a function for accessing the staet of an instance).
 3. This initialization is consistent across most modules.
 
 ---

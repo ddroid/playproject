@@ -5,18 +5,18 @@ function fallback_module () { // -> set database defaults or load from database
 	return {
     _: {
       "app": {
+        $: '',
         0: override_app
       }
     },
     drive: {
-      inputs: {
-        "page.css": {
-          data: `
-            body{
-              font-family: 'system-ui';
-            }
-          `
+      'theme/': {
+        'style.css': {
+          raw: `body { font-family: 'system-ui'; }`,
         }
+      },
+      'lang/': {
+        
       }
     }
   }
@@ -46,7 +46,7 @@ function fallback_module () { // -> set database defaults or load from database
   function page$menu_override ([menu]) {
     const data = menu()
     console.log(data)
-    data.drive.inputs['menu.json'].data = {
+    data.drive['lang/']['en-us.json'].raw = {
       links: ['custom', 'menu'],
       title: 'Custom'
     }
@@ -87,7 +87,7 @@ async function boot () {
   // ID + JSON STATE
   // ----------------------------------------
   const on = {
-    css: inject,
+    theme: inject,
   }
   const subs = await sdb.watch(onbatch)
   const status = {}
@@ -102,7 +102,7 @@ async function boot () {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[1]))
+    shadow.append(await app(subs[0]))
   }
   // ----------------------------------------
   // INIT
