@@ -27,9 +27,9 @@ function patch_cache_in_browser (source_cache, module_cache) {
         else {
           const counter = meta.modulepath.concat(name).join('/')
           if (!meta.paths[counter]) meta.paths[counter] = 0
-          const localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
+          let localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
           meta.paths[counter]++
-          meta.modulepath.push(localid)
+          meta.modulepath.push(localid.replace(/^\.\/+/, '').replace('/', ','))
         }
         const exports = require.cache[identifier] = original(name)
         if (!name.endsWith('node_modules/STATE')) meta.modulepath.pop(name)

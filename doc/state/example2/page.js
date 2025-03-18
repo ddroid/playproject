@@ -15,9 +15,7 @@ function fallback_module () { // -> set database defaults or load from database
           raw: `body { font-family: 'system-ui'; }`,
         }
       },
-      'lang/': {
-        
-      }
+      'lang/': {}
     }
   }
   function override_app ([app]) {

@@ -28,9 +28,9 @@ function patch_cache_in_browser (source_cache, module_cache) {
         else {
           const counter = meta.modulepath.concat(name).join('/')
           if (!meta.paths[counter]) meta.paths[counter] = 0
-          const localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
+          let localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
           meta.paths[counter]++
-          meta.modulepath.push(localid)
+          meta.modulepath.push(localid.replace(/^\.\/+/, '').replace('/', ','))
         }
         const exports = require.cache[identifier] = original(name)
         if (!name.endsWith('node_modules/STATE')) meta.modulepath.pop(name)
@@ -41,6 +41,7 @@ function patch_cache_in_browser (source_cache, module_cache) {
   }
 }
 require('./page') // or whatever is otherwise the main entry of our project
+
 },{"./page":11}],2:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
@@ -1105,6 +1106,8 @@ const status = {
   db,
   local_statuses: {},
   listeners: {},
+  missing_supers: new Set(),
+  imports: {}
 }
 window.STATEMODULE = status
 
@@ -1121,6 +1124,7 @@ let admins = [0, 'menu']
 // Inner Function
 function STATE (address, modulepath) {
   status.modulepaths[modulepath] = 0
+  register_imports(modulepath, address)
   //Variables (module-level)
 
   const local_status = {
@@ -1146,8 +1150,9 @@ function STATE (address, modulepath) {
     Object.assign(status.open_branches, updated_status.open_branches)
     status.inits.push(init_module)
 
-    if(!Object.values(status.open_branches).reduce((acc, curr) => acc + curr, 0))
+    if(!Object.values(status.open_branches).reduce((acc, curr) => acc + curr, 0)){
       status.inits.forEach(init => init())
+    }
     
     const sdb = create_statedb_interface(local_status, modulepath, xtype = 'module')
     status.dataset = sdb.private_api
@@ -1160,7 +1165,7 @@ function STATE (address, modulepath) {
   }
   function append_tree_node (id, status) {
     const [super_id, name] = id.split(/\/(?=[^\/]*$)/)
-
+  
     if(name){
       if(status.tree_pointers[super_id]){
         status.tree_pointers[super_id]._[name] = { $: { _: {} } }
@@ -1170,13 +1175,16 @@ function STATE (address, modulepath) {
       else{
         let temp_name, new_name = name
         let new_super_id = super_id
+        
         while(!status.tree_pointers[new_super_id]){
           [new_super_id, temp_name] = new_super_id.split(/\/(?=[^\/]*$)/)
           new_name = temp_name + '.' + new_name
         }
         status.tree_pointers[new_super_id]._[new_name] = { $: { _: {} } }
         status.tree_pointers[id] = status.tree_pointers[new_super_id]._[new_name].$
-        status.open_branches[new_super_id]--
+        if(!status.missing_supers.has(super_id))
+          status.open_branches[new_super_id]--
+        status.missing_supers.add(super_id)
       }
     }
     else{
@@ -1217,7 +1225,7 @@ function STATE (address, modulepath) {
   }
   function get (sid) {
     const {statedata, state_entries, newstatus} = get_instance_data(sid)
-
+    
     if (status.fallback_check) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
@@ -1236,7 +1244,6 @@ function STATE (address, modulepath) {
   }
   function get_module_data (fallback) {
     let data = db.read(['state', modulepath])
-
     if (status.fallback_check) {
       if (data) {
         var {sanitized_data, updated_status} = validate_and_preprocess({ fun_status: status, fallback, xtype: 'module', pre_data: data })
@@ -1290,14 +1297,17 @@ function STATE (address, modulepath) {
     }
   }
   function find_super ({ xtype, fallback, fun_status, local_status }) {
-    const modulepath_super = modulepath.split(/\/(?=[^\/]*$)/)[0]
-    const modulepath_grand = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
+    let modulepath_super = modulepath.split(/\/(?=[^\/]*$)/)[0]
+    let modulepath_grand = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
     const split = modulepath.split('/')
     const name = split.at(-2) + '.' + split.at(-1)
     let data
     const entries = {}
     if(xtype === 'module'){
-      data = db.read(['state', modulepath_super])
+      while(!data){
+        data = db.read(['state', modulepath_super])
+        modulepath_grand = modulepath_super = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
+      }
       data.path = data.id = modulepath
       local_status.name = name
 
@@ -1313,12 +1323,26 @@ function STATE (address, modulepath) {
     }
     else{
       //@TODO: Make the :0 dynamic
-      const instance_path_super = modulepath_super + ':0'
-      data = db.read(['state', instance_path_super])
+      let instance_path_super = modulepath_super + ':0'
+      let temp
+      while(!data && temp !== modulepath_super){
+        data = db.read(['state', instance_path_super])
+        temp = modulepath_super
+        modulepath_grand = modulepath_super = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
+        instance_path_super = modulepath_super + ':0'
+      }
       data.path = data.id = get_instance_path(modulepath)
+      temp = null
+      let super_data
+      let instance_path_grand = modulepath_grand.includes('/') ? modulepath_grand + ':0' : modulepath_grand
 
+      while(!super_data?.subs && temp !== modulepath_grand){
+        super_data = db.read(['state', instance_path_grand])
+        temp = modulepath_grand
+        modulepath_grand = modulepath_grand.split(/\/(?=[^\/]*$)/)[0]
+        instance_path_grand = modulepath_grand.includes('/') ? modulepath_grand + ':0' : modulepath_grand
+      }
       
-      const super_data = db.read(['state', modulepath_grand + ':0'])
       super_data.subs.forEach((sub_id, i) => {
         if(sub_id === instance_path_super){
           super_data.subs.splice(i, 1)
@@ -1348,7 +1372,6 @@ function STATE (address, modulepath) {
       fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
       fun_status.overrides[pre_id].by.splice(0, 1)
       fun_status.overrides[pre_id].fun.splice(0, 1)
-      console.log(fallback_data)
     }
     else
       fallback_data = fallback()
@@ -1512,9 +1535,11 @@ function validate (data, xtype) {
   const expected_structure = {
     '_::object': {
       ":*:object": xtype === 'module' ? {
-        "$:*:function|string": ''
+        "$:*:function|string|object": '',
+        "mapping::": {}
       } : { // Required key, any name allowed
-        ":*:function|string": () => {}, // Optional key
+        ":*:function|string|object": () => {}, // Optional key
+        "mapping::": {}
       },
     },
     'drive::object': {
@@ -1574,6 +1599,8 @@ function validate (data, xtype) {
 function extract_filename (address) {
   const parts = address.split('/node_modules/')
   const last = parts.at(-1).split('/')
+  if(last.at(-1) === 'index.js')
+    return last.at(-2)
   return last.at(-1).slice(0, -3)
 }
 function get_instance_path (modulepath, modulepaths = status.modulepaths) {
@@ -1597,6 +1624,51 @@ function add_source_code (hubs) {
       db.add(['state', data.id], data)
       return
     }
+  })
+}
+async function register_imports (id, address) {
+  const code = await((await fetch(address)).text())
+  const regex = /require\(['"`](.*?)['"`]\)/g
+  let matches, modules = []
+
+  while ((matches = regex.exec(code)) !== null) {
+      modules.push(matches[1]) // Extract module name
+  }
+  status.imports[id] = modules
+  if(Object.keys(status.imports).length === Object.keys(status.modulepaths).length){
+    verify_imports()
+  }
+}
+function verify_imports () {
+  Object.entries(status.imports).some(([id, imports]) => {
+   const data = status.local_statuses[id].fallback_module()
+    if(!data._)
+      return
+    const fallback_imports = Object.keys(data._)
+
+    imports.forEach(imp => {
+      let check = true
+      if(imp.includes('STATE'))
+        return
+      fallback_imports.forEach(fallimp => {
+        if(imp.includes(fallimp))
+          check = false
+      })
+
+      if(check)
+        throw new Error('Required module "'+imp+'" is not defined in the fallback of '+status.local_statuses[id].module_id)
+    })
+
+    fallback_imports.forEach(fallimp => {
+      let check = true
+      imports.forEach(imp => {
+        if(imp.includes(fallimp))
+          check = false
+      })
+      
+      if(check)
+        throw new Error('Module "'+fallimp+'" defined in the fallback of '+status.local_statuses[id].module_id+' is not required')
+    })
   })
 }
 function symbolfy (data) {
