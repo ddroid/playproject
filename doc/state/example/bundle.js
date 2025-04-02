@@ -1592,7 +1592,7 @@ function add_source_code (hubs) {
   })
 }
 async function register_imports (id, address) {
-  const project_name = window.location.hostname.split('/')[1]
+  const project_name = window.location.pathname.split('/')[0]
   const full_address = project_name ? project_name + address : address
   console.log(full_address)
   const code = await((await fetch(full_address)).text())
