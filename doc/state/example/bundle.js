@@ -1592,25 +1592,7 @@ function add_source_code (hubs) {
   })
 }
 async function register_imports (id, address) {
-  // Automatically determine the project name from the current URL or git config
-  async function getProjectName () {
-    // Option 1: Extract from window.location if in browser
-    if (typeof window !== 'undefined' && window.location.hostname === 'github.com') {
-      const pathParts = window.location.pathname.split('/');
-      if (pathParts.length >= 2) {
-        return pathParts[1]; // The project name is typically the second path segment
-      }
-    }
-    return null;
-  };
-
-  // Get project name and construct full address
-  const projectName = await getProjectName();
-  const fullAddress = projectName && !address.includes(`/${projectName}/`) ? 
-    address.replace('github.com/', `github.com/${projectName}/`) : 
-    address;
-  
-  const code = await((await fetch(fullAddress)).text());
+  const code = await((await fetch(window.location.hostname, address)).text())
   const regex = /require\(['"`](.*?)['"`]\)/g
   let matches, modules = []
 
