@@ -1592,9 +1592,7 @@ function add_source_code (hubs) {
   })
 }
 async function register_imports (id, address) {
-  const project_name = window.location.pathname.split('/')[0]
-  const full_address = project_name ? project_name + address : address
-  console.log(full_address, project_name, window.location.pathname)
+  const full_address = window.location.hostname.includes('192.168') ? address : window.location.pathname.split('/')[1] + address
   const code = await((await fetch(full_address)).text())
   const regex = /require\(['"`](.*?)['"`]\)/g
   let matches, modules = []
