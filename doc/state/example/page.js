@@ -1,37 +1,7 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-function fallback_module () { 
-	return {
-    _: {
-      "app": {
-        $: '',
-        0: override_app,
-      }
-    },
-    drive: {
-      'theme/': {
-        'style.css': {
-          raw: `body { font-family: 'system-ui'; }`,
-        }
-      },
-      'lang/': {}
-    }
-  }
-  function override_app ([app]) {
-    const data = app()
-    data._.head.$._['foo.nav'].$._.menu[0] = ([menu, nav$menu]) => {
-      const data = menu()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        links: ['custom', 'menu'],
-        title: 'Custom'
-      }
-      return data
-    }
-    return data
-  }
-}
+
 
 /******************************************************************************
   PAGE
@@ -99,4 +69,31 @@ async function boot (opts) {
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
+}
+
+
+function fallback_module () { 
+	return {
+    _: { "app": { $: '', 0: override_app } },
+    drive: {
+      'theme/': {
+        'style.css': {
+          raw: `body { font-family: 'system-ui'; }`,
+        }
+      }, 'lang/': {}
+    }
+  }
+  function override_app ([app]) {
+    const data = app()
+    data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
+    }
+    return data
+  }
 }

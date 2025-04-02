@@ -19,21 +19,21 @@ function patch_cache_in_browser (source_cache, module_cache) {
       return module(...args)
       function require (name) {
         const identifier = resolve(name)
-        if (name.endsWith('node_modules/STATE')) {
-          const modulepath = meta.modulepath.join('/')
+        if (name.endsWith('STATE')) {
+          const modulepath = meta.modulepath.join('>')
           const original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
           const exports = (...args) => original_export(...args, modulepath)
           return exports
         } else if (require.cache[identifier]) return require.cache[identifier]
         else {
-          const counter = meta.modulepath.concat(name).join('/')
+          const counter = meta.modulepath.concat(name).join('>')
           if (!meta.paths[counter]) meta.paths[counter] = 0
           let localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
           meta.paths[counter]++
-          meta.modulepath.push(localid.replace(/^\.\/+/, '').replace('/', ','))
+          meta.modulepath.push(localid.replace(/^\.\+/, '').replace('>', ','))
         }
         const exports = require.cache[identifier] = original(name)
-        if (!name.endsWith('node_modules/STATE')) meta.modulepath.pop(name)
+        if (!name.endsWith('STATE')) meta.modulepath.pop(name)
         return exports
       }
     }
@@ -47,39 +47,6 @@ require('./page') // or whatever is otherwise the main entry of our project
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-
-function fallback_module () { // -> set database defaults or load from database
-	return {
-    api: fallback_instance,
-    _: {
-      "head": {
-        $: '',
-      },
-      "foot": {
-        $: '',
-      },
-    }
-  }
-  function fallback_instance () {
-    return {
-      _: {
-        "head": {
-          0: ''
-        },
-        "foot": {
-          0: ''
-        },
-      },
-      drive: {
-        'theme/': {
-          'style.css': {
-            raw: ''
-          }
-        }
-      }
-    }
-  }
-}
 
 /******************************************************************************
   PAGE
@@ -127,41 +94,32 @@ async function app(opts) {
   }
 }
 
+
+function fallback_module () { // -> set database defaults or load from database
+	return {
+    api: fallback_instance,
+    _: { "head": { $: '', }, "foot": { $: '' } }
+  }
+  function fallback_instance () {
+    return {
+      _: { "head": { 0: '' }, "foot": { 0: '' } },
+      drive: {
+        'theme/': {
+          'style.css': {
+            raw: ''
+          }
+        }
+      }
+    }
+  }
+}
+
 }).call(this)}).call(this,"/doc/state/example/node_modules/app.js")
 },{"../../../../src/node_modules/STATE":12,"foot":5,"head":6}],3:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-    _: {
-      icon: {
-        $: ''
-      }
-    }
-  }
-  function fallback_instance () {
-    return {
-      _: {
-        icon: {
-          0: ''
-        }
-      },
-      drive: {
-        'lang/': {
-          'en-us.json': {
-            raw: {
-              title: 'Click me'
-            }
-          }
-        },
-      }
-    }
-  }
-}
 
 /******************************************************************************
   BTN
@@ -257,6 +215,28 @@ async function btn_small(opts) {
   }
 }
 
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+    _: { icon: {$: ''} }
+  }
+  function fallback_instance () {
+    return {
+      _: { icon: {0: ''} },
+      drive: {
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              title: 'Click me'
+            }
+          }
+        },
+      }
+    }
+  }
+}
+
 }).call(this)}).call(this,"/doc/state/example/node_modules/btn.js")
 },{"../../../../src/node_modules/STATE":12,"icon":7}],4:[function(require,module,exports){
 function fallback_module () { // -> set database defaults or load from database
@@ -325,26 +305,6 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-function fallback_module () {
-  return {
-    api: fallback_instance,
-    _:{
-      text: {
-        $: ''
-      }
-    }
-  }
-  function fallback_instance () {
-    return {
-      _:{
-        text: {
-          0: ''
-        }
-      }
-    }
-  }
-}
-
 /******************************************************************************
   FOOT
 ******************************************************************************/
@@ -390,6 +350,18 @@ async function foot(opts) {
   }
 }
 
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+    _:{ text: { $: '' } }
+  }
+  function fallback_instance () {
+    return {
+      _:{ text: { 0: '' } } } 
+    }
+}
+
 }).call(this)}).call(this,"/doc/state/example/node_modules/foot.js")
 },{"../../../../src/node_modules/STATE":12,"text":10}],6:[function(require,module,exports){
 (function (__filename){(function (){
@@ -397,32 +369,6 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-function fallback_module () { // -> set database defaults or load from database
-	return {
-    api: fallback_instance,
-    _: {
-      "foo": {
-        $: ''
-      }
-    }
-  }
-  function fallback_instance () {
-    return {
-      _: {
-        "foo": {
-          0: ''
-        },
-      },
-      drive: {
-        'theme/': {
-          'style.css': {
-            raw: ''
-          }
-        }
-      }
-    }
-  }
-}
 /******************************************************************************
   HEAD
 ******************************************************************************/
@@ -468,21 +414,31 @@ async function head(opts) {
   }
 }
 
+
+function fallback_module () { // -> set database defaults or load from database
+	return {
+    api: fallback_instance,
+    _: { "foo": { $: '' } }
+  }
+  function fallback_instance () {
+    return {
+      _: { "foo": { 0: '' } },
+      drive: {
+        'theme/': {
+          'style.css': {
+            raw: ''
+          }
+        }
+      }
+    }
+  }
+}
 }).call(this)}).call(this,"/doc/state/example/node_modules/head.js")
 },{"../../../../src/node_modules/STATE":12,"foo":4}],7:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-  }
-  function fallback_instance () {
-    return {}
-  }
-}
 
 /******************************************************************************
   ICON
@@ -525,71 +481,22 @@ async function icon(opts) {
   }
 }
 
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+  }
+  function fallback_instance () {
+    return {}
+  }
+}
+
 }).call(this)}).call(this,"/doc/state/example/node_modules/icon.js")
 },{"../../../../src/node_modules/STATE":12}],8:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-    _: {
-      btn: {
-        $: ''
-      },
-    }
-  }
-  function fallback_instance () {
-    return {
-      _: {
-        btn: {
-          0: ''
-        },
-        'btn$small': {
-          0: ''
-        },
-      },
-      drive: {
-        'style/': {
-          'theme.css': {
-            raw: `
-              .title{
-                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-                transition: color .5s ease, background-size .5s;
-                cursor: pointer;
-              }
-              .title:hover{
-                --underline-width: 100%
-              }
-              ul{
-                background: #273d3d;
-                list-style: none;
-                display: none;
-                position: absolute;
-                padding: 10px;
-                box-shadow: 0px 1px 6px 1px gray;
-                border-radius: 5px;
-              }
-              ul.active{
-                display: block;
-              }
-            `
-          }
-        },
-        'lang/': {
-          'en-us.json': {
-            raw: {
-              title: 'menu',
-              links: ['link1', 'link2'],
-            }
-          },
-        },
-      }
-    }
-  }
-}
 
 /******************************************************************************
   MENU
@@ -752,6 +659,55 @@ async function menu_hover(opts) {
   }
 }
 
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+    _: { btn: { $: '' }}
+  }
+  function fallback_instance () {
+    return {
+      _: {
+        btn: { 0: '' , 'small$0': '' }},
+      drive: {
+        'style/': {
+          'theme.css': {
+            raw: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
+          }
+        },
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              title: 'menu',
+              links: ['link1', 'link2'],
+            }
+          },
+        },
+      }
+    }
+  }
+}
 }).call(this)}).call(this,"/doc/state/example/node_modules/menu.js")
 },{"../../../../src/node_modules/STATE":12,"btn":3}],9:[function(require,module,exports){
 (function (__filename){(function (){
@@ -759,12 +715,71 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
+/******************************************************************************
+  NAV
+******************************************************************************/
+delete require.cache[require.resolve('menu')]
+const {menu, menu_hover} = require('menu')
+
+module.exports = nav
+async function nav(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts?.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    theme: inject,
+    lang: fill
+  }
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <nav>
+      <div class="box">
+
+      <div>
+    </nav>
+    <style></style>`
+  const main = shadow.querySelector('nav')
+  const div = shadow.querySelector('div')
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  console.log(subs)
+  { //menu
+    main.append(await menu(subs[0]), await menu(subs[1]), await menu(subs[2]), await menu_hover(subs[3]))
+  }
+  return el
+
+  function onbatch(batch){
+    for (const {type, data} of batch) {
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    div.replaceChildren(...data.links.map(link => {
+      const el = document.createElement('div')
+      el.classList.add('title')
+      el.innerHTML = link
+      return el
+    }))
+  }
+}
+
+
 function fallback_module () { // -> set database defaults or load from database
 	return {
     api: fallback_instance,
-    _: {
-      'menu':{
-        $: ([menu]) => {
+    _: { 'menu':{ $: ([menu]) => {
           const state = menu()
           state.api = ([menu_instance]) => {
             const data = menu_instance()
@@ -772,28 +787,13 @@ function fallback_module () { // -> set database defaults or load from database
             return data
           }
           return state
-        }
-      },
-    }
-  }
+  }}}}
   function fallback_instance () {
     return {
-      _: {
-        'menu':{
-          0: override_menu,
-          1: override_menu1,
-          2: '',
-          mapping: {
-            'style': 'theme'
-          }
-        },
-        'menu$hover': {
-          0: override_menu_hover,
-          mapping: {
-            'style': 'theme'
-          }
-        }
-      },
+      _: { 'menu':{ 0: override_menu, 1: override_menu1, 2: '',
+        '3': override_menu_hover,
+          mapping: { 'style': 'theme' }
+        }},
       drive: {
         'theme/': {
           'style.css': {
@@ -857,80 +857,12 @@ function fallback_module () { // -> set database defaults or load from database
     return data
   }
 }
-/******************************************************************************
-  NAV
-******************************************************************************/
-delete require.cache[require.resolve('menu')]
-const {menu, menu_hover} = require('menu')
-
-module.exports = nav
-async function nav(opts) {
-  // ----------------------------------------
-  // ID + JSON STATE
-  // ----------------------------------------
-  const { id, sdb } = await get(opts?.sid) // hub is "parent's" io "id" to send/receive messages
-  const on = {
-    theme: inject,
-    lang: fill
-  }
-  // ----------------------------------------
-  // TEMPLATE
-  // ----------------------------------------
-  const el = document.createElement('div')
-  const shopts = { mode: 'closed' }
-  const shadow = el.attachShadow(shopts)
-  shadow.innerHTML = `
-    <nav>
-      <div class="box">
-
-      <div>
-    </nav>
-    <style></style>`
-  const main = shadow.querySelector('nav')
-  const div = shadow.querySelector('div')
-  const style = shadow.querySelector('style')
-  const subs = await sdb.watch(onbatch)
-  // ----------------------------------------
-  // ELEMENTS
-  // ----------------------------------------
-  { //menu
-    main.append(await menu(subs[0]), await menu(subs[1]), await menu(subs[2]), await menu_hover(subs[3]))
-  }
-  return el
-
-  function onbatch(batch){
-    for (const {type, data} of batch) {
-      on[type] && on[type](data)
-    }
-  }
-  async function inject (data){
-    style.innerHTML = data.join('\n')
-  }
-  async function fill([data]) {
-    div.replaceChildren(...data.links.map(link => {
-      const el = document.createElement('div')
-      el.classList.add('title')
-      el.innerHTML = link
-      return el
-    }))
-  }
-}
-
 }).call(this)}).call(this,"/doc/state/example/node_modules/nav.js")
 },{"../../../../src/node_modules/STATE":12,"menu":8}],10:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-
-function fallback_module () {
-  return {
-    api: fallback_instance,
-  }
-  function fallback_instance () {
-    return {}
-  }
-}
 
 /******************************************************************************
   TEXT
@@ -973,43 +905,23 @@ async function text(opts) {
   }
 }
 
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+  }
+  function fallback_instance () {
+    return {}
+  }
+}
+
 }).call(this)}).call(this,"/doc/state/example/node_modules/text.js")
 },{"../../../../src/node_modules/STATE":12}],11:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
-function fallback_module () { 
-	return {
-    _: {
-      "app": {
-        $: '',
-        0: override_app,
-      }
-    },
-    drive: {
-      'theme/': {
-        'style.css': {
-          raw: `body { font-family: 'system-ui'; }`,
-        }
-      },
-      'lang/': {}
-    }
-  }
-  function override_app ([app]) {
-    const data = app()
-    data._.head.$._['foo.nav'].$._.menu[0] = ([menu, nav$menu]) => {
-      const data = menu()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        links: ['custom', 'menu'],
-        title: 'Custom'
-      }
-      return data
-    }
-    return data
-  }
-}
+
 
 /******************************************************************************
   PAGE
@@ -1078,6 +990,33 @@ async function boot (opts) {
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
 }
+
+
+function fallback_module () { 
+	return {
+    _: { "app": { $: '', 0: override_app } },
+    drive: {
+      'theme/': {
+        'style.css': {
+          raw: `body { font-family: 'system-ui'; }`,
+        }
+      }, 'lang/': {}
+    }
+  }
+  function override_app ([app]) {
+    const data = app()
+    data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
+    }
+    return data
+  }
+}
 }).call(this)}).call(this,"/doc/state/example/page.js","/doc/state/example")
 },{"../../../src/node_modules/STATE":12,"app":2}],12:[function(require,module,exports){
 const localdb = require('localdb')
@@ -1107,7 +1046,8 @@ const status = {
   local_statuses: {},
   listeners: {},
   missing_supers: new Set(),
-  imports: {}
+  imports: {},
+  expected_imports: {}
 }
 window.STATEMODULE = status
 
@@ -1126,7 +1066,7 @@ function STATE (address, modulepath) {
   status.modulepaths[modulepath] = 0
   register_imports(modulepath, address)
   //Variables (module-level)
-
+  
   const local_status = {
     name: extract_filename(address),
     module_id: modulepath,
@@ -1140,16 +1080,38 @@ function STATE (address, modulepath) {
   function statedb (fallback) {
     const data = fallback()
     local_status.fallback_instance = data.api
-
-    if(data._)
-      status.open_branches[modulepath] = Object.keys(data._).length
+    const super_id = modulepath.split(/>(?=[^>]*$)/)[0]
     
+    if(super_id === status.current_node){
+      status.expected_imports[super_id].splice(status.expected_imports[super_id].indexOf(modulepath), 1)
+    }
+    else if((status?.current_node?.split('>').length || 0) < super_id.split('>').length){
+      let temp = super_id
+      while(temp !== status.current_node && temp.includes('>')){
+        status.open_branches[temp] = 0
+        temp = temp.split(/>(?=[^>]*$)/)[0]
+      }
+    }
+    else{
+      let temp = status.current_node
+      while(temp !== super_id && temp.includes('>')){
+        status.open_branches[temp] = 0
+        temp = temp.split(/>(?=[^>]*$)/)[0]
+      }
+    }
+
+    if(data._){
+      status.open_branches[modulepath] = Object.keys(data._).length
+      status.expected_imports[modulepath] = Object.keys(data._)
+      status.current_node = modulepath
+    }
+
     local_status.fallback_module = new Function(`return ${fallback.toString()}`)()
     const updated_status = append_tree_node(modulepath, status)
     Object.assign(status.tree_pointers, updated_status.tree_pointers)
     Object.assign(status.open_branches, updated_status.open_branches)
     status.inits.push(init_module)
-
+    
     if(!Object.values(status.open_branches).reduce((acc, curr) => acc + curr, 0)){
       status.inits.forEach(init => init())
     }
@@ -1164,8 +1126,8 @@ function STATE (address, modulepath) {
     }
   }
   function append_tree_node (id, status) {
-    const [super_id, name] = id.split(/\/(?=[^\/]*$)/)
-  
+    const [super_id, name] = id.split(/>(?=[^>]*$)/)
+
     if(name){
       if(status.tree_pointers[super_id]){
         status.tree_pointers[super_id]._[name] = { $: { _: {} } }
@@ -1177,8 +1139,8 @@ function STATE (address, modulepath) {
         let new_super_id = super_id
         
         while(!status.tree_pointers[new_super_id]){
-          [new_super_id, temp_name] = new_super_id.split(/\/(?=[^\/]*$)/)
-          new_name = temp_name + '.' + new_name
+          [new_super_id, temp_name] = new_super_id.split(/>(?=[^>]*$)/)
+          new_name = temp_name + '>' + new_name
         }
         status.tree_pointers[new_super_id]._[new_name] = { $: { _: {} } }
         status.tree_pointers[id] = status.tree_pointers[new_super_id]._[new_name].$
@@ -1297,21 +1259,24 @@ function STATE (address, modulepath) {
     }
   }
   function find_super ({ xtype, fallback, fun_status, local_status }) {
-    let modulepath_super = modulepath.split(/\/(?=[^\/]*$)/)[0]
-    let modulepath_grand = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
-    const split = modulepath.split('/')
-    const name = split.at(-2) + '.' + split.at(-1)
+    let modulepath_super = modulepath.split(/\>(?=[^>]*$)/)[0]
+    let modulepath_grand = modulepath_super.split(/\>(?=[^>]*$)/)[0]
+    const split = modulepath.split('>')
     let data
     const entries = {}
     if(xtype === 'module'){
-      while(!data){
+      let name = split.at(-1)
+      while(!data && modulepath_grand.includes('>')){
         data = db.read(['state', modulepath_super])
-        modulepath_grand = modulepath_super = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
+        const split = modulepath_super.split(/\>(?=[^>]*$)/)
+        modulepath_super = split[0]
+        name = split[1] + '>' + name
       }
-      data.path = data.id = modulepath
+      data.path = data.id = modulepath_super + '>' + name
+      modulepath = modulepath_super + '>' + name
       local_status.name = name
 
-      const super_data = db.read(['state', modulepath_grand])
+      const super_data = db.read(['state', modulepath_super])
       super_data.subs.forEach((sub_id, i) => {
         if(sub_id === modulepath_super){
           super_data.subs.splice(i, 1)
@@ -1328,19 +1293,19 @@ function STATE (address, modulepath) {
       while(!data && temp !== modulepath_super){
         data = db.read(['state', instance_path_super])
         temp = modulepath_super
-        modulepath_grand = modulepath_super = modulepath_super.split(/\/(?=[^\/]*$)/)[0]
+        modulepath_grand = modulepath_super = modulepath_super.split(/\>(?=[^>]*$)/)[0]
         instance_path_super = modulepath_super + ':0'
       }
       data.path = data.id = get_instance_path(modulepath)
       temp = null
       let super_data
-      let instance_path_grand = modulepath_grand.includes('/') ? modulepath_grand + ':0' : modulepath_grand
+      let instance_path_grand = modulepath_grand.includes('>') ? modulepath_grand + ':0' : modulepath_grand
 
       while(!super_data?.subs && temp !== modulepath_grand){
         super_data = db.read(['state', instance_path_grand])
         temp = modulepath_grand
-        modulepath_grand = modulepath_grand.split(/\/(?=[^\/]*$)/)[0]
-        instance_path_grand = modulepath_grand.includes('/') ? modulepath_grand + ':0' : modulepath_grand
+        modulepath_grand = modulepath_grand.split(/\>(?=[^>]*$)/)[0]
+        instance_path_grand = modulepath_grand.includes('>') ? modulepath_grand + ':0' : modulepath_grand
       }
       
       super_data.subs.forEach((sub_id, i) => {
@@ -1370,6 +1335,7 @@ function STATE (address, modulepath) {
     }
     if(fun_status.overrides[pre_id]){
       fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
+      console.log('Override used: ', pre_id)
       fun_status.overrides[pre_id].by.splice(0, 1)
       fun_status.overrides[pre_id].fun.splice(0, 1)
     }
@@ -1386,33 +1352,32 @@ function STATE (address, modulepath) {
       updated_status: fun_status
     }
     
-    function sanitize_state ({ local_id, entry, path, hub_entry, local_tree, entries = {}, xtype, mapping }) {
-      [path, entry, local_tree] = extract_data({ local_id, entry, path, hub_entry, local_tree, xtype })
-      
-      entry.id = path
+    function sanitize_state ({ local_id, entry, path, hub_entry, local_tree, entries = {}, xtype, mapping, xkey }) {
+      [path, entry, local_tree] = extract_data({ local_id, entry, path, hub_entry, local_tree, xtype, xkey })
+
+      entry.id =  path
       entry.name = entry.name || local_id.split(':')[0] || local_status.name
       mapping && (entry.mapping = mapping)
       
       entries = {...entries, ...sanitize_subs({ local_id, entry, path, local_tree, xtype, mapping })}
-      
       delete entry._
       entries[entry.id] = entry
       // console.log('Entry: ', entry)
       return {entries, entry}
     }
-    function extract_data ({ local_id, entry, path, hub_entry, xtype }) {
+    function extract_data ({ local_id, entry, path, hub_entry, xtype, xkey }) {
       if (local_id) {
         entry.hubs = [hub_entry.id]
         if (xtype === 'instance') {
           let temp_path = path.split(':')[0]
-          temp_path = temp_path ? temp_path + '/' : temp_path
+          temp_path = temp_path ? temp_path + '>' : temp_path
           const module_id = temp_path + local_id
           entry.type = module_id
-          path = module_id + ':' + (status.modulepaths[module_id]++ || 0)
+          path = module_id + ':' + xkey
         }
         else {
           entry.type = local_id
-          path = path ? path + '/' : ''
+          path = path ? path + '>' : ''
           path = path + local_id
         }
       } 
@@ -1440,9 +1405,9 @@ function STATE (address, modulepath) {
           //@TODO refactor when fallback structure improves
           Object.entries(entry._).forEach(([local_id, value]) => {
             Object.entries(value).forEach(([key, override]) => {
-              if(key === 'mapping' || typeof(override) === 'object')
+              if(key === 'mapping')
                 return
-              const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: key === '$' ? 'module' : 'instance', mapping: value['mapping'] }).entry
+              const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: key === '$' ? 'module' : 'instance', mapping: value['mapping'], xkey: key }).entry
               entries[sub_instance.id] = JSON.parse(JSON.stringify(sub_instance))
               entry.subs.push(sub_instance.id)
             })
@@ -1591,7 +1556,7 @@ function validate (data, xtype) {
         if(expected_key_names)
           throw new Error(`Can't find required key "${expected_key_names.replace('|', ' or ')}" at: ` + path)
         else
-          throw new Error(`No subnodes found for super key "${super_node}" at sub: ` + path)
+          throw new Error(`No sub-nodes found for super key "${super_node}" at sub: ` + path)
       }
     })
   }
@@ -1641,9 +1606,15 @@ async function register_imports (id, address) {
 }
 function verify_imports () {
   Object.entries(status.imports).some(([id, imports]) => {
-   const data = status.local_statuses[id].fallback_module()
-    if(!data._)
-      return
+    const state_address = imports.find(imp => imp.includes('STATE'))
+    const data = status.local_statuses[id].fallback_module()
+    if(!data._){
+      if(imports.length > 1){
+        imports.splice(imports.indexOf(state_address), 1)
+        throw new Error(`No sub-nodes found for required modules "${imports.join(', ')}" in the fallback of "${status.local_statuses[id].module_id}"`)
+      }
+      else return
+    }
     const fallback_imports = Object.keys(data._)
 
     imports.forEach(imp => {
@@ -1651,18 +1622,18 @@ function verify_imports () {
       if(imp.includes('STATE'))
         return
       fallback_imports.forEach(fallimp => {
-        if(imp.includes(fallimp))
+        if(imp === fallimp)
           check = false
       })
 
       if(check)
         throw new Error('Required module "'+imp+'" is not defined in the fallback of '+status.local_statuses[id].module_id)
     })
-
+    
     fallback_imports.forEach(fallimp => {
       let check = true
       imports.forEach(imp => {
-        if(imp.includes(fallimp))
+        if(imp === fallimp)
           check = false
       })
       
@@ -1688,7 +1659,7 @@ function register_overrides ({overrides, ...args}) {
   function recurse ({ tree, path = '', id, xtype = 'instance', local_modulepaths = {} }) {
 
     tree._ && Object.entries(tree._).forEach(([type, instances]) => {
-      const sub_path = path + '/' + type.replace('.', '/')
+      const sub_path = path + '>' + type
       Object.entries(instances).forEach(([id, override]) => {
         if(typeof(override) === 'function'){
           let resultant_path = id === '$' ? sub_path : sub_path + ':' + id
@@ -1718,9 +1689,9 @@ function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
 
     function merge_trees (data, path) {
       if (data._) {
-        Object.entries(data._).forEach(([type, data]) => merge_trees(data, path + '/' + type.split('$')[0].replace('.', '/')))
+        Object.entries(data._).forEach(([type, data]) => merge_trees(data, path + '>' + type.split('$')[0].replace('.', '>')))
       } else {
-        data.$ = { _: status.tree_pointers[path]._ }
+        data.$ = { _: status.tree_pointers[path]?._ }
       }
     }
   }
