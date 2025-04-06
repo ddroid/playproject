@@ -11,7 +11,7 @@ const { sdb, subs: [get] } = state_db(fallback_module);
 3. This initialization is consistent across most modules.
 
 ---
-## <span id="fallback">Defining Fallbacks</span>
+## Defining Fallbacks
 ```js
 function fallback_module() {
   //.....
