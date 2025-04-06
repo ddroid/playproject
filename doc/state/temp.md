@@ -11,7 +11,7 @@ const { sdb, subs: [get] } = state_db(fallback_module);
 3. This initialization is consistent across most modules.
 
 ---
-## Defining Fallbacks
+## <span id="fallback">Defining Fallbacks</span>
 ```js
 function fallback_module() {
   //.....
@@ -122,5 +122,85 @@ function fallback_module() {
          - Stores a link to an external file (any type).
 
 ---
-This documentation provides a structured approach to using the `STATE` module, ensuring clarity and consistency in module development.
+## Module Structure and Usage
+
+### Basic Module Setup
+```js
+module.exports = module_name;
+async function module_name(opts) {
+  const { id, sdb } = await get(opts.sid);
+  // ... module implementation
+}
+```
+1. The module follows a consistent pattern where it exports a function as an instance.
+2. `opts` contains the `sid`(Symbol ID) and `type`(Module's ID) of the instance created.
+3. The provided `sid` can then be used to access `sdb` interface using get API.
+4. `sdb` interface provides access to a number of different API for STATE management.
+
+### State Management
+The `STATE` module provides several key features for state management:
+
+#### 1. Instance Isolation
+   - Each instance of a module gets its own isolated state
+   - State is accessed through the `sdb` interface
+   - Instances can be created and destroyed independently
+
+#### 2. sdb Interface
+Provides access to following two APIs:
+
+**sdb.watch(onbatch)**
+```js
+const subs = await sdb.watch(onbatch);
+function onbatch(batch) {
+  for (const {type, data} of batch) {
+    on[type](data)
+  }
+}
+```
+- Modules can watch for state changes
+- Changes are batched and processed through the `onbatch` handler
+- Different types of changes can be handled separately using `on`.
+- `type` refers to the `dataset_type` used in fallbacks. The key names need to match. E.g. see `template.js`
+
+**sdb.get_sub**  
+  @TODO
+
+### Shadow DOM Integration
+   ```js
+   const el = document.createElement('div');
+   const shopts = { mode: 'closed' };
+   const shadow = el.attachShadow(shopts);
+   ```
+   - Modules can create isolated DOM environments
+   - Styles and markup are encapsulated
+   - Prevents style leakage between modules
+
+  **Sub-Module Integration**
+   ```js
+   const sub_module = require('sub_module_address');
+   // ...
+   shadow.append(await sub_module(subs[0]));
+   ```
+   - Sub-modules can be dynamically loaded
+   - State can be passed down to sub-modules
+   - Hierarchical module structure is supported
+### Best Practices
+
+1. **State Organization**
+   - Keep state structure consistent with fallback definitions
+   - Use meaningful names for datasets and files
+   - Group related data together
+
+2. **Error Handling**
+   - Always handle async operations properly
+   - Validate state updates before applying them
+   - Provide fallback values for missing data
+
+3. **Performance**
+   - Minimize state updates
+   - Batch related changes together
+   - Clean up watchers when no longer needed
+
+
+This documentation provides a comprehensive guide to using the `STATE` module effectively in your applications. For more specific examples and advanced usage patterns, refer to the example modules in the codebase.
 

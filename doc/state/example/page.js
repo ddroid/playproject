@@ -1,6 +1,7 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const io =require('io')
+const { id, sdb, subs: [get] } = statedb(fallback_module)
 
 
 /******************************************************************************
@@ -38,9 +39,12 @@ async function boot (opts) {
   // ----------------------------------------
   const on = {
     theme: inject,
+    ...sdb.admin
   }
+  const send = io(id, 'page', on)
+
   const subs = await sdb.watch(onbatch)
-  
+
   const status = {}
   // ----------------------------------------
   // TEMPLATE
