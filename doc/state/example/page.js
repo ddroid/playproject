@@ -1,36 +1,8 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
-function fallback_module () { 
-	return {
-    _: {
-      "app": {
-        0: override_app,
-      }
-    },
-    drive: {
-      'theme': {
-        'style.css': {
-          raw: `body { font-family: 'system-ui'; }`,
-        }
-      }
-    }
-  }
-  function override_app ([app]) {
-    const data = app()
-    console.log(data)
-    data._.head._['foo.nav']._.menu[0] = ([menu, nav$menu]) => {
-      const data = menu()
-      // console.log(nav$menu([menu]))
-      data.drive.lang['en-us.json'].raw = {
-        links: ['custom', 'menu'],
-        title: 'Custom'
-      }
-      return data
-    }
-    return data
-  }
-}
+const io =require('io')
+const { id, sdb, subs: [get] } = statedb(fallback_module)
+
 
 /******************************************************************************
   PAGE
@@ -67,8 +39,12 @@ async function boot (opts) {
   // ----------------------------------------
   const on = {
     theme: inject,
+    ...sdb.admin
   }
+  const send = io(id, 'page', on)
+
   const subs = await sdb.watch(onbatch)
+
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -81,7 +57,7 @@ async function boot (opts) {
   // ELEMENTS
   // ----------------------------------------
   { // desktop
-    shadow.append(await app(subs[1]))
+    shadow.append(await app(subs[0]))
   }
   // ----------------------------------------
   // INIT
@@ -97,4 +73,31 @@ async function boot (opts) {
 }
 async function inject (data){
 	sheet.replaceSync(data.join('\n'))
+}
+
+
+function fallback_module () { 
+	return {
+    _: { "app": { $: '', 0: override_app } },
+    drive: {
+      'theme/': {
+        'style.css': {
+          raw: `body { font-family: 'system-ui'; }`,
+        }
+      }, 'lang/': {}
+    }
+  }
+  function override_app ([app]) {
+    const data = app()
+    data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
+    }
+    return data
+  }
 }
