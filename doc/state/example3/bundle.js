@@ -247,7 +247,6 @@ const { sdb, subs: [get] } = statedb(fallback_module)
 
 module.exports = text
 async function text (opts) {
-  const { id } = await get(opts.sid)
   const on = {
     lang: fill,
     style: inject
