@@ -49,14 +49,11 @@ const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
-// app.js
-
 const btn = require('btn')
 const text = require('text')
 
 module.exports = test_menu
 async function test_menu (opts) {
-  const { id, sdb } = await get(opts.sid)
   const on = {
     style: inject
   }
@@ -75,7 +72,7 @@ async function test_menu (opts) {
     await btn(subs[2]),
     await btn(subs[3])
   )
-  text_container.append(await text(subs[4]))
+  text_container.append(await text(subs[5]))
   return el
 
   function onbatch (batch) {
@@ -91,10 +88,18 @@ async function test_menu (opts) {
 
 function fallback_module () {
   return {
-    api: fallback_instance,
     _: {
-      btn: { $: '' },
-      text: { $: '' }
+      'btn': {
+        $: '',
+        0: '',
+        1: '',
+        2: '',
+        3: ''
+       },
+      'text': {
+        $: '',
+        0: ''
+      }
     },
     drive: {
       style: {
@@ -109,37 +114,6 @@ function fallback_module () {
             border: 1px solid #ccc;
             padding: 10px;
           }`
-        }
-      }
-    }
-  }
-  function fallback_instance () {
-    return {
-      _: {
-        btn: {
-          0: '',
-          1: '',
-          2: '',
-          3: '',
-        },
-        text: {
-          0: ''
-        }
-      },
-      drive: {
-        style: {
-          'theme.css': {
-            raw: `
-            .menu {
-              display: flex;
-              justify-content: center;
-              margin: 10px 0px 10px 0px;
-            }
-            .text-container {
-              border: 1px solid #ccc;
-              padding: 10px;
-            }`
-          }
         }
       }
     }
