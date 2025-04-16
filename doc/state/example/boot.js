@@ -1,5 +1,29 @@
 patch_cache_in_browser(arguments[4], arguments[5])
 
+function clear_db_on_file_change() {
+  const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
+  const last_item = sessionStorage.getItem('last_item')
+  const now = Date.now()
+
+  if (!(is_file_changed && last_item && (now - last_item) < 200)) {
+    localStorage.clear()
+  }
+
+  sessionStorage.removeItem('file_change_reload')
+  sessionStorage.removeItem('last_item')
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    sessionStorage.setItem('file_change_reload', 'true')
+    sessionStorage.setItem('last_item', Date.now())
+  }
+})
+
+// Clear localStorage on initial load if the flag is set
+clear_db_on_file_change()
+
+
 function patch_cache_in_browser (source_cache, module_cache) {
   const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
@@ -40,4 +64,5 @@ function patch_cache_in_browser (source_cache, module_cache) {
     function resolve (name) { return MAP[name] }
   }
 }
+
 require('./page') // or whatever is otherwise the main entry of our project

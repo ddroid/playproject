@@ -1,6 +1,30 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 patch_cache_in_browser(arguments[4], arguments[5])
 
+function clear_db_on_file_change() {
+  const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
+  const last_item = sessionStorage.getItem('last_item')
+  const now = Date.now()
+
+  if (!(is_file_changed && last_item && (now - last_item) < 200)) {
+    localStorage.clear()
+  }
+
+  sessionStorage.removeItem('file_change_reload')
+  sessionStorage.removeItem('last_item')
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    sessionStorage.setItem('file_change_reload', 'true')
+    sessionStorage.setItem('last_item', Date.now())
+  }
+})
+
+// Clear localStorage on initial load if the flag is set
+clear_db_on_file_change()
+
+
 function patch_cache_in_browser (source_cache, module_cache) {
   const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
@@ -41,6 +65,7 @@ function patch_cache_in_browser (source_cache, module_cache) {
     function resolve (name) { return MAP[name] }
   }
 }
+
 require('./page') // or whatever is otherwise the main entry of our project
 
 },{"./page":12}],2:[function(require,module,exports){
@@ -75,6 +100,7 @@ async function app(opts) {
     <style></style>`
   const style = shadow.querySelector('style')
   const subs = await sdb.watch(onbatch)
+  
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
@@ -692,7 +718,7 @@ function fallback_module () {
   function fallback_instance () {
     return {
       _: {
-        btn: { 0: '' , 'small$0': '' }},
+        btn: { 0: '' , 1: '' }},
       drive: {
         'style/': {
           'theme.css': {
@@ -818,7 +844,7 @@ function fallback_module () { // -> set database defaults or load from database
     return {
       _: { 'menu':{ 
         0: override_menu, 1: override_menu1, 2: '',
-        'hover$0': override_menu_hover,
+        3: override_menu_hover,
           mapping: { 'style': 'theme' }
         }, btn: {
           0: ''
@@ -1064,9 +1090,9 @@ const db = localdb()
  * inputs (Array): List of input files
  */
 // Constants and initial setup (global level)
-const VERSION = 10
+const VERSION = 11
 const HELPER_MODULES = ['io', 'localdb', 'STATE']
-const fallback_post_error = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#defining-fallbacks'
+const FALLBACK_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#defining-fallbacks'
 
 const status = {
   root_module: true, 
@@ -1082,7 +1108,8 @@ const status = {
   listeners: {},
   missing_supers: new Set(),
   imports: {},
-  expected_imports: {}
+  expected_imports: {},
+  used_ids: new Set()
 }
 window.STATEMODULE = status
 
@@ -1263,6 +1290,11 @@ function STATE (address, modulepath, dependencies) {
   }
   function get_instance_data (sid) {
     let id = s2i[sid]
+    if(id && id.split(':')[0] !== modulepath)
+      throw new Error(`Access denied! Wrong SID '${id}' using by instance of ${modulepath}`)
+    if(status.used_ids.has(id))
+      throw new Error(`Access denied! SID '${id}' is already used`)
+    id && status.used_ids.add(id)
     let data = id && db.read(['state', id])
     let sanitized_data, updated_status = status
     if (status.fallback_check) {
@@ -1362,12 +1394,13 @@ function STATE (address, modulepath, dependencies) {
       orphan_check: true, entries }) }
   }
   function validate_and_preprocess ({ fallback, xtype, pre_data = {}, orphan_check, fun_status, entries }) {
+    const used_keys = new Set()
     let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
     let fallback_data
     try {
       validate(fallback(), xtype)
     } catch (error) {
-      throw new Error(`Error in fallback function of ${pre_id} ${xtype}\n${error.stack}`);
+      throw new Error(`in fallback function of ${pre_id} ${xtype}\n${error.stack}`);
     }
     if(fun_status.overrides[pre_id]){
       fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
@@ -1410,6 +1443,13 @@ function STATE (address, modulepath, dependencies) {
           const module_id = temp_path + local_id
           entry.type = module_id
           path = module_id + ':' + xkey
+          temp = Number(xkey)+1
+          temp2 = db.read(['state', path])
+          while(temp2 || used_keys.has(path)){
+            path = module_id + ':' + temp
+            temp2 = db.read(['state', path])
+            temp++
+          }
         }
         else {
           entry.type = local_id
@@ -1441,11 +1481,12 @@ function STATE (address, modulepath, dependencies) {
           //@TODO refactor when fallback structure improves
           Object.entries(entry._).forEach(([local_id, value]) => {
             Object.entries(value).forEach(([key, override]) => {
-              if(key === 'mapping')
+              if(key === 'mapping' || (key === '$' && xtype === 'instance'))
                 return
               const sub_instance = sanitize_state({ local_id, entry: value, path, hub_entry: entry, local_tree, xtype: key === '$' ? 'module' : 'instance', mapping: value['mapping'], xkey: key }).entry
               entries[sub_instance.id] = JSON.parse(JSON.stringify(sub_instance))
               entry.subs.push(sub_instance.id)
+              used_keys.add(sub_instance.id)
             })
         })}
         if (entry.drive) {
@@ -1534,9 +1575,10 @@ function validate (data, xtype) {
    * 
    * */
   const expected_structure = {
+    'api::function': () => {},
     '_::object': {
       ":*:object": xtype === 'module' ? {
-        "$:*:function|string|object": '',
+        ":*:function|string|object": '',
         "mapping::": {}
       } : { // Required key, any name allowed
         ":*:function|string|object": () => {}, // Optional key
@@ -1558,7 +1600,9 @@ function validate (data, xtype) {
   function validate_shape (obj, expected, super_node = 'root', path = '') {
     const keys = Object.keys(obj)
     const values = Object.values(obj)
+    let strict = Object.keys(expected).length
 
+    const all_keys = []
     Object.entries(expected).forEach(([expected_key, expected_value]) => {
       let [expected_key_names, required, expected_types] = expected_key.split(':')
       expected_types = expected_types ? expected_types.split('|') : [typeof(expected_value)]
@@ -1567,16 +1611,18 @@ function validate (data, xtype) {
         expected_key_names.split('|').forEach(expected_key_name => {
           const value = obj[expected_key_name]
           if(value !== undefined){
+            all_keys.push(expected_key_name)
             const type = typeof(value)
             absent = false
 
             if(expected_types.includes(type))
               type === 'object' && validate_shape(value, expected_value, expected_key_name, path + '/' + expected_key_name)
             else
-              throw new Error(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${expected_key_name}" at:` + path + fallback_post_error)
+              throw new Error(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${expected_key_name}" at:` + path + FALLBACK_POST_ERROR)
           }
         })
       else{
+        strict = false
         values.forEach((value, index) => {
           absent = false
           const type = typeof(value)
@@ -1584,14 +1630,20 @@ function validate (data, xtype) {
           if(expected_types.includes(type))
             type === 'object' && validate_shape(value, expected_value, keys[index], path + '/' + keys[index])
           else
-            throw new Error(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${keys[index]}" at: ` + path)
+            throw new Error(`Type mismatch: Expected "${expected_types.join(' or ')}" got "${type}" for key "${keys[index]}" at: ` + path + FALLBACK_POST_ERROR)
         })
       }
       if(absent && required){
         if(expected_key_names)
-          throw new Error(`Can't find required key "${expected_key_names.replace('|', ' or ')}" at: ` + path + fallback_post_error)
+          throw new Error(`Can't find required key "${expected_key_names.replace('|', ' or ')}" at: ` + path + FALLBACK_POST_ERROR)
         else
-          throw new Error(`No sub-nodes found for super key "${super_node}" at sub: ` + path + fallback_post_error)
+          throw new Error(`No sub-nodes found for super key "${super_node}" at sub: ` + path + FALLBACK_POST_ERROR)
+      }
+    })
+
+    strict && keys.forEach(key => {
+      if(!all_keys.includes(key)){
+        throw new Error(`Unknown key detected: '${key}' is an unknown property at:` + path || 'root' + FALLBACK_POST_ERROR)
       }
     })
   }
@@ -1633,7 +1685,7 @@ function verify_imports (id, imports, data) {
   if(!data._){
     if(imports.length > 1){
       imports.splice(imports.indexOf(state_address), 1)
-      throw new Error(`No sub-nodes found for required modules "${imports.join(', ')}" in the fallback of "${status.local_statuses[id].module_id}"` + fallback_post_error)
+      throw new Error(`No sub-nodes found for required modules "${imports.join(', ')}" in the fallback of "${status.local_statuses[id].module_id}"` + FALLBACK_POST_ERROR)
     }
     else return
   }
@@ -1647,7 +1699,7 @@ function verify_imports (id, imports, data) {
     })
 
     if(check)
-      throw new Error('Required module "'+imp+'" is not defined in the fallback of '+status.local_statuses[id].module_id + fallback_post_error)
+      throw new Error('Required module "'+imp+'" is not defined in the fallback of '+status.local_statuses[id].module_id + FALLBACK_POST_ERROR)
   })
   
   fallback_imports.forEach(fallimp => {
