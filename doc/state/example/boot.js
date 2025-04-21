@@ -1,4 +1,8 @@
 patch_cache_in_browser(arguments[4], arguments[5])
+clear_db_on_file_change()
+require('./page') // or whatever is otherwise the main entry of our project
+
+
 
 function clear_db_on_file_change() {
   const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
@@ -19,9 +23,6 @@ document.addEventListener('visibilitychange', () => {
     sessionStorage.setItem('last_item', Date.now())
   }
 })
-
-// Clear localStorage on initial load if the flag is set
-clear_db_on_file_change()
 
 
 function patch_cache_in_browser (source_cache, module_cache) {
@@ -64,5 +65,3 @@ function patch_cache_in_browser (source_cache, module_cache) {
     function resolve (name) { return MAP[name] }
   }
 }
-
-require('./page') // or whatever is otherwise the main entry of our project

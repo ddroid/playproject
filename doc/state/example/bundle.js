@@ -1,5 +1,9 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 patch_cache_in_browser(arguments[4], arguments[5])
+clear_db_on_file_change()
+require('./page') // or whatever is otherwise the main entry of our project
+
+
 
 function clear_db_on_file_change() {
   const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
@@ -20,9 +24,6 @@ document.addEventListener('visibilitychange', () => {
     sessionStorage.setItem('last_item', Date.now())
   }
 })
-
-// Clear localStorage on initial load if the flag is set
-clear_db_on_file_change()
 
 
 function patch_cache_in_browser (source_cache, module_cache) {
@@ -65,9 +66,6 @@ function patch_cache_in_browser (source_cache, module_cache) {
     function resolve (name) { return MAP[name] }
   }
 }
-
-require('./page') // or whatever is otherwise the main entry of our project
-
 },{"./page":12}],2:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
@@ -556,9 +554,13 @@ async function menu(opts) {
   // ID + JSON STATE
   // ----------------------------------------
   const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  let page_id
   const on = {
     style: inject,
-    lang: fill
+    lang: fill,
+    io: ([data]) => {
+      page_id = data
+    }
   }
   const send = io(id, 'menu', on)
 
@@ -582,7 +584,7 @@ async function menu(opts) {
   // ----------------------------------------
   title.onclick = () => {
     main.classList.toggle('active')
-    send({to: 'page', type: 'register', args: {
+    send({to: page_id, type: 'register', args: {
       type: 'theme', 
       name: 'rainbow', 
       dataset: {
@@ -976,7 +978,7 @@ function fallback_module () {
 (function (__filename,__dirname){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const io =require('io')
+const io = require('io')
 const { id, sdb, subs: [get] } = statedb(fallback_module)
 
 
@@ -1060,7 +1062,7 @@ function fallback_module () {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
-      }, 'lang/': {}
+      }, 'lang/': {}, 'io/': {}
     }
   }
   function override_app ([app]) {
@@ -1072,6 +1074,12 @@ function fallback_module () {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
+      data.drive['io/'] = {
+        'page.id': {
+          raw: 'page'
+        }
+      }
+    
       return data
     }
     return data
@@ -1109,7 +1117,8 @@ const status = {
   missing_supers: new Set(),
   imports: {},
   expected_imports: {},
-  used_ids: new Set()
+  used_ids: new Set(),
+  root_datasets: []
 }
 window.STATEMODULE = status
 
@@ -1291,7 +1300,7 @@ function STATE (address, modulepath, dependencies) {
   function get_instance_data (sid) {
     let id = s2i[sid]
     if(id && id.split(':')[0] !== modulepath)
-      throw new Error(`Access denied! Wrong SID '${id}' using by instance of ${modulepath}`)
+      throw new Error(`Access denied! Wrong SID '${id}' used by instance of '${modulepath}'`)
     if(status.used_ids.has(id))
       throw new Error(`Access denied! SID '${id}' is already used`)
     id && status.used_ids.add(id)
@@ -1495,7 +1504,13 @@ function STATE (address, modulepath, dependencies) {
           entry.inputs = []
           const new_drive = []
           Object.entries(entry.drive).forEach(([dataset_type, dataset]) => {
+            let check = true
             dataset_type = dataset_type.split('/')[0]
+            if (status.root_datasets.includes(dataset_type)) 
+              check = false
+            else if (mapping && status.root_datasets.includes(mapping[dataset_type]))
+              check = false
+
             const new_dataset = { files: [], mapping: {} }
             Object.entries(dataset).forEach(([key, value]) => {
               const sanitized_file = sanitize_file(key, value, entry, entries)
@@ -1522,6 +1537,9 @@ function STATE (address, modulepath, dependencies) {
 
 
             if(!status.root_module){
+              if(check)
+                throw new Error(`Module "${local_status.name}" can't define new "${dataset_type}" dataset`)
+
               const hub_entry = db.read(['state', entry.hubs[0]])
               const mapped_file_type = mapping?.[dataset_type] || dataset_type
               hub_entry.inputs.forEach(input_id => {
@@ -1532,6 +1550,9 @@ function STATE (address, modulepath, dependencies) {
                   return
                 }
               })
+            }
+            else{
+              status.root_datasets.push(dataset_type)
             }
           })
           entry.drive = new_drive
@@ -1643,7 +1664,7 @@ function validate (data, xtype) {
 
     strict && keys.forEach(key => {
       if(!all_keys.includes(key)){
-        throw new Error(`Unknown key detected: '${key}' is an unknown property at:` + path || 'root' + FALLBACK_POST_ERROR)
+        throw new Error(`Unknown key detected: '${key}' is an unknown property at: ${path || 'root'}` + FALLBACK_POST_ERROR)
       }
     })
   }
@@ -1779,12 +1800,12 @@ function check_version () {
 function create_statedb_interface (local_status, node_id, xtype) {
   const api =  {
     public_api: {
-      watch, get_sub
+      watch, get_sub, drive
     },
     private_api: {
       xget: (id) => db.read(['state', id]),
       get_all: () => db.read_all(['state']),
-      get,
+      get_db,
       register,
       load: (snapshot) => {
         localStorage.clear()
@@ -1814,7 +1835,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
       return dad.type === type
     })
   }
-  function get ({ type: dataset_type, name: dataset_name } = {}) {
+  function get_db ({ type: dataset_type, name: dataset_name } = {}) {
     const node = db.read(['state', status.ROOT_ID])
     if(dataset_type){
       const dataset_list = []
@@ -1940,10 +1961,25 @@ function create_statedb_interface (local_status, node_id, xtype) {
       })
     }
   }
+  function drive ({ type: dataset_type }) {
+    const node = db.read(['state', node_id])
+    if(!dataset_type)
+      return node.drive
+    let target_dataset
+    node.drive.some(dataset_name => {
+      const dataset = db.read(['state', dataset_name])
+      if(dataset.type === dataset_type){
+        target_dataset = dataset
+        return true
+      }
+    })
+    return target_dataset
+  }
 }
 async function make_input_map (inputs) {
   const input_map = []   
   if (inputs) {
+    console.log('Inputs: ', inputs)
     await Promise.all(inputs.map(async input => {
       let files = []
       const dataset = db.read(['state', input])

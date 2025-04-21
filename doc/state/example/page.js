@@ -1,6 +1,6 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const io =require('io')
+const io = require('io')
 const { id, sdb, subs: [get] } = statedb(fallback_module)
 
 
@@ -84,7 +84,7 @@ function fallback_module () {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
-      }, 'lang/': {}
+      }, 'lang/': {}, 'io/': {}
     }
   }
   function override_app ([app]) {
@@ -96,6 +96,12 @@ function fallback_module () {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
+      data.drive['io/'] = {
+        'page.id': {
+          raw: 'page'
+        }
+      }
+    
       return data
     }
     return data
