@@ -1,9 +1,13 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-patch_cache_in_browser(arguments[4], arguments[5])
+const USE_GITHUB_STATE = false
+
+
 clear_db_on_file_change()
-require('./page') // or whatever is otherwise the main entry of our project
+patch_cache_in_browser(arguments[4], arguments[5]).then(() => {
 
-
+  // @INFO: trigger at the end :-)
+  require('./page') // or whatever is otherwise the main entry of our project
+})
 
 function clear_db_on_file_change() {
   const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
@@ -26,7 +30,26 @@ document.addEventListener('visibilitychange', () => {
 })
 
 
-function patch_cache_in_browser (source_cache, module_cache) {
+async function patch_cache_in_browser (source_cache, module_cache) {
+  let STATE_JS
+  if(USE_GITHUB_STATE){
+    const state_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
+    const localdb_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/localdb.js'
+    STATE_JS = await Promise.all([
+      fetch(state_url).then(res => res.text()),
+      fetch(localdb_url).then(res => res.text()),
+    ]).then(([state_source, localdb_source]) => {
+      const localdb = load(localdb_source)
+      const STATE_JS = load(state_source, () => localdb)
+      return STATE_JS
+      function load (source, require) {
+        const module = { exports: {} }
+        const f = new Function('module', 'require', source)
+        f(module, require)
+        return module.exports
+      }
+    })
+  }
   const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
@@ -46,7 +69,11 @@ function patch_cache_in_browser (source_cache, module_cache) {
         const identifier = resolve(name)
         if (name.endsWith('STATE') || name === 'io') {
           const modulepath = meta.modulepath.join('>')
-          const original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
+          let original_export
+          if(name.endsWith('STATE') && USE_GITHUB_STATE) 
+            original_export = STATE_JS
+          else
+            original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
           const exports = (...args) => original_export(...args, modulepath, Object.keys(dependencies))
           return exports
         } else {
@@ -127,7 +154,15 @@ function fallback_module () { // -> set database defaults or load from database
   }
   function fallback_instance () {
     return {
-      _: { "head": { 0: '' }, "foot": { 0: '' } },
+      _: { "head": { 0: '',
+        mapping: {
+          'theme': 'theme',
+        }
+       }, "foot": { 0: '',
+        mapping: {
+          'theme': 'theme',
+        }
+        } },
       drive: {
         'theme/': {
           'style.css': {
@@ -446,7 +481,12 @@ function fallback_module () { // -> set database defaults or load from database
   }
   function fallback_instance () {
     return {
-      _: { "foo": { 0: '' } },
+      _: { "foo": { 0: '',
+        mapping: {
+          'theme': 'theme',
+          'lang': 'lang',
+        }
+       } },
       drive: {
         'theme/': {
           'style.css': {
@@ -656,7 +696,7 @@ async function menu_hover(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb } = get.hover(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     style: inject,
     lang: fill
@@ -713,14 +753,66 @@ async function menu_hover(opts) {
 
 
 function fallback_module () {
+  const api = fallback_instance
+  api.hover = fallback_instance_hover
   return {
-    api: fallback_instance,
+    api,
     _: { btn: { $: '' }}
   }
   function fallback_instance () {
     return {
       _: {
-        btn: { 0: '' , 1: '' }},
+        btn: { 0: '' , 1: '',
+          mapping: {
+            'lang': 'lang',
+          }
+         }},
+      drive: {
+        'style/': {
+          'theme.css': {
+            raw: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
+          }
+        },
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              title: 'menu',
+              links: ['link1', 'link2'],
+            }
+          },
+        },
+      }
+    }
+  }
+  function fallback_instance_hover () {
+    return {
+      _: {
+        btn: { 0: '' , 1: '',
+          mapping: {
+            'lang': 'lang',
+          }
+         }},
       drive: {
         'style/': {
           'theme.css': {
@@ -847,9 +939,10 @@ function fallback_module () { // -> set database defaults or load from database
       _: { 'menu':{ 
         0: override_menu, 1: override_menu1, 2: '',
         3: override_menu_hover,
-          mapping: { 'style': 'theme' }
+          mapping: { 'style': 'theme', 'lang': 'lang', 'io': 'io' }
         }, btn: {
-          0: ''
+          0: '',
+          mapping: { 'lang': 'lang' }
         },
       },
       drive: {
@@ -1056,7 +1149,9 @@ async function inject (data){
 
 function fallback_module () { 
 	return {
-    _: { "app": { $: '', 0: override_app } },
+    _: { "app": { $: '', 0: override_app, 
+      mapping: {
+    } } },
     drive: {
       'theme/': {
         'style.css': {
@@ -1117,8 +1212,7 @@ const status = {
   missing_supers: new Set(),
   imports: {},
   expected_imports: {},
-  used_ids: new Set(),
-  root_datasets: []
+  used_ids: new Set()
 }
 window.STATEMODULE = status
 
@@ -1190,10 +1284,16 @@ function STATE (address, modulepath, dependencies) {
     
     const sdb = create_statedb_interface(local_status, modulepath, xtype = 'module')
     status.dataset = sdb.private_api
+
+    const get = init_instance
+    const extra_fallbacks = Object.entries(local_status.fallback_instance || {})
+    extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
+      get[key] = (sid) => get(sid, value)
+    })
     return {
       id: modulepath,
       sdb: sdb.public_api,
-      subs: [get],
+      subs: [init_instance],
       // sub_modules
     }
   }
@@ -1234,10 +1334,14 @@ function STATE (address, modulepath, dependencies) {
     if (status.fallback_check) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
-      console.log('Main module: ', statedata.name, '\n', state_entries)
+      console.log('Main module: ', statedata.id, '\n', state_entries)
       updated_local_status && Object.assign(local_status, updated_local_status)
       const old_fallback = local_status.fallback_instance
       local_status.fallback_instance = () => statedata.api([old_fallback])
+      const extra_fallbacks = Object.entries(old_fallback || {})
+      extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
+        local_status.fallback_instance[key] = () => statedata.api[key] ? statedata.api[key]([value]) : old_fallback[key]()
+      })
       db.append(['state'], state_entries)
       // add_source_code(statedata.inputs) // @TODO: remove side effect
     }
@@ -1257,14 +1361,14 @@ function STATE (address, modulepath, dependencies) {
     //   sub_modules[db.read(['state', id]).type] = id
     // })
   }
-  function get (sid) {
-    const {statedata, state_entries, newstatus} = get_instance_data(sid)
+  function init_instance (sid, fallback = local_status.fallback_instance) {
+    const {statedata, state_entries, newstatus} = get_instance_data(sid, fallback)
     
     if (status.fallback_check) {
       Object.assign(status.root_module, newstatus.root_module)
       Object.assign(status.overrides, newstatus.overrides)
       Object.assign(status.tree, newstatus.tree)
-      console.log('Main instance: ', statedata.name, '\n', state_entries)
+      console.log('Main instance: ', statedata.id, '\n', state_entries)
       db.append(['state'], state_entries)
     }
     [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
@@ -1297,7 +1401,7 @@ function STATE (address, modulepath, dependencies) {
       updated_local_status
     }
   }
-  function get_instance_data (sid) {
+  function get_instance_data (sid, fallback) {
     let id = s2i[sid]
     if(id && id.split(':')[0] !== modulepath)
       throw new Error(`Access denied! Wrong SID '${id}' used by instance of '${modulepath}'`)
@@ -1308,11 +1412,11 @@ function STATE (address, modulepath, dependencies) {
     let sanitized_data, updated_status = status
     if (status.fallback_check) {
       if (!data && !status.root_instance) {
-        ({sanitized_data, updated_status} = find_super({ xtype: 'instance', fallback: local_status.fallback_instance, fun_status: status }))
+        ({sanitized_data, updated_status} = find_super({ xtype: 'instance', fallback, fun_status: status }))
       } else {
         ({sanitized_data, updated_status} = validate_and_preprocess({
           fun_status: status,
-          fallback: local_status.fallback_instance, 
+          fallback, 
           xtype: 'instance',
           pre_data: data || {id: get_instance_path(modulepath)}
         }))
@@ -1504,12 +1608,7 @@ function STATE (address, modulepath, dependencies) {
           entry.inputs = []
           const new_drive = []
           Object.entries(entry.drive).forEach(([dataset_type, dataset]) => {
-            let check = true
             dataset_type = dataset_type.split('/')[0]
-            if (status.root_datasets.includes(dataset_type)) 
-              check = false
-            else if (mapping && status.root_datasets.includes(mapping[dataset_type]))
-              check = false
 
             const new_dataset = { files: [], mapping: {} }
             Object.entries(dataset).forEach(([key, value]) => {
@@ -1537,11 +1636,10 @@ function STATE (address, modulepath, dependencies) {
 
 
             if(!status.root_module){
-              if(check)
-                throw new Error(`Module "${local_status.name}" can't define new "${dataset_type}" dataset`)
-
               const hub_entry = db.read(['state', entry.hubs[0]])
-              const mapped_file_type = mapping?.[dataset_type] || dataset_type
+              if(!mapping?.[dataset_type])
+                throw new Error(`No mapping found for dataset "${dataset_type}" of subnode "${entry.id}" in node "${hub_entry.id}"\nTip: Add a mapping prop for "${dataset_type}" dataset in "${hub_entry.id}"'s fallback for "${entry.id}"` + FALLBACK_POST_ERROR)
+              const mapped_file_type = mapping[dataset_type]
               hub_entry.inputs.forEach(input_id => {
                 const input = db.read(['state', input_id])
                 if(mapped_file_type === input.type){
@@ -1550,9 +1648,6 @@ function STATE (address, modulepath, dependencies) {
                   return
                 }
               })
-            }
-            else{
-              status.root_datasets.push(dataset_type)
             }
           })
           entry.drive = new_drive
@@ -1979,7 +2074,6 @@ function create_statedb_interface (local_status, node_id, xtype) {
 async function make_input_map (inputs) {
   const input_map = []   
   if (inputs) {
-    console.log('Inputs: ', inputs)
     await Promise.all(inputs.map(async input => {
       let files = []
       const dataset = db.read(['state', input])

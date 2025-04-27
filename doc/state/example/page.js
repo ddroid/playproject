@@ -78,7 +78,9 @@ async function inject (data){
 
 function fallback_module () { 
 	return {
-    _: { "app": { $: '', 0: override_app } },
+    _: { "app": { $: '', 0: override_app, 
+      mapping: {
+    } } },
     drive: {
       'theme/': {
         'style.css': {
