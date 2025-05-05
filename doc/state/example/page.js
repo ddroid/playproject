@@ -80,6 +80,7 @@ function fallback_module () {
 	return {
     _: { "app": { $: '', 0: override_app, 
       mapping: {
+        'theme': 'theme',
     } } },
     drive: {
       'theme/': {
