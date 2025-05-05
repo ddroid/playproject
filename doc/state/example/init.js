@@ -1,14 +1,10 @@
 let USE_GITHUB_STATE
 
 module.exports = getArguments
-function getArguments(check, args) {
+async function getArguments(check, args) {
   USE_GITHUB_STATE = check
   clear_db_on_file_change()
-  patch_cache_in_browser(args[4], args[5]).then(() => {
-
-    // @INFO: trigger at the end :-)
-    require('./page') // or whatever is otherwise the main entry of our project
-  })
+  await patch_cache_in_browser(args[4], args[5])
 }
 
 function clear_db_on_file_change() {
