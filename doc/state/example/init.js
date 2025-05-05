@@ -1,8 +1,7 @@
 let USE_GITHUB_STATE
-const args = arguments
 
 module.exports = getArguments
-function getArguments(check) {
+function getArguments(check, args) {
   USE_GITHUB_STATE = check
   clear_db_on_file_change()
   patch_cache_in_browser(args[4], args[5]).then(() => {
@@ -34,7 +33,6 @@ document.addEventListener('visibilitychange', () => {
 
 
 async function patch_cache_in_browser (source_cache, module_cache) {
-  console.log(source_cache, module_cache)
   let STATE_JS
   if(USE_GITHUB_STATE){
     const state_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
