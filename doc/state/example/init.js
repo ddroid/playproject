@@ -1,5 +1,6 @@
-module.exports = getArguments
-async function getArguments(args) {
+module.exports = init
+
+async function init(args) {
   clear_db_on_file_change()
   await patch_cache_in_browser(args[4], args[5])
 }
