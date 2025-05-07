@@ -48,8 +48,8 @@ const expected_structure = {
   },
   'drive::object': {
     ':*:object|string': {
-      'raw|link:*:object|string': {},
-      'link': 'string',
+      'raw|$ref:*:object|string': {},
+      '$ref': 'string',
     },
   },
 };
@@ -119,7 +119,7 @@ function fallback_module() {
        - **`raw`** (Raw Content)
          - Stores raw file content as an `object` or `string`.
        - **`link`** (External File Link)
-         - Stores a link to an external file (any type).
+         - Stores a link to an external file (any type), the file needs to be inside the module folder.
 
 ---
 ## Module Structure and Usage

@@ -1,98 +1,16 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-const USE_GITHUB_STATE = false
+const init_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/doc/state/example/init.js'
+const args = arguments
 
-
-clear_db_on_file_change()
-patch_cache_in_browser(arguments[4], arguments[5]).then(() => {
-
-  // @INFO: trigger at the end :-)
+fetch(init_url).then(res => res.text()).then(async source => {
+  const module = { exports: {} }
+  const f = new Function('module', 'require', source)
+  f(module, require)
+  const init = module.exports
+  await init(args)
   require('./page') // or whatever is otherwise the main entry of our project
 })
 
-function clear_db_on_file_change() {
-  const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
-  const last_item = sessionStorage.getItem('last_item')
-  const now = Date.now()
-
-  if (!(is_file_changed && last_item && (now - last_item) < 200)) {
-    localStorage.clear()
-  }
-
-  sessionStorage.removeItem('file_change_reload')
-  sessionStorage.removeItem('last_item')
-}
-
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    sessionStorage.setItem('file_change_reload', 'true')
-    sessionStorage.setItem('last_item', Date.now())
-  }
-})
-
-
-async function patch_cache_in_browser (source_cache, module_cache) {
-  let STATE_JS
-  if(USE_GITHUB_STATE){
-    const state_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
-    const localdb_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/localdb.js'
-    STATE_JS = await Promise.all([
-      fetch(state_url).then(res => res.text()),
-      fetch(localdb_url).then(res => res.text()),
-    ]).then(([state_source, localdb_source]) => {
-      const localdb = load(localdb_source)
-      const STATE_JS = load(state_source, () => localdb)
-      return STATE_JS
-      function load (source, require) {
-        const module = { exports: {} }
-        const f = new Function('module', 'require', source)
-        f(module, require)
-        return module.exports
-      }
-    })
-  }
-  const meta = { modulepath: ['page'], paths: {} }
-  for (const key of Object.keys(source_cache)) {
-    const [module, names] = source_cache[key]
-    const dependencies = names || {}
-    source_cache[key][0] = patch(module, dependencies, meta)
-  }
-  function patch (module, dependencies, meta) {
-    const MAP = {}
-    for (const [name, number] of Object.entries(dependencies)) MAP[name] = number
-    return (...args) => {
-      const original = args[0]
-      require.cache = module_cache
-      require.resolve = resolve
-      args[0] = require
-      return module(...args)
-      function require (name) {
-        const identifier = resolve(name)
-        if (name.endsWith('STATE') || name === 'io') {
-          const modulepath = meta.modulepath.join('>')
-          let original_export
-          if(name.endsWith('STATE') && USE_GITHUB_STATE) 
-            original_export = STATE_JS
-          else
-            original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
-          const exports = (...args) => original_export(...args, modulepath, Object.keys(dependencies))
-          return exports
-        } else {
-          // Clear cache for non-STATE and non-io modules
-          delete require.cache[identifier]
-          const counter = meta.modulepath.concat(name).join('>')
-          if (!meta.paths[counter]) meta.paths[counter] = 0
-          let localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
-          meta.paths[counter]++
-          meta.modulepath.push(localid.replace(/^\.\+/, '').replace('>', ','))
-          const exports = original(name)
-          meta.modulepath.pop(name)
-          return exports
-        }
-      }
-    }
-    function resolve (name) { return MAP[name] }
-  }
-}
 },{"./page":12}],2:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
@@ -557,21 +475,56 @@ function fallback_module () {
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/icon.js")
 },{"../../../../src/node_modules/STATE":13}],8:[function(require,module,exports){
-const ports = {}
+const taken = {}
 
-let timer
 module.exports = io
-function io(id, name, on) {
-  const on_rx = {}
-  ports[id] = { id, name, on}
-  return send
+function io(seed, alias, on) {
+  if (taken[seed]) throw new Error(`seed "${seed}" already taken`)
+  // const pk = seed.slice(0, seed.length / 2)
+  // const sk = seed.slice(seed.length / 2, seed.length)
+  const self = taken[seed] = { id: seed, peer: {} }
+  taken[seed] = { seed, alias, on}
+  const io = { at, on, send }
+  return io
 
   async function send(data) {
-    const port = ports[data.to] || ports[await find_id(data.to)] || on_rx
+    const port = taken[data.to] || taken[await find_id(data.to)] || {}
     return port.on[data.type](data.args)
   }
-  async function find_id (name){
-    return (Object.values(ports).filter(node => node.name === name)[0] || undefined)
+  async function find_id (alias){
+    return (Object.values(taken).filter(node => node.alias === alias)[0] || undefined)
+  }
+  async function at (id, signal = AbortSignal.timeout(1000)) {
+    if (id === pk) throw new Error('cannot connect to loopback address')
+    if (!self.online) throw new Error('network must be online')
+    const peer = taken[id] || {}
+    // if (self.peer[id] && peer.peer[pk]) {
+    //   self.peer[id].close() || delete self.peer[id]
+    //   peer.peer[pk].close() || delete peer.peer[pk]
+    //   return console.log('disconnect')
+    // }
+    if (!peer.online) return wait() // peer with id is offline or doesnt exist
+    connect()
+    function wait () {
+      const { resolve, reject, promise } = Promise.withResolvers()
+      signal.onabort = () => reject(`timeout connecting to "${id}"`)
+      peer.online = { resolve }
+      return promise.then(connect)
+    }
+    function connect () {
+      signal.onabort = null
+      const { port1, port2 } = new MessageChannel()
+      port2.by = port1.to = id
+      port2.to = port1.by = pk
+      self.online(self.peer[id] = port1)
+      peer.online(peer.peer[pk] = port2)
+    }
+  }
+  function on (online) { 
+    if (!online) return self.online = null
+    const resolve = self.online?.resolve
+    self.online = online
+    if (resolve) resolve(online)
   }
 }
 },{}],9:[function(require,module,exports){
@@ -855,7 +808,7 @@ function fallback_module () {
 }).call(this)}).call(this,"/doc/state/example/node_modules/menu.js")
 },{"../../../../src/node_modules/STATE":13,"btn":3,"io":8}],10:[function(require,module,exports){
 (function (__filename){(function (){
-const STATE = require('../../../../src/node_modules/STATE')
+const STATE = require('../../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { sdb, subs: [get] } = statedb(fallback_module)
 
@@ -948,29 +901,7 @@ function fallback_module () { // -> set database defaults or load from database
       drive: {
         'theme/': {
           'style.css': {
-            raw: `
-              nav{
-                display: flex;
-                gap: 20px;
-                padding: 20px;
-                background: #4b6d6d;
-                color: white;
-                box-shadow: 0px 1px 6px 1px gray;
-                margin: 5px;
-              }
-              .title{
-                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
-                transition: color .5s ease, background-size .5s;
-                cursor: pointer;
-              }
-              .box{
-                display: flex;
-                gap: 20px;
-              }
-              .title:hover{
-                --underline-width: 100%
-              }
-            `
+            $ref: 'nav.css'
           }
         },
         'lang/': {
@@ -1008,8 +939,8 @@ function fallback_module () { // -> set database defaults or load from database
     return data
   }
 }
-}).call(this)}).call(this,"/doc/state/example/node_modules/nav.js")
-},{"../../../../src/node_modules/STATE":13,"btn":3,"menu":9}],11:[function(require,module,exports){
+}).call(this)}).call(this,"/doc/state/example/node_modules/nav/nav.js")
+},{"../../../../../src/node_modules/STATE":13,"btn":3,"menu":9}],11:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
@@ -1151,6 +1082,7 @@ function fallback_module () {
 	return {
     _: { "app": { $: '', 0: override_app, 
       mapping: {
+        'theme': 'theme',
     } } },
     drive: {
       'theme/': {
@@ -1196,7 +1128,7 @@ const db = localdb()
 const VERSION = 11
 const HELPER_MODULES = ['io', 'localdb', 'STATE']
 const FALLBACK_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#defining-fallbacks'
-
+const FALLBACK_SYNTAX_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#key-descriptions'
 const status = {
   root_module: true, 
   root_instance: true, 
@@ -1228,6 +1160,7 @@ let admins = [0]
 
 // Inner Function
 function STATE (address, modulepath, dependencies) {
+  console.log('STATE: ', modulepath, address)
   !status.ROOT_ID && (status.ROOT_ID = modulepath)
   status.modulepaths[modulepath] = 0
   //Variables (module-level)
@@ -1666,7 +1599,9 @@ function STATE (address, modulepath, dependencies) {
       file.local_name = file_id
       file.type = type
       file[file.type === 'js' ? 'subs' : 'hubs'] = [entry.id]
-      
+      if(file.$ref){
+        file.$ref = 'node_modules' + '/' + local_status.name.split('>').at(-1) + '/' + file.$ref
+      }
       const copies = Object.keys(db.read_all(['state', file.id]))
       if (copies.length) {
         const no = copies.sort().at(-1).split(':')[1]
@@ -1704,8 +1639,8 @@ function validate (data, xtype) {
     'drive::object': {
       "::object": {
         "::object": { // Required key, any name allowed
-          "raw|link:*:object|string": {}, // data or link are names, required, object or string are types
-          "link": "string"
+          "raw|$ref:*:object|string": {}, // data or $ref are names, required, object or string are types
+          "$ref": "string"
         }
       },
     },
@@ -1779,7 +1714,15 @@ async function get_input ({ id, name, $ref, type, raw }) {
   let result = db.read([type, id])
   
   if (!result) {
-    result = raw !== undefined ? raw : await((await fetch($ref))[xtype === 'json' ? 'json' : 'text']())
+    if (raw === undefined){
+      const response = await fetch($ref)
+      if (!response.ok) 
+        throw new Error(`Failed to fetch data from '${$ref}' for '${id}'` + FALLBACK_SYNTAX_POST_ERROR);
+      else
+        result = await response[xtype === 'json' ? 'json' : 'text']()
+    }
+    else
+      result = raw
   }
   return result
 }
