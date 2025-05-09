@@ -107,6 +107,11 @@ function fallback_module() {
        - Represents numbered instances (e.g., `1`, `2`).
        - Same behavior as the `$` key.
 
+     - **`mapping`**
+       - Reserved key for mapping datasets with sub-datasets by `dataset_type`
+       - Each dataset used by sub-node needs to be mapped to a dataset of its super
+
+
 2. **`drive` (Storage)**
    - Represents stored data accessible by the node.
    - Allows smooth insertion and modification of node data.
