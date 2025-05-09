@@ -123,7 +123,7 @@ function fallback_module() {
      - **`file`** (File Storage)
        - **`raw`** (Raw Content)
          - Stores raw file content as an `object` or `string`.
-       - **`link`** (External File Link)
+       - **`$ref`** (External File Link)
          - Stores a link to an external file (any type), the file needs to be inside the module folder.
 
 ---
