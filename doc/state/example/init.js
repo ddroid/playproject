@@ -1,8 +1,8 @@
-let USE_GITHUB_STATE
+const USE_LOCAL = location.hash === '#dev'
+
 
 module.exports = init
-async function init(args, check = true) {
-  USE_GITHUB_STATE = check
+async function init(args) {
   clear_db_on_file_change()
   await patch_cache_in_browser(args[4], args[5])
 }
@@ -30,24 +30,29 @@ document.addEventListener('visibilitychange', () => {
 
 async function patch_cache_in_browser (source_cache, module_cache) {
   let STATE_JS
-  if(USE_GITHUB_STATE){
-    const state_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
-    const localdb_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/localdb.js'
-    STATE_JS = await Promise.all([
-      fetch(state_url).then(res => res.text()),
-      fetch(localdb_url).then(res => res.text()),
-    ]).then(([state_source, localdb_source]) => {
-      const localdb = load(localdb_source)
-      const STATE_JS = load(state_source, () => localdb)
-      return STATE_JS
-      function load (source, require) {
-        const module = { exports: {} }
-        const f = new Function('module', 'require', source)
-        f(module, require)
-        return module.exports
-      }
-    })
-  }
+  const state_url = USE_LOCAL ? '/src/node_modules/STATE.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
+  const localdb_url = USE_LOCAL ? '/src/node_modules/localdb.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/localdb.js'
+  const io_url = USE_LOCAL ? '/src/node_modules/io.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/io.js'
+
+  STATE_JS = await Promise.all([
+    fetch(state_url, { cache: "no-store" }).then(res => res.text()),
+    fetch(localdb_url, { cache: "no-store" }).then(res => res.text()),
+    fetch(io_url, { cache: "no-store" }).then(res => res.text())
+  ]).then(([state_source, localdb_source, io_source]) => {
+    const dependencies = {
+      localdb: load(localdb_source),
+      io: load(io_source),
+    }
+    const STATE_JS = load(state_source, (dependency) => dependencies[dependency])
+    return STATE_JS
+    function load (source, require) {
+      const module = { exports: {} }
+      const f = new Function('module', 'require', source)
+      f(module, require)
+      return module.exports
+    }
+  })
+
   const meta = { modulepath: ['page'], paths: {} }
   for (const key of Object.keys(source_cache)) {
     const [module, names] = source_cache[key]
@@ -68,7 +73,7 @@ async function patch_cache_in_browser (source_cache, module_cache) {
         if (name.endsWith('STATE') || name === 'io') {
           const modulepath = meta.modulepath.join('>')
           let original_export
-          if(name.endsWith('STATE') && USE_GITHUB_STATE) 
+          if(name.endsWith('STATE')) 
             original_export = STATE_JS
           else
             original_export = require.cache[identifier] || (require.cache[identifier] = original(name))

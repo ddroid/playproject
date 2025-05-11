@@ -1,21 +1,20 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-const init_url = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/doc/state/example/init.js'
+const init_url = location.hash === '#dev' ? '/doc/state/example/init.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/doc/state/example/init.js'
 const args = arguments
 
-fetch(init_url).then(res => res.text()).then(async source => {
+fetch(init_url, { cache: "no-store" }).then(res => res.text()).then(async source => {
   const module = { exports: {} }
   const f = new Function('module', 'require', source)
   f(module, require)
   const init = module.exports
-  await init(args)
+  await init(args) 
   require('./page') // or whatever is otherwise the main entry of our project
 })
-
-},{"./page":12}],2:[function(require,module,exports){
+},{"./page":11}],2:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   PAGE
@@ -93,11 +92,11 @@ function fallback_module () { // -> set database defaults or load from database
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/app.js")
-},{"../../../../src/node_modules/STATE":13,"foot":5,"head":6}],3:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12,"foot":5,"head":6}],3:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   BTN
@@ -215,7 +214,7 @@ function fallback_module () {
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/btn.js")
-},{"../../../../src/node_modules/STATE":13,"icon":7}],4:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12,"icon":7}],4:[function(require,module,exports){
 function fallback_module () { // -> set database defaults or load from database
 	return {
     _: {
@@ -276,11 +275,11 @@ async function foo(opts) {
   return el
 }
 
-},{"nav":10}],5:[function(require,module,exports){
+},{"nav":9}],5:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   FOOT
@@ -340,11 +339,11 @@ function fallback_module () {
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/foot.js")
-},{"../../../../src/node_modules/STATE":13,"text":11}],6:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12,"text":10}],6:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   HEAD
@@ -416,11 +415,11 @@ function fallback_module () { // -> set database defaults or load from database
   }
 }
 }).call(this)}).call(this,"/doc/state/example/node_modules/head.js")
-},{"../../../../src/node_modules/STATE":13,"foo":4}],7:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12,"foo":4}],7:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   ICON
@@ -474,65 +473,11 @@ function fallback_module () {
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/icon.js")
-},{"../../../../src/node_modules/STATE":13}],8:[function(require,module,exports){
-const taken = {}
-
-module.exports = io
-function io(seed, alias, on) {
-  if (taken[seed]) throw new Error(`seed "${seed}" already taken`)
-  // const pk = seed.slice(0, seed.length / 2)
-  // const sk = seed.slice(seed.length / 2, seed.length)
-  const self = taken[seed] = { id: seed, peer: {} }
-  taken[seed] = { seed, alias, on}
-  const io = { at, on, send }
-  return io
-
-  async function send(data) {
-    const port = taken[data.to] || taken[await find_id(data.to)] || {}
-    return port.on[data.type](data.args)
-  }
-  async function find_id (alias){
-    return (Object.values(taken).filter(node => node.alias === alias)[0] || undefined)
-  }
-  async function at (id, signal = AbortSignal.timeout(1000)) {
-    if (id === pk) throw new Error('cannot connect to loopback address')
-    if (!self.online) throw new Error('network must be online')
-    const peer = taken[id] || {}
-    // if (self.peer[id] && peer.peer[pk]) {
-    //   self.peer[id].close() || delete self.peer[id]
-    //   peer.peer[pk].close() || delete peer.peer[pk]
-    //   return console.log('disconnect')
-    // }
-    if (!peer.online) return wait() // peer with id is offline or doesnt exist
-    connect()
-    function wait () {
-      const { resolve, reject, promise } = Promise.withResolvers()
-      signal.onabort = () => reject(`timeout connecting to "${id}"`)
-      peer.online = { resolve }
-      return promise.then(connect)
-    }
-    function connect () {
-      signal.onabort = null
-      const { port1, port2 } = new MessageChannel()
-      port2.by = port1.to = id
-      port2.to = port1.by = pk
-      self.online(self.peer[id] = port1)
-      peer.online(peer.peer[pk] = port2)
-    }
-  }
-  function on (online) { 
-    if (!online) return self.online = null
-    const resolve = self.online?.resolve
-    self.online = online
-    if (resolve) resolve(online)
-  }
-}
-},{}],9:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12}],8:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const io = require('io')
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get, io } = statedb(fallback_module)
 
 /******************************************************************************
   MENU
@@ -546,38 +491,21 @@ async function menu(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
-  let page_id
+  const { id, sdb, net } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     style: inject,
     lang: fill,
-    io: ([data]) => {
-      page_id = data
-    }
   }
-  const send = io(id, 'menu', on)
 
-  // ----------------------------------------
-  // TEMPLATE
-  // ----------------------------------------
-  const el = document.createElement('div')
-  const shopts = { mode: 'closed' }
-  const shadow = el.attachShadow(shopts)
-  shadow.innerHTML = `
-    <div tabindex='0' class='title'></div>
-    <ul>
-    </ul>
-    <style></style>`
-  const main = shadow.querySelector('ul')
-  const title = shadow.querySelector('.title')
-  const style = shadow.querySelector('style')
-  const subs = await sdb.watch(onbatch)
-  // ----------------------------------------
-  // EVENT LISTENERS
-  // ----------------------------------------
-  title.onclick = () => {
-    main.classList.toggle('active')
-    send({to: page_id, type: 'register', args: {
+  io.on(port => {
+    const { by, to } = port
+    const remote_address = port.to
+    port.onmessage = event => {
+      const txt = event.data
+      const key = `[${by} -> ${to}]`
+      console.log(key, txt)
+    }
+    port.postMessage({type: 'register', args: {
       type: 'theme', 
       name: 'rainbow', 
       dataset: {
@@ -616,6 +544,29 @@ async function menu(opts) {
       
     }
     }})
+  
+  })
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <div tabindex='0' class='title'></div>
+    <ul>
+    </ul>
+    <style></style>`
+  const main = shadow.querySelector('ul')
+  const title = shadow.querySelector('.title')
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // EVENT LISTENERS
+  // ----------------------------------------
+  title.onclick = () => {
+    io.at(net[0])
+    main.classList.toggle('active')
   }
   title.onblur = () => {
     main.classList.remove('active')
@@ -806,11 +757,11 @@ function fallback_module () {
   }
 }
 }).call(this)}).call(this,"/doc/state/example/node_modules/menu.js")
-},{"../../../../src/node_modules/STATE":13,"btn":3,"io":8}],10:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12,"btn":3}],9:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   NAV
@@ -940,11 +891,11 @@ function fallback_module () { // -> set database defaults or load from database
   }
 }
 }).call(this)}).call(this,"/doc/state/example/node_modules/nav/nav.js")
-},{"../../../../../src/node_modules/STATE":13,"btn":3,"menu":9}],11:[function(require,module,exports){
+},{"../../../../../src/node_modules/STATE":12,"btn":3,"menu":8}],10:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { sdb, subs: [get] } = statedb(fallback_module)
+const { sdb, get } = statedb(fallback_module)
 
 /******************************************************************************
   TEXT
@@ -998,12 +949,11 @@ function fallback_module () {
 }
 
 }).call(this)}).call(this,"/doc/state/example/node_modules/text.js")
-},{"../../../../src/node_modules/STATE":13}],12:[function(require,module,exports){
+},{"../../../../src/node_modules/STATE":12}],11:[function(require,module,exports){
 (function (__filename,__dirname){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const io = require('io')
-const { id, sdb, subs: [get] } = statedb(fallback_module)
+const { id, sdb, get, io } = statedb(fallback_module)
 
 
 /******************************************************************************
@@ -1017,10 +967,6 @@ async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
   const meta = document.createElement('meta')
-	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
-	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
-	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
-	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
   const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 	const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 	html.setAttribute('lang', 'en')
@@ -1028,7 +974,7 @@ async function config () {
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
   // @TODO: use font api and cache to avoid re-downloading the font data every time
   document.head.append(meta)
-  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest + loadFont
+  document.head.innerHTML += loadFont
 	document.adoptedStyleSheets = [sheet]
   await document.fonts.ready // @TODO: investigate why there is a FOUC
 }
@@ -1043,10 +989,15 @@ async function boot (opts) {
     theme: inject,
     ...sdb.admin
   }
-  const send = io(id, 'page', on)
-
+  
   const subs = await sdb.watch(onbatch)
-
+  io.on(port => {
+    const { by, to } = port
+    port.onmessage = event => {
+      const data = event.data
+      on[data.type] && on[data.type](data.args)
+    }
+  })
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -1089,7 +1040,7 @@ function fallback_module () {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
-      }, 'lang/': {}, 'io/': {}
+      }, 'lang/': {}
     }
   }
   function override_app ([app]) {
@@ -1101,20 +1052,17 @@ function fallback_module () {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
-      data.drive['io/'] = {
-        'page.id': {
-          raw: 'page'
-        }
-      }
-    
+      data.net = ['page']
       return data
     }
     return data
   }
 }
 }).call(this)}).call(this,"/doc/state/example/page.js","/doc/state/example")
-},{"../../../src/node_modules/STATE":13,"app":2,"io":8}],13:[function(require,module,exports){
+},{"../../../src/node_modules/STATE":12,"app":2}],12:[function(require,module,exports){
 const localdb = require('localdb')
+const io = require('io')
+
 const db = localdb()
 /** Data stored in a entry in db by STATE (Schema): 
  * id (String): Node Path 
@@ -1160,7 +1108,6 @@ let admins = [0]
 
 // Inner Function
 function STATE (address, modulepath, dependencies) {
-  console.log('STATE: ', modulepath, address)
   !status.ROOT_ID && (status.ROOT_ID = modulepath)
   status.modulepaths[modulepath] = 0
   //Variables (module-level)
@@ -1226,7 +1173,8 @@ function STATE (address, modulepath, dependencies) {
     return {
       id: modulepath,
       sdb: sdb.public_api,
-      subs: [init_instance],
+      get: init_instance,
+      io: io(modulepath, modulepath)
       // sub_modules
     }
   }
@@ -1310,6 +1258,7 @@ function STATE (address, modulepath, dependencies) {
     const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
     return {
       id: statedata.id,
+      net: statedata.net,
       sdb: sdb.public_api,
     }
   }
@@ -1623,7 +1572,6 @@ function validate (data, xtype) {
    * ":" : separator
    * "|" : OR
    * "*" : Required key
-   * 
    * */
   const expected_structure = {
     'api::function': () => {},
@@ -1644,6 +1592,7 @@ function validate (data, xtype) {
         }
       },
     },
+    'net::array': []
   }
 
   validate_shape(data, expected_structure)
@@ -2032,7 +1981,53 @@ async function make_input_map (inputs) {
 
 
 module.exports = STATE
-},{"localdb":14}],14:[function(require,module,exports){
+},{"io":13,"localdb":14}],13:[function(require,module,exports){
+const taken = {}
+
+module.exports = io
+function io(seed, alias) {
+  if (taken[seed]) throw new Error(`seed "${seed}" already taken`)
+  // const pk = seed.slice(0, seed.length / 2)
+  // const sk = seed.slice(seed.length / 2, seed.length)
+  const self = taken[seed] = { id: seed, alias, peer: {} }
+  const io = { at, on }
+  return io
+
+  async function at (id, signal = AbortSignal.timeout(1000)) {
+    if (id === seed) throw new Error('cannot connect to loopback address')
+    if (!self.online) throw new Error('network must be online')
+    const peer = taken[id] || {}
+    // if (self.peer[id] && peer.peer[pk]) {
+    //   self.peer[id].close() || delete self.peer[id]
+    //   peer.peer[pk].close() || delete peer.peer[pk]
+    //   return console.log('disconnect')
+    // }
+    // self.peer[id] = peer
+    if (!peer.online) return wait() // peer with id is offline or doesnt exist
+    connect()
+    function wait () {
+      const { resolve, reject, promise } = Promise.withResolvers()
+      signal.onabort = () => reject(`timeout connecting to "${id}"`)
+      peer.online = { resolve }
+      return promise.then(connect)
+    }
+    function connect () {
+      signal.onabort = null
+      const { port1, port2 } = new MessageChannel()
+      port2.by = port1.to = id
+      port2.to = port1.by = seed
+      self.online(self.peer[id] = port1)
+      peer.online(peer.peer[seed] = port2)
+    }
+  }
+  function on (online) { 
+    if (!online) return self.online = null
+    const resolve = self.online?.resolve
+    self.online = online
+    if (resolve) resolve(online)
+  }
+}
+},{}],14:[function(require,module,exports){
 /******************************************************************************
   LOCALDB COMPONENT
 ******************************************************************************/

@@ -40,19 +40,26 @@ A key consists of three parameters:
 #### Rules
 ```js   
 const expected_structure = {
-  'api::function': {},
+  'api::function': () => {},
   '_::object': {
-    ':*': {
-      ':*:function|string': () => {},
+    ":*:object": xtype === 'module' ? {
+      ":*:function|string|object": '',
+      "mapping::": {}
+    } : { // Required key, any name allowed
+      ":*:function|string|object": () => {}, // Optional key
+      "mapping::": {}
     },
   },
   'drive::object': {
-    ':*:object|string': {
-      'raw|$ref:*:object|string': {},
-      '$ref': 'string',
+    "::object": {
+      "::object": { // Required key, any name allowed
+        "raw|$ref:*:object|string": {}, // data or $ref are names, required, object or string are types
+        "$ref": "string"
+      }
     },
   },
-};
+  'net::array': []
+}
 ```
 
 ### Fallback Semantics

@@ -1,7 +1,6 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const io = require('io')
-const { id, sdb, subs: [get] } = statedb(fallback_module)
+const { id, sdb, get, io } = statedb(fallback_module)
 
 
 /******************************************************************************
@@ -15,10 +14,6 @@ async function config () {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
   const meta = document.createElement('meta')
-	const appleTouch = `<link rel="apple-touch-icon" sizes="180x180" href="./src/node_modules/assets/images/favicon/apple-touch-icon.png">`
-	const icon32 = `<link rel="icon" type="image/png" sizes="32x32" href="./src/node_modules/assets/images/favicon/favicon-32x32.png">`
-	const icon16 = `<link rel="icon" type="image/png" sizes="16x16" href="./src/node_modules/assets/images/favicon/favicon-16x16.png">`
-	const webmanifest = `<link rel="manifest" href="./src/node_modules/assets/images/favicon/site.webmanifest"></link>`
   const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
 	const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
 	html.setAttribute('lang', 'en')
@@ -26,7 +21,7 @@ async function config () {
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
   // @TODO: use font api and cache to avoid re-downloading the font data every time
   document.head.append(meta)
-  document.head.innerHTML += appleTouch + icon16 + icon32 + webmanifest + loadFont
+  document.head.innerHTML += loadFont
 	document.adoptedStyleSheets = [sheet]
   await document.fonts.ready // @TODO: investigate why there is a FOUC
 }
@@ -41,10 +36,15 @@ async function boot (opts) {
     theme: inject,
     ...sdb.admin
   }
-  const send = io(id, 'page', on)
-
+  
   const subs = await sdb.watch(onbatch)
-
+  io.on(port => {
+    const { by, to } = port
+    port.onmessage = event => {
+      const data = event.data
+      on[data.type] && on[data.type](data.args)
+    }
+  })
   const status = {}
   // ----------------------------------------
   // TEMPLATE
@@ -87,7 +87,7 @@ function fallback_module () {
         'style.css': {
           raw: `body { font-family: 'system-ui'; }`,
         }
-      }, 'lang/': {}, 'io/': {}
+      }, 'lang/': {}
     }
   }
   function override_app ([app]) {
@@ -99,12 +99,7 @@ function fallback_module () {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
-      data.drive['io/'] = {
-        'page.id': {
-          raw: 'page'
-        }
-      }
-    
+      data.net = ['page']
       return data
     }
     return data
