@@ -2,9 +2,9 @@
 
 ## Initializing `STATE`
 ```js
-const STATE = require('STATE');
-const state_db = STATE(__filename);
-const { sdb, subs: [get] } = state_db(fallback_module);
+const STATE = require('STATE')
+const state_db = STATE(__filename)
+const { sdb, get, io } = state_db(fallback_module)
 ```
 1. Import `STATE` and pass `__filename` (a built-in variable containing the file's path) to it.
 2. The returned `state_db` function registers fallbacks and provides `sdb` (the main interface) and `get` (a function for accessing the staet of an instance).
@@ -81,7 +81,7 @@ function fallback_module() {
         },
       },
     },
-  };
+  }
   
   function fallback_instance() {
     // See template.js
@@ -138,9 +138,9 @@ function fallback_module() {
 
 ### Basic Module Setup
 ```js
-module.exports = module_name;
+module.exports = module_name
 async function module_name(opts) {
-  const { id, sdb } = await get(opts.sid);
+  const { id, sdb } = await get(opts.sid)
   // ... module implementation
 }
 ```
@@ -162,7 +162,7 @@ Provides access to following two APIs:
 
 **sdb.watch(onbatch)**
 ```js
-const subs = await sdb.watch(onbatch);
+const subs = await sdb.watch(onbatch)
 function onbatch(batch) {
   for (const {type, data} of batch) {
     on[type](data)
@@ -179,9 +179,9 @@ function onbatch(batch) {
 
 ### Shadow DOM Integration
    ```js
-   const el = document.createElement('div');
-   const shopts = { mode: 'closed' };
-   const shadow = el.attachShadow(shopts);
+   const el = document.createElement('div')
+   const shopts = { mode: 'closed' }
+   const shadow = el.attachShadow(shopts)
    ```
    - Modules can create isolated DOM environments
    - Styles and markup are encapsulated
@@ -189,9 +189,9 @@ function onbatch(batch) {
 
   **Sub-Module Integration**
    ```js
-   const sub_module = require('sub_module_address');
+   const sub_module = require('sub_module_address')
    // ...
-   shadow.append(await sub_module(subs[0]));
+   shadow.append(await sub_module(subs[0]))
    ```
    - Sub-modules can be dynamically loaded
    - State can be passed down to sub-modules

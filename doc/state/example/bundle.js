@@ -482,7 +482,6 @@ const { sdb, get, io } = statedb(fallback_module)
 /******************************************************************************
   MENU
 ******************************************************************************/
-delete require.cache[require.resolve('btn')]
 const {btn, btn_small} = require('btn')
 
 
@@ -491,7 +490,7 @@ async function menu(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb, net } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const { id, sdb, net, io } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     style: inject,
     lang: fill,
@@ -564,8 +563,9 @@ async function menu(opts) {
   // ----------------------------------------
   // EVENT LISTENERS
   // ----------------------------------------
+  
   title.onclick = () => {
-    io.at(net[0])
+    io.at(net[0].id)
     main.classList.toggle('active')
   }
   title.onblur = () => {
@@ -1092,7 +1092,9 @@ const status = {
   missing_supers: new Set(),
   imports: {},
   expected_imports: {},
-  used_ids: new Set()
+  used_ids: new Set(),
+  a2i: {},
+  i2a: {}
 }
 window.STATEMODULE = status
 
@@ -1170,11 +1172,14 @@ function STATE (address, modulepath, dependencies) {
     extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
       get[key] = (sid) => get(sid, value)
     })
+    if(!status.a2i[modulepath]){
+      status.i2a[status.a2i[modulepath] = encode(modulepath)] = modulepath
+    }
     return {
       id: modulepath,
       sdb: sdb.public_api,
       get: init_instance,
-      io: io(modulepath, modulepath)
+      io: io(status.a2i[modulepath], modulepath)
       // sub_modules
     }
   }
@@ -1226,10 +1231,11 @@ function STATE (address, modulepath, dependencies) {
       db.append(['state'], state_entries)
       // add_source_code(statedata.inputs) // @TODO: remove side effect
     }
-
-    [local_status.sub_modules, symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
+    [local_status.sub_modules, symbol2ID, ID2Symbol, adress2ID, ID2Adress] = symbolfy(statedata, local_status)
     Object.assign(s2i, symbol2ID)
     Object.assign(i2s, ID2Symbol)
+    Object.assign(status.a2i, adress2ID)
+    Object.assign(status.i2a, ID2Adress)
     
     //Setup local data (module level)
     if(status.root_module){
@@ -1252,14 +1258,22 @@ function STATE (address, modulepath, dependencies) {
       console.log('Main instance: ', statedata.id, '\n', state_entries)
       db.append(['state'], state_entries)
     }
-    [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol] = symbolfy(statedata, local_status)
+    [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol, adress2ID, ID2Adress] = symbolfy(statedata, local_status)
     Object.assign(s2i, symbol2ID)
     Object.assign(i2s, ID2Symbol)
+    Object.assign(status.a2i, adress2ID)
+    Object.assign(status.i2a, ID2Adress)
+    
     const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
+
+    const sanitized_net = statedata.net?.map(address => {
+      return {address, id: status.a2i[address]}
+    })
     return {
       id: statedata.id,
-      net: statedata.net,
+      net: sanitized_net,
       sdb: sdb.public_api,
+      io: io(status.a2i[statedata.id], modulepath)
     }
   }
   function get_module_data (fallback) {
@@ -1723,16 +1737,29 @@ function verify_imports (id, imports, data) {
 
 }
 function symbolfy (data) {
-  const s2i = {}
   const i2s = {}
+  const s2i = {}
+  const i2a = {}
+  const a2i = {}
   const subs = []
   data.subs && data.subs.forEach(sub => {
     const substate = db.read(['state', sub])
-    s2i[i2s[sub] = Symbol(sub)] = sub
+    i2a[a2i[sub] = encode(sub)] = sub
+    s2i[i2s[sub] = Symbol(a2i[sub])] = sub
     subs.push({ sid: i2s[sub], type: substate.type })
   })
-  return [subs, s2i, i2s]
+  return [subs, s2i, i2s, a2i, i2a]
 }
+function encode(text) {
+  let code = ''
+  while (code.length < 50) {
+    for (let i = 0; i < text.length && code.length < 50; i++) {
+      code += Math.floor(10 + Math.random() * 90)
+    }
+  }
+  return code
+}
+
 function register_overrides ({overrides, ...args}) {
   recurse(args)
   return overrides
