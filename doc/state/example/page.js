@@ -37,7 +37,8 @@ async function boot (opts) {
     ...sdb.admin
   }
   
-  const subs = await sdb.watch(onbatch)
+  const subs = await sdb.watch(onbatch, on)
+  
   io.on(port => {
     const { by, to } = port
     port.onmessage = event => {
@@ -76,7 +77,8 @@ async function inject (data){
 }
 
 
-function fallback_module () { 
+function fallback_module (listfy, tree) { 
+
 	return {
     _: { "app": { $: '', 0: override_app, 
       mapping: {

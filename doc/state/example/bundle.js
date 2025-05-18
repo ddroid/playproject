@@ -495,7 +495,6 @@ async function menu(opts) {
     style: inject,
     lang: fill,
   }
-
   io.on(port => {
     const { by, to } = port
     const remote_address = port.to
@@ -873,7 +872,7 @@ function fallback_module () { // -> set database defaults or load from database
     }
     return data
   }
-  function override_menu1 ([menu], path){
+  function override_menu1 ([menu]){
     const data = menu()
     data.drive['lang/']['en-us.json'].raw = {
       title: 'Services',
@@ -990,7 +989,8 @@ async function boot (opts) {
     ...sdb.admin
   }
   
-  const subs = await sdb.watch(onbatch)
+  const subs = await sdb.watch(onbatch, on)
+  
   io.on(port => {
     const { by, to } = port
     port.onmessage = event => {
@@ -1029,7 +1029,8 @@ async function inject (data){
 }
 
 
-function fallback_module () { 
+function fallback_module (listfy, tree) { 
+
 	return {
     _: { "app": { $: '', 0: override_app, 
       mapping: {
@@ -1073,7 +1074,7 @@ const db = localdb()
  * inputs (Array): List of input files
  */
 // Constants and initial setup (global level)
-const VERSION = 11
+const VERSION = 13
 const HELPER_MODULES = ['io', 'localdb', 'STATE']
 const FALLBACK_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#defining-fallbacks'
 const FALLBACK_SYNTAX_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#key-descriptions'
@@ -1094,7 +1095,8 @@ const status = {
   expected_imports: {},
   used_ids: new Set(),
   a2i: {},
-  i2a: {}
+  i2a: {},
+  services: {}
 }
 window.STATEMODULE = status
 
@@ -1125,7 +1127,7 @@ function STATE (address, modulepath, dependencies) {
   return statedb
   
   function statedb (fallback) {
-    const data = fallback()
+    const data = fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath])
     local_status.fallback_instance = data.api
     const super_id = modulepath.split(/>(?=[^>]*$)/)[0]
     
@@ -1267,7 +1269,7 @@ function STATE (address, modulepath, dependencies) {
     const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
 
     const sanitized_net = statedata.net?.map(address => {
-      return {address, id: status.a2i[address]}
+      return {address, id: status.a2i[address], services: status.services[address]}
     })
     return {
       id: statedata.id,
@@ -1299,10 +1301,11 @@ function STATE (address, modulepath, dependencies) {
   }
   function get_instance_data (sid, fallback) {
     let id = s2i[sid]
-    if(id && id.split(':')[0] !== modulepath)
-      throw new Error(`Access denied! Wrong SID '${id}' used by instance of '${modulepath}'`)
+    if(id && (id.split(':')[0] !== modulepath || !id.includes(':')))
+        throw new Error(`Access denied! Wrong SID '${id}' used by instance of '${modulepath}'`)
     if(status.used_ids.has(id))
       throw new Error(`Access denied! SID '${id}' is already used`)
+
     id && status.used_ids.add(id)
     let data = id && db.read(['state', id])
     let sanitized_data, updated_status = status
@@ -1407,7 +1410,7 @@ function STATE (address, modulepath, dependencies) {
     let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
     let fallback_data
     try {
-      validate(fallback(), xtype)
+      validate(fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath]), xtype)
     } catch (error) {
       throw new Error(`in fallback function of ${pre_id} ${xtype}\n${error.stack}`);
     }
@@ -1418,7 +1421,7 @@ function STATE (address, modulepath, dependencies) {
       fun_status.overrides[pre_id].fun.splice(0, 1)
     }
     else
-      fallback_data = fallback()
+      fallback_data = fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath])
 
     // console.log('fallback_data: ', fallback_data)
     fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
@@ -1563,7 +1566,7 @@ function STATE (address, modulepath, dependencies) {
       file.type = type
       file[file.type === 'js' ? 'subs' : 'hubs'] = [entry.id]
       if(file.$ref){
-        file.$ref = 'node_modules' + '/' + local_status.name.split('>').at(-1) + '/' + file.$ref
+        file.$ref = address.substring(0, address.lastIndexOf("/")) + '/' + file.$ref
       }
       const copies = Object.keys(db.read_all(['state', file.id]))
       if (copies.length) {
@@ -1678,9 +1681,18 @@ async function get_input ({ id, name, $ref, type, raw }) {
   
   if (!result) {
     if (raw === undefined){
-      const response = await fetch($ref)
+      let refUrl = $ref;
+      // Patch: Prepend GitHub project name if running on GitHub Pages
+      if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0 && !$ref.startsWith('/' + pathParts[0])) {
+          refUrl = '/' + pathParts[0] + ($ref.startsWith('/') ? '' : '/') + $ref;
+        }
+      }
+      console.log('Fetching data from: ', refUrl)
+      const response = await fetch(refUrl)
       if (!response.ok) 
-        throw new Error(`Failed to fetch data from '${$ref}' for '${id}'` + FALLBACK_SYNTAX_POST_ERROR);
+        throw new Error(`Failed to fetch data from '${refUrl}' for '${id}'` + FALLBACK_SYNTAX_POST_ERROR);
       else
         result = await response[xtype === 'json' ? 'json' : 'text']()
     }
@@ -1759,7 +1771,32 @@ function encode(text) {
   }
   return code
 }
+function listfy(tree, prefix = '') {
+  if (!tree)
+    return []
 
+  const result = [];
+
+  function walk(current, prefix = '') {
+    for (const key in current) {
+      if (key === '$' && current[key]._ && typeof current[key]._ === 'object') {
+        walk(current[key]._, prefix);
+      } else {
+        const path = prefix ? `${prefix}>${key}` : key;
+        result.push(path);
+        if (current[key]?.$?._ && typeof current[key].$._ === 'object') {
+          walk(current[key].$._, path);
+        }
+      }
+    }
+  }
+
+  if (tree._ && typeof tree._ === 'object') {
+    walk(tree._, prefix);
+  }
+
+  return result;
+}
 function register_overrides ({overrides, ...args}) {
   recurse(args)
   return overrides
@@ -1788,7 +1825,7 @@ function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
   return [mutated_fallback, ...status.overrides[instance_path].fun]
     
   function mutated_fallback () {
-    const data = fallback()
+    const data = fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath])
 
     data.overrider = status.overrides[instance_path].by[0]
     merge_trees(data, modulepath)
@@ -1835,7 +1872,9 @@ function create_statedb_interface (local_status, node_id, xtype) {
   node_id === status.ROOT_ID && (api.public_api.admin = api.private_api)
   return api
 
-  async function watch (listener) {
+  async function watch (listener, on) {
+    if(on)
+      status.services[node_id] = Object.keys(on)
     const data = db.read(['state', node_id])
     if(listener){
       status.listeners[data.id] = listener

@@ -176,6 +176,9 @@ function onbatch(batch) {
 
 **sdb.get_sub**  
   @TODO
+**sdb.drive**  
+  @TODO
+
 
 ### Shadow DOM Integration
    ```js
@@ -196,6 +199,8 @@ function onbatch(batch) {
    - Sub-modules can be dynamically loaded
    - State can be passed down to sub-modules
    - Hierarchical module structure is supported
+   - The `SID` of a sub-instance needs to match the instance as defined in the fallback. 
+   - @TODO The `SID` of sub-modules are currently useless, they need to be ignored for now.
 ### Best Practices
 
 1. **State Organization**
