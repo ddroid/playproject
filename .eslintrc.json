@@ -1,0 +1,6 @@
+{
+  "extends": "standardx",
+  "rules": {
+    "camelcase": "off"
+  }
+}

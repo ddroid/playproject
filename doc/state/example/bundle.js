@@ -2,14 +2,15 @@
 const init_url = location.hash === '#dev' ? '/doc/state/example/init.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/doc/state/example/init.js'
 const args = arguments
 
-fetch(init_url, { cache: "no-store" }).then(res => res.text()).then(async source => {
+fetch(init_url, { cache: 'no-store' }).then(res => res.text()).then(async source => {
   const module = { exports: {} }
   const f = new Function('module', 'require', source)
   f(module, require)
   const init = module.exports
-  await init(args) 
+  await init(args)
   require('./page') // or whatever is otherwise the main entry of our project
 })
+
 },{"./page":11}],2:[function(require,module,exports){
 (function (__filename){(function (){
 const STATE = require('../../../../src/node_modules/STATE')
@@ -108,7 +109,9 @@ async function btn(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  let msg_cache = {}
+  const { id, sdb, io, net } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  console.log(net)
   const on = {
     theme: inject,
     lang: fill
@@ -120,7 +123,9 @@ async function btn(opts) {
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
   shadow.innerHTML = `
-    <button></button>
+    <button>
+      <span></span>
+    </button>
     <style>
       button{
         padding: 10px 40px;
@@ -128,6 +133,7 @@ async function btn(opts) {
     </style>`
   const style = shadow.querySelector('style')
   const button = shadow.querySelector('button')
+  const title = shadow.querySelector('button > span')
   const subs = await sdb.watch(onbatch)
   // ----------------------------------------
   // ELEMENTS
@@ -135,6 +141,26 @@ async function btn(opts) {
   {
     button.append(await icon(subs[0]))
   }
+  // ----------------------------------------
+  // EVENT LISTENERS
+  // ----------------------------------------
+  button.onclick = () => {
+    net.event.click.forEach(msg => {
+      msg_cache.type = msg.type
+      msg_cache.args = msg.args
+      io.at(msg.id)
+    })
+  }
+  io.on(port => {
+    const { by, to } = port
+    console.log('btn', msg_cache)
+    port.onmessage = event => {
+      const txt = event.data
+      const key = `[${by} -> ${to}]`
+      console.log(key, txt)
+    }
+    port.postMessage(msg_cache)
+  })
   return el
 
   function onbatch(batch){
@@ -146,7 +172,7 @@ async function btn(opts) {
     style.innerHTML = data.join('\n')
   }
   async function fill([data]) {
-    button.append(data.title)
+    title.replaceChildren(data.title)
   }
 }
 async function btn_small(opts) {
@@ -208,6 +234,12 @@ function fallback_module () {
             }
           }
         },
+      },
+      net: {
+        api: ['inject', 'fill'],
+        event: {
+          'click': [],
+        }
       }
     }
   }
@@ -497,7 +529,6 @@ async function menu(opts) {
   }
   io.on(port => {
     const { by, to } = port
-    const remote_address = port.to
     port.onmessage = event => {
       const txt = event.data
       const key = `[${by} -> ${to}]`
@@ -564,6 +595,7 @@ async function menu(opts) {
   // ----------------------------------------
   
   title.onclick = () => {
+    console.log(net)
     io.at(net[0].id)
     main.classList.toggle('active')
   }
@@ -800,7 +832,7 @@ async function nav(opts) {
   // ----------------------------------------
   console.log(subs)
   { //menu
-    main.append(await menu(subs[0]), await menu(subs[1]), await menu(subs[2]), await menu_hover(subs[3]), await btn(subs[4]))
+    main.append(await menu(subs[0]), await menu(subs[1]), await menu(subs[2]), await menu_hover(subs[3]), await btn(subs[4]), await btn(subs[5]))
   }
   return el
 
@@ -844,7 +876,8 @@ function fallback_module () { // -> set database defaults or load from database
         3: override_menu_hover,
           mapping: { 'style': 'theme', 'lang': 'lang', 'io': 'io' }
         }, btn: {
-          0: '',
+          0: override_btn,
+          1: override_btn1,
           mapping: { 'lang': 'lang' }
         },
       },
@@ -885,6 +918,20 @@ function fallback_module () { // -> set database defaults or load from database
     data.drive['lang/']['en-us.json'].raw = {
       title: 'Services#hover',
       links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    }
+    return data
+  }
+  function override_btn ([btn]){
+    const data = btn()
+    data.drive['lang/']['en-us.json'].raw = {
+      title: 'Register',
+    }
+    return data
+  }
+  function override_btn1 ([btn]){
+    const data = btn()
+    data.drive['lang/']['en-us.json'].raw = {
+      title: 'Switch',
     }
     return data
   }
@@ -954,7 +1001,6 @@ const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { id, sdb, get, io } = statedb(fallback_module)
 
-
 /******************************************************************************
   PAGE
 ******************************************************************************/
@@ -962,25 +1008,25 @@ const app = require('app')
 const sheet = new CSSStyleSheet()
 config().then(() => boot({ sid: '' }))
 
-async function config () {
+async function config() {
   const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
   const html = document.documentElement
   const meta = document.createElement('meta')
   const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
-	const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
-	html.setAttribute('lang', 'en')
+  const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
+  html.setAttribute('lang', 'en')
   meta.setAttribute('name', 'viewport')
   meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
   // @TODO: use font api and cache to avoid re-downloading the font data every time
   document.head.append(meta)
   document.head.innerHTML += loadFont
-	document.adoptedStyleSheets = [sheet]
+  document.adoptedStyleSheets = [sheet]
   await document.fonts.ready // @TODO: investigate why there is a FOUC
 }
 /******************************************************************************
   PAGE BOOT
 ******************************************************************************/
-async function boot (opts) {
+async function boot(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
@@ -988,9 +1034,9 @@ async function boot (opts) {
     theme: inject,
     ...sdb.admin
   }
-  
+
   const subs = await sdb.watch(onbatch, on)
-  
+
   io.on(port => {
     const { by, to } = port
     port.onmessage = event => {
@@ -1005,7 +1051,7 @@ async function boot (opts) {
   const el = document.body
   const shopts = { mode: 'closed' }
   const shadow = el.attachShadow(shopts)
-	shadow.adoptedStyleSheets = [sheet]
+  shadow.adoptedStyleSheets = [sheet]
   // ----------------------------------------
   // ELEMENTS
   // ----------------------------------------
@@ -1016,32 +1062,74 @@ async function boot (opts) {
   // INIT
   // ----------------------------------------
 
-  return
-
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  function onbatch(batch) {
+    for (const { type, data } of batch) {
       on[type] && on[type](data)
     }
   }
 }
-async function inject (data){
-	sheet.replaceSync(data.join('\n'))
+async function inject(data) {
+  sheet.replaceSync(data.join('\n'))
 }
 
+function fallback_module(listfy, tree) {
+  console.log('fallback_module', listfy(tree))
+  const rainbow_theme = {
+    type: 'theme',
+    name: 'rainbow',
+    dataset: {
+      page: {
+        'style.css': {
+          raw: 'body { font-family: cursive; }'
+        }
+      },
+      'page>app>head>foo>nav:0': {
+        'style.css': {
+          raw: `
+                  nav{
+                    display: flex;
+                    gap: 20px;
+                    padding: 20px;
+                    background: #4b2d6d;
+                    color: white;
+                    box-shadow: 0px 1px 6px 1px gray;
+                    margin: 5px;
+                  }
+                  .title{
+                    background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                    transition: color .5s ease, background-size .5s;
+                    cursor: pointer;
+                  }
+                  .box{
+                    display: flex;
+                    gap: 20px;
+                  }
+                  .title:hover{
+                    --underline-width: 100%
+                  }
+                `
+        }
+      }
 
-function fallback_module (listfy, tree) { 
-
-	return {
-    _: { "app": { $: '', 0: override_app, 
-      mapping: {
-        'theme': 'theme',
-    } } },
+    }
+  }
+  return {
+    _: {
+      app: {
+        $: '',
+        0: override_app,
+        mapping: {
+          theme: 'theme'
+        }
+      }
+    },
     drive: {
       'theme/': {
         'style.css': {
-          raw: `body { font-family: 'system-ui'; }`,
+          raw: 'body { font-family: \'system-ui\'; }'
         }
-      }, 'lang/': {}
+      },
+      'lang/': {}
     }
   }
   function override_app ([app]) {
@@ -1053,12 +1141,37 @@ function fallback_module (listfy, tree) {
         links: ['custom', 'menu'],
         title: 'Custom'
       }
-      data.net = ['page']
+      return data
+    }
+    data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Register'
+      }
+      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+      return data
+    }
+    data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Switch'
+      }
+      data.net.event.click.push({
+        address: 'page',
+        type: 'swtch',
+        args: {
+          type: 'theme',
+          name: 'rainbow'
+        }
+      })
       return data
     }
     return data
   }
 }
+
 }).call(this)}).call(this,"/doc/state/example/page.js","/doc/state/example")
 },{"../../../src/node_modules/STATE":12,"app":2}],12:[function(require,module,exports){
 const localdb = require('localdb')
@@ -1078,6 +1191,7 @@ const VERSION = 13
 const HELPER_MODULES = ['io', 'localdb', 'STATE']
 const FALLBACK_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#defining-fallbacks'
 const FALLBACK_SYNTAX_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#key-descriptions'
+const FALLBACK_SUBS_POST_ERROR = '\nFor more info visit https://github.com/alyhxn/playproject/blob/main/doc/state/temp.md#shadow-dom-integration'
 const status = {
   root_module: true, 
   root_instance: true, 
@@ -1233,11 +1347,11 @@ function STATE (address, modulepath, dependencies) {
       db.append(['state'], state_entries)
       // add_source_code(statedata.inputs) // @TODO: remove side effect
     }
-    [local_status.sub_modules, symbol2ID, ID2Symbol, adress2ID, ID2Adress] = symbolfy(statedata, local_status)
+    [local_status.sub_modules, symbol2ID, ID2Symbol, address2ID, ID2Address] = symbolfy(statedata, local_status)
     Object.assign(s2i, symbol2ID)
     Object.assign(i2s, ID2Symbol)
-    Object.assign(status.a2i, adress2ID)
-    Object.assign(status.i2a, ID2Adress)
+    Object.assign(status.a2i, address2ID)
+    Object.assign(status.i2a, ID2Address)
     
     //Setup local data (module level)
     if(status.root_module){
@@ -1260,20 +1374,27 @@ function STATE (address, modulepath, dependencies) {
       console.log('Main instance: ', statedata.id, '\n', state_entries)
       db.append(['state'], state_entries)
     }
-    [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol, adress2ID, ID2Adress] = symbolfy(statedata, local_status)
+    [local_status.sub_instances[statedata.id], symbol2ID, ID2Symbol, address2ID, ID2Address] = symbolfy(statedata, local_status)
     Object.assign(s2i, symbol2ID)
     Object.assign(i2s, ID2Symbol)
-    Object.assign(status.a2i, adress2ID)
-    Object.assign(status.i2a, ID2Adress)
+    Object.assign(status.a2i, address2ID)
+    Object.assign(status.i2a, ID2Address)
     
     const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
 
-    const sanitized_net = statedata.net?.map(address => {
-      return {address, id: status.a2i[address], services: status.services[address]}
+    console.log('Net: ', statedata.id, statedata.net)
+    const sanitized_event = {}
+    statedata.net && Object.entries(statedata.net?.event).forEach(([def, action]) => {
+      sanitized_event[def] = action.map(msg => {
+        msg.id = status.a2i[msg.address] || (a2i[msg.address] = encode(msg.address))
+        return msg
+      })
     })
+    if(statedata.net)
+      statedata.net.event = sanitized_event
     return {
       id: statedata.id,
-      net: sanitized_net,
+      net: statedata.net,
       sdb: sdb.public_api,
       io: io(status.a2i[statedata.id], modulepath)
     }
@@ -1302,9 +1423,9 @@ function STATE (address, modulepath, dependencies) {
   function get_instance_data (sid, fallback) {
     let id = s2i[sid]
     if(id && (id.split(':')[0] !== modulepath || !id.includes(':')))
-        throw new Error(`Access denied! Wrong SID '${id}' used by instance of '${modulepath}'`)
+        throw new Error(`Access denied! Wrong SID '${id}' used by instance of '${modulepath}'` + FALLBACK_SUBS_POST_ERROR)
     if(status.used_ids.has(id))
-      throw new Error(`Access denied! SID '${id}' is already used`)
+      throw new Error(`Access denied! SID '${id}' is already used` + FALLBACK_SUBS_POST_ERROR)
 
     id && status.used_ids.add(id)
     let data = id && db.read(['state', id])
@@ -1412,7 +1533,7 @@ function STATE (address, modulepath, dependencies) {
     try {
       validate(fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath]), xtype)
     } catch (error) {
-      throw new Error(`in fallback function of ${pre_id} ${xtype}\n${error.stack}`);
+      throw new Error(`in fallback function of ${pre_id} ${xtype}\n${error.stack}`)
     }
     if(fun_status.overrides[pre_id]){
       fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
@@ -1609,7 +1730,7 @@ function validate (data, xtype) {
         }
       },
     },
-    'net::array': []
+    'net::object': {}
   }
 
   validate_shape(data, expected_structure)
@@ -1681,18 +1802,17 @@ async function get_input ({ id, name, $ref, type, raw }) {
   
   if (!result) {
     if (raw === undefined){
-      let refUrl = $ref;
+      let ref_url = $ref
       // Patch: Prepend GitHub project name if running on GitHub Pages
       if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
-        if (pathParts.length > 0 && !$ref.startsWith('/' + pathParts[0])) {
-          refUrl = '/' + pathParts[0] + ($ref.startsWith('/') ? '' : '/') + $ref;
+        const path_parts = window.location.pathname.split('/').filter(Boolean)
+        if (path_parts.length > 0 && !$ref.startsWith('/' + path_parts[0])) {
+          ref_url = '/' + path_parts[0] + ($ref.startsWith('/') ? '' : '/') + $ref
         }
       }
-      console.log('Fetching data from: ', refUrl)
-      const response = await fetch(refUrl)
+      const response = await fetch(ref_url)
       if (!response.ok) 
-        throw new Error(`Failed to fetch data from '${refUrl}' for '${id}'` + FALLBACK_SYNTAX_POST_ERROR);
+        throw new Error(`Failed to fetch data from '${ref_url}' for '${id}'` + FALLBACK_SYNTAX_POST_ERROR)
       else
         result = await response[xtype === 'json' ? 'json' : 'text']()
     }
@@ -1775,27 +1895,27 @@ function listfy(tree, prefix = '') {
   if (!tree)
     return []
 
-  const result = [];
+  const result = []
 
   function walk(current, prefix = '') {
     for (const key in current) {
       if (key === '$' && current[key]._ && typeof current[key]._ === 'object') {
-        walk(current[key]._, prefix);
+        walk(current[key]._, prefix)
       } else {
-        const path = prefix ? `${prefix}>${key}` : key;
-        result.push(path);
+        const path = prefix ? `${prefix}>${key}` : key
+        result.push(path)
         if (current[key]?.$?._ && typeof current[key].$._ === 'object') {
-          walk(current[key].$._, path);
+          walk(current[key].$._, path)
         }
       }
     }
   }
 
   if (tree._ && typeof tree._ === 'object') {
-    walk(tree._, prefix);
+    walk(tree._, prefix)
   }
 
-  return result;
+  return result
 }
 function register_overrides ({overrides, ...args}) {
   recurse(args)

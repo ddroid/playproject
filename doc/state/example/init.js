@@ -1,13 +1,12 @@
 const USE_LOCAL = location.hash === '#dev'
 
-
 module.exports = init
-async function init(args) {
+async function init (args) {
   clear_db_on_file_change()
   await patch_cache_in_browser(args[4], args[5])
 }
 
-function clear_db_on_file_change() {
+function clear_db_on_file_change () {
   const is_file_changed = sessionStorage.getItem('file_change_reload') === 'true'
   const last_item = sessionStorage.getItem('last_item')
   const now = Date.now()
@@ -27,7 +26,6 @@ document.addEventListener('visibilitychange', () => {
   }
 })
 
-
 async function patch_cache_in_browser (source_cache, module_cache) {
   let STATE_JS
   const state_url = USE_LOCAL ? '/src/node_modules/STATE.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
@@ -35,13 +33,13 @@ async function patch_cache_in_browser (source_cache, module_cache) {
   const io_url = USE_LOCAL ? '/src/node_modules/io.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/io.js'
 
   STATE_JS = await Promise.all([
-    fetch(state_url, { cache: "no-store" }).then(res => res.text()),
-    fetch(localdb_url, { cache: "no-store" }).then(res => res.text()),
-    fetch(io_url, { cache: "no-store" }).then(res => res.text())
+    fetch(state_url, { cache: 'no-store' }).then(res => res.text()),
+    fetch(localdb_url, { cache: 'no-store' }).then(res => res.text()),
+    fetch(io_url, { cache: 'no-store' }).then(res => res.text())
   ]).then(([state_source, localdb_source, io_source]) => {
     const dependencies = {
       localdb: load(localdb_source),
-      io: load(io_source),
+      io: load(io_source)
     }
     const STATE_JS = load(state_source, (dependency) => dependencies[dependency])
     return STATE_JS
@@ -73,10 +71,7 @@ async function patch_cache_in_browser (source_cache, module_cache) {
         if (name.endsWith('STATE') || name === 'io') {
           const modulepath = meta.modulepath.join('>')
           let original_export
-          if(name.endsWith('STATE')) 
-            original_export = STATE_JS
-          else
-            original_export = require.cache[identifier] || (require.cache[identifier] = original(name))
+          if (name.endsWith('STATE')) { original_export = STATE_JS } else { original_export = require.cache[identifier] || (require.cache[identifier] = original(name)) }
           const exports = (...args) => original_export(...args, modulepath, Object.keys(dependencies))
           return exports
         } else {
@@ -84,7 +79,7 @@ async function patch_cache_in_browser (source_cache, module_cache) {
           delete require.cache[identifier]
           const counter = meta.modulepath.concat(name).join('>')
           if (!meta.paths[counter]) meta.paths[counter] = 0
-          let localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
+          const localid = `${name}${meta.paths[counter] ? '#' + meta.paths[counter] : ''}`
           meta.paths[counter]++
           meta.modulepath.push(localid.replace(/^\.\+/, '').replace('>', ','))
           const exports = original(name)

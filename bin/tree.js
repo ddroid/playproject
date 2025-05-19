@@ -5,10 +5,10 @@ const path = require('path')
 
 const default_ignore_patterns = [
   '/node_modules',
-  '.git',
+  '.git'
 ]
 
-function should_ignore(file_path, ignore_patterns) {
+function should_ignore (file_path, ignore_patterns) {
   const normalized_path = file_path.replace(/\\/g, '/')
 
   for (const pattern of ignore_patterns) {
@@ -31,11 +31,11 @@ function should_ignore(file_path, ignore_patterns) {
   return false
 }
 
-async function walk_directory(dir, ignore_patterns) {
+async function walk_directory (dir, ignore_patterns) {
   const files = []
   const root_dir = process.cwd()
 
-  async function walk(current_path, relative_path = '') {
+  async function walk (current_path, relative_path = '') {
     const entries = await fs.readdir(current_path, { withFileTypes: true })
 
     for (const entry of entries) {
@@ -58,12 +58,12 @@ async function walk_directory(dir, ignore_patterns) {
   return files
 }
 
-async function main() {
+async function main () {
   const files = await walk_directory(process.cwd(), default_ignore_patterns)
   files.sort()
   await fs.writeFile(
     path.join(process.cwd(), 'index.json'),
-    JSON.stringify(files, null, 2),
+    JSON.stringify(files, null, 2)
   )
   console.log('Successfully generated index.json')
 }
