@@ -1,9 +1,10 @@
+const default_prefix = 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/'
 const USE_LOCAL = location.hash === '#dev'
 
 module.exports = init
-async function init (args) {
+async function init (args, prefix = default_prefix) {
   clear_db_on_file_change()
-  await patch_cache_in_browser(args[4], args[5])
+  await patch_cache_in_browser(args[4], args[5], prefix)
 }
 
 function clear_db_on_file_change () {
@@ -26,11 +27,11 @@ document.addEventListener('visibilitychange', () => {
   }
 })
 
-async function patch_cache_in_browser (source_cache, module_cache) {
+async function patch_cache_in_browser (source_cache, module_cache, prefix) {
   let STATE_JS
-  const state_url = USE_LOCAL ? '/src/node_modules/STATE.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/STATE.js'
-  const localdb_url = USE_LOCAL ? '/src/node_modules/localdb.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/localdb.js'
-  const io_url = USE_LOCAL ? '/src/node_modules/io.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/src/node_modules/io.js'
+  const state_url = USE_LOCAL ? '/src/node_modules/STATE.js' : prefix + 'src/node_modules/STATE.js'
+  const localdb_url = USE_LOCAL ? '/src/node_modules/localdb.js' : prefix + 'src/node_modules/localdb.js'
+  const io_url = USE_LOCAL ? '/src/node_modules/io.js' : prefix + 'src/node_modules/io.js'
 
   STATE_JS = await Promise.all([
     fetch(state_url, { cache: 'no-store' }).then(res => res.text()),

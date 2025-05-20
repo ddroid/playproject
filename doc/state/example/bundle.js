@@ -1,5 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-const init_url = location.hash === '#dev' ? '/doc/state/example/init.js' : 'https://raw.githubusercontent.com/alyhxn/playproject/refs/heads/main/doc/state/example/init.js'
+const prefix = 'https://raw.githubusercontent.com/alyhxn/playproject/a31832ad3cb24fe15ab36bdc73a929f43179d7b8/'
+const init_url = location.hash === '#dev' ? '/doc/state/example/init.js' : prefix + 'doc/state/example/init.js'
 const args = arguments
 
 fetch(init_url, { cache: 'no-store' }).then(res => res.text()).then(async source => {
@@ -7,7 +8,7 @@ fetch(init_url, { cache: 'no-store' }).then(res => res.text()).then(async source
   const f = new Function('module', 'require', source)
   f(module, require)
   const init = module.exports
-  await init(args)
+  await init(args, prefix)
   require('./page') // or whatever is otherwise the main entry of our project
 })
 
@@ -111,7 +112,6 @@ async function btn(opts) {
   // ----------------------------------------
   let msg_cache = {}
   const { id, sdb, io, net } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
-  console.log(net)
   const on = {
     theme: inject,
     lang: fill
@@ -238,7 +238,7 @@ function fallback_module () {
       net: {
         api: ['inject', 'fill'],
         event: {
-          'click': [],
+          click: [],
         }
       }
     }
@@ -810,6 +810,8 @@ async function nav(opts) {
     theme: inject,
     lang: fill
   }
+
+  console.log(sdb.drive({ type: 'theme'}).put('new_file.css', '.text{ color: red; }'))
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -1382,7 +1384,6 @@ function STATE (address, modulepath, dependencies) {
     
     const sdb = create_statedb_interface(local_status, statedata.id, xtype = 'instance')
 
-    console.log('Net: ', statedata.id, statedata.net)
     const sanitized_event = {}
     statedata.net && Object.entries(statedata.net?.event).forEach(([def, action]) => {
       sanitized_event[def] = action.map(msg => {
@@ -2136,8 +2137,6 @@ function create_statedb_interface (local_status, node_id, xtype) {
   }
   function drive ({ type: dataset_type }) {
     const node = db.read(['state', node_id])
-    if(!dataset_type)
-      return node.drive
     let target_dataset
     node.drive.some(dataset_name => {
       const dataset = db.read(['state', dataset_name])
@@ -2146,8 +2145,47 @@ function create_statedb_interface (local_status, node_id, xtype) {
         return true
       }
     })
-    return target_dataset
+    if(!target_dataset)
+      throw new Error(`No dataset found for type "${dataset_type}" in node "${node_id}"` + FALLBACK_POST_ERROR)
+    return {
+      get, put, list, dataset: target_dataset
+    }
+    function list () {
+      const dataset = db.read(['state', target_dataset.id])
+      return dataset.files.map(file_id => {
+        const file = db.read(['state', file_id])
+        return { id: file.id, name: file.name, type: file.type }
+      })
+    }
+    function get (filename) {
+      const dataset = db.read(['state', target_dataset.id])
+      const file_id = dataset.files.find(file => file.includes(filename))
+      if (!file_id) throw new Error(`File "${filename}" not found in dataset "${target_dataset.name}"` + FALLBACK_POST_ERROR)
+      const file = db.read(['state', file_id])
+      return get_input(file)
+    }
+    function put (filename, buffer) {
+      const type = filename.split('.').pop();
+      let file_id = filename;
+      let count = 1;
+      while (db.read(['state', file_id])) {
+        file_id = `${filename}:${count++}`;
+      }
+      const file = {
+        id: file_id,
+        name: filename,
+        type,
+        raw: buffer
+      };
+      db.add(['state', file_id], file);
+      const dataset = db.read(['state', target_dataset.id]);
+      dataset.files.push(file_id);
+      db.add(['state', target_dataset.id], dataset);
+      return { id: file_id, name: filename, type, raw: buffer };
+    }
+    
   }
+
 }
 async function make_input_map (inputs) {
   const input_map = []   
