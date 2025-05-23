@@ -177,8 +177,50 @@ function onbatch(batch) {
 **sdb.get_sub**  
   @TODO
 **sdb.drive**  
-  @TODO
+The `sdb.drive` object provides an interface for managing datasets and files attached to the current node. It allows you to list, retrieve, add, and check files within datasets defined in the module's state.
 
+- **sdb.drive.list(path?)**
+  - Lists all dataset names (as folders) attached to the current node.
+  - If a `path` (dataset name) is provided, returns the list of file names within that dataset.
+  - Example:
+    ```js
+    const datasets = sdb.drive.list(); // ['mydata/', 'images/']
+    const files = sdb.drive.list('mydata/'); // ['file1.json', 'file2.txt']
+    ```
+
+- **sdb.drive.get(path)**
+  - Retrieves a file object from a dataset.
+  - `path` should be in the format `'dataset_name/filename.ext'`.
+  - Returns an object: `{ id, name, type, raw }` or `null` if not found.
+  - Example:
+    ```js
+    const file = sdb.drive.get('mydata/file1.json');
+    // file: { id: '...', name: 'file1.json', type: 'json', raw: ... }
+    ```
+
+- **sdb.drive.put(path, buffer)**
+  - Adds a new file to a dataset.
+  - `path` is `'dataset_name/filename.ext'`.
+  - `buffer` is the file content (object, string, etc.).
+  - Returns the created file object: `{ id, name, type, raw }`.
+  - Example:
+    ```js
+    sdb.drive.put('mydata/newfile.txt', 'Hello World');
+    ```
+
+- **sdb.drive.has(path)**
+  - Checks if a file exists in a dataset.
+  - `path` is `'dataset_name/filename.ext'`.
+  - Returns `true` if the file exists, otherwise `false`.
+  - Example:
+    ```js
+    if (sdb.drive.has('mydata/file1.json')) { /* ... */ }
+    ```
+
+**Notes:**
+- Dataset names are defined in the fallback structure and must be unique within a node.
+- File types are inferred from the file extension.
+- All file operations are isolated to the current node's state and changes are persisted immediately.
 
 ### Shadow DOM Integration
    ```js
