@@ -66,14 +66,14 @@ async function app(opts) {
 }
 
 
-function fallback_module () { // -> set database defaults or load from database
+function fallback_module ({ args }) { // -> set database defaults or load from database
 	return {
     api: fallback_instance,
     _: { "head": { $: '', }, "foot": { $: '' } }
   }
   function fallback_instance () {
     return {
-      _: { "head": { 0: '',
+      _: { "head": { 0: {x: args.x + 1, y: args.y + 2},
         mapping: {
           'theme': 'theme',
         }
@@ -110,7 +110,6 @@ async function btn(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  let msg_cache = {}
   const { id, sdb, io, net } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     theme: inject,
@@ -144,22 +143,21 @@ async function btn(opts) {
   // ----------------------------------------
   // EVENT LISTENERS
   // ----------------------------------------
+  net.event.length && net.event.click.forEach(msg => {
+    io.at(msg.id)
+  })
   button.onclick = () => {
-    net.event.click.forEach(msg => {
-      msg_cache.type = msg.type
-      msg_cache.args = msg.args
-      io.at(msg.id)
-    })
+    net.event.click.forEach(msg => io_port.postMessage(msg))
   }
+  let io_port
   io.on(port => {
     const { by, to } = port
-    console.log('btn', msg_cache)
+    io_port = port
     port.onmessage = event => {
       const txt = event.data
       const key = `[${by} -> ${to}]`
       console.log(key, txt)
     }
-    port.postMessage(msg_cache)
   })
   return el
 
@@ -428,7 +426,8 @@ function fallback_module () { // -> set database defaults or load from database
     api: fallback_instance,
     _: { "foo": { $: '' } }
   }
-  function fallback_instance () {
+  function fallback_instance ({ args }) {
+    console.log('Hello from head: ', args)
     return {
       _: { "foo": { 0: '',
         mapping: {
@@ -811,7 +810,9 @@ async function nav(opts) {
     lang: fill
   }
 
-  console.log(sdb.drive({ type: 'theme'}).put('new_file.css', '.text{ color: red; }'))
+  const { drive } = sdb
+  // console.log(await drive.put('lang/en-uk.json', { links: ['Home', 'About', 'Contact'] }))
+  // console.log(await drive.get('lang/en-uk.json'))
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -862,8 +863,9 @@ function fallback_module () { // -> set database defaults or load from database
     api: fallback_instance,
     _: { 'menu':{ $: ([menu]) => {
           const state = menu()
-          state.api = ([menu_instance]) => {
-            const data = menu_instance()
+          state.api = (args) => {
+            const { old_fallback } = args
+            const data = old_fallback[0]()
             data.drive['lang/']['en-us.json'].raw.links = ['temp1', 'temp2']
             return data
           }
@@ -1001,7 +1003,7 @@ function fallback_module () {
 (function (__filename,__dirname){(function (){
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { id, sdb, get, io } = statedb(fallback_module)
+const { id, sdb, io } = statedb(fallback_module)
 
 /******************************************************************************
   PAGE
@@ -1074,7 +1076,7 @@ async function inject(data) {
   sheet.replaceSync(data.join('\n'))
 }
 
-function fallback_module(listfy, tree) {
+function fallback_module ({ listfy, tree }) {
   console.log('fallback_module', listfy(tree))
   const rainbow_theme = {
     type: 'theme',
@@ -1118,7 +1120,7 @@ function fallback_module(listfy, tree) {
   return {
     _: {
       app: {
-        $: '',
+        $: { x: 0, y: 1 },
         0: override_app,
         mapping: {
           theme: 'theme'
@@ -1212,7 +1214,8 @@ const status = {
   used_ids: new Set(),
   a2i: {},
   i2a: {},
-  services: {}
+  services: {},
+  args: {}
 }
 window.STATEMODULE = status
 
@@ -1243,7 +1246,7 @@ function STATE (address, modulepath, dependencies) {
   return statedb
   
   function statedb (fallback) {
-    const data = fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath])
+    const data = fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[modulepath] })
     local_status.fallback_instance = data.api
     const super_id = modulepath.split(/>(?=[^>]*$)/)[0]
     
@@ -1340,8 +1343,16 @@ function STATE (address, modulepath, dependencies) {
       Object.assign(status.overrides, newstatus.overrides)
       console.log('Main module: ', statedata.id, '\n', state_entries)
       updated_local_status && Object.assign(local_status, updated_local_status)
+      // console.log('Local status: ', local_status.fallback_instance, statedata.api)
       const old_fallback = local_status.fallback_instance
-      local_status.fallback_instance = () => statedata.api([old_fallback])
+      
+      if(local_status.fallback_instance ? local_status.fallback_instance?.toString() === statedata.api?.toString() : false)
+        local_status.fallback_instance = statedata.api
+      else
+        local_status.fallback_instance = (args) => {
+          console.log('Old fallback: ', old_fallback)
+          return statedata.api({old_fallback: [old_fallback], ...args})
+        }
       const extra_fallbacks = Object.entries(old_fallback || {})
       extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
         local_status.fallback_instance[key] = () => statedata.api[key] ? statedata.api[key]([value]) : old_fallback[key]()
@@ -1532,7 +1543,7 @@ function STATE (address, modulepath, dependencies) {
     let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
     let fallback_data
     try {
-      validate(fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath]), xtype)
+      validate(fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[pre_id] }), xtype)
     } catch (error) {
       throw new Error(`in fallback function of ${pre_id} ${xtype}\n${error.stack}`)
     }
@@ -1543,7 +1554,7 @@ function STATE (address, modulepath, dependencies) {
       fun_status.overrides[pre_id].fun.splice(0, 1)
     }
     else
-      fallback_data = fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath])
+      fallback_data = fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[pre_id] })
 
     // console.log('fallback_data: ', fallback_data)
     fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
@@ -1683,8 +1694,7 @@ function STATE (address, modulepath, dependencies) {
 
 
       file.id = local_status.name + '.' + type
-      file.name = file.name || file.id
-      file.local_name = file_id
+      file.name = file.name || file_id
       file.type = type
       file[file.type === 'js' ? 'subs' : 'hubs'] = [entry.id]
       if(file.$ref){
@@ -1926,8 +1936,8 @@ function register_overrides ({overrides, ...args}) {
     tree._ && Object.entries(tree._).forEach(([type, instances]) => {
       const sub_path = path + '>' + type
       Object.entries(instances).forEach(([id, override]) => {
+        const resultant_path = id === '$' ? sub_path : sub_path + ':' + id
         if(typeof(override) === 'function'){
-          let resultant_path = id === '$' ? sub_path : sub_path + ':' + id
           if(overrides[resultant_path]){
             overrides[resultant_path].fun.push(override)
             overrides[resultant_path].by.push(id)
@@ -1935,9 +1945,10 @@ function register_overrides ({overrides, ...args}) {
           else
             overrides[resultant_path] = {fun: [override], by: [id]}
         }
-        else{
+        else if (typeof(override) === 'object' && id !== 'mapping' && override._ === undefined)
+          status.args[resultant_path] = structuredClone(override)
+        else
           recurse({ tree: override, path: sub_path, id, xtype, local_modulepaths })
-        }
       })
     })
   }
@@ -1946,7 +1957,8 @@ function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
   return [mutated_fallback, ...status.overrides[instance_path].fun]
     
   function mutated_fallback () {
-    const data = fallback(tree => listfy(tree, modulepath), status.tree_pointers[modulepath])
+    console.log('Args: ', status.args[instance_path])
+    const data = fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[instance_path] })
 
     data.overrider = status.overrides[instance_path].by[0]
     merge_trees(data, modulepath)
@@ -1972,7 +1984,9 @@ function check_version () {
 function create_statedb_interface (local_status, node_id, xtype) {
   const api =  {
     public_api: {
-      watch, get_sub, drive
+      watch, get_sub, drive: {
+        get, has, put, list
+      }
     },
     private_api: {
       xget: (id) => db.read(['state', id]),
@@ -2135,57 +2149,96 @@ function create_statedb_interface (local_status, node_id, xtype) {
       })
     }
   }
-  function drive ({ type: dataset_type }) {
+  
+  function list (path) {
     const node = db.read(['state', node_id])
-    let target_dataset
-    node.drive.some(dataset_name => {
-      const dataset = db.read(['state', dataset_name])
-      if(dataset.type === dataset_type){
-        target_dataset = dataset
+    const dataset_names = node.drive.map(dataset_id => {
+      return dataset_id.split('.').at(1) + '/'
+    })
+    if (path) {
+      let index
+      dataset_names.some((dataset_name, i) => {
+        if (path.includes(dataset_name)) {
+          index = i
+          return true
+        }
+      })
+      if (index === undefined)
+        throw new Error(`Dataset "${dataset_name}" not found in node "${node.name}"`) 
+      const dataset = db.read(['state', node.drive[index]])
+      return dataset.files.map(fileId => {
+        const file = db.read(['state', fileId])
+        return file.name
+      })
+    }
+    return dataset_names
+  }
+  function get (path) {
+    const [dataset_name, file_name] = path.split('/')
+    const node = db.read(['state', node_id])
+    let dataset
+    node.drive.some(dataset_id => {
+      if (dataset_name === dataset_id.split('.').at(1)) {
+        dataset = db.read(['state', dataset_id])
         return true
       }
     })
-    if(!target_dataset)
-      throw new Error(`No dataset found for type "${dataset_type}" in node "${node_id}"` + FALLBACK_POST_ERROR)
-    return {
-      get, put, list, dataset: target_dataset
-    }
-    function list () {
-      const dataset = db.read(['state', target_dataset.id])
-      return dataset.files.map(file_id => {
-        const file = db.read(['state', file_id])
-        return { id: file.id, name: file.name, type: file.type }
-      })
-    }
-    function get (filename) {
-      const dataset = db.read(['state', target_dataset.id])
-      const file_id = dataset.files.find(file => file.includes(filename))
-      if (!file_id) throw new Error(`File "${filename}" not found in dataset "${target_dataset.name}"` + FALLBACK_POST_ERROR)
-      const file = db.read(['state', file_id])
-      return get_input(file)
-    }
-    function put (filename, buffer) {
-      const type = filename.split('.').pop();
-      let file_id = filename;
-      let count = 1;
-      while (db.read(['state', file_id])) {
-        file_id = `${filename}:${count++}`;
-      }
-      const file = {
-        id: file_id,
-        name: filename,
-        type,
-        raw: buffer
-      };
-      db.add(['state', file_id], file);
-      const dataset = db.read(['state', target_dataset.id]);
-      dataset.files.push(file_id);
-      db.add(['state', target_dataset.id], dataset);
-      return { id: file_id, name: filename, type, raw: buffer };
-    }
+    if (!dataset) 
+      throw new Error(`Dataset "${dataset_name}" not found in node "${node.name}"`)
     
+    return dataset.files.map(file_id => {
+      const file = db.read(['state', file_id])
+      if (file.name === file_name) {
+        return { id: file.id, name: file.name, type: file.type, raw: file.raw }
+      }
+    }).filter(Boolean)[0] || null
   }
-
+  function put (path, buffer) {
+    const [dataset_name, filename] = path.split('/')
+    let dataset
+    const node = db.read(['state', node_id])
+    node.drive.some(dataset_id => {
+      if (dataset_name === dataset_id.split('.').at(1)) {
+        dataset = db.read(['state', dataset_id])
+        return true
+      }
+    })
+    if (!dataset) 
+      throw new Error(`Dataset "${dataset_name}" not found in node "${node.name}"`)
+    const type = filename.split('.').pop()
+    let file_id = filename
+    let count = 1
+    while (db.read(['state', file_id])) {
+      file_id = `${filename}:${count++}`
+    }
+    const file = {
+      id: file_id,
+      name: filename,
+      type,
+      raw: buffer
+    }
+    db.add(['state', file_id], file)
+    dataset.files.push(file_id)
+    db.add(['state', dataset.id], dataset)
+    return { id: file_id, name: filename, type, raw: buffer }
+  }
+  function has (path) {
+    const [dataset_name, filename] = path.split('/')
+    let dataset
+    const node = db.read(['state', node_id])
+    node.drive.some(dataset_id => {
+      if (dataset_name === dataset_id.split('.').at(1)) {
+        dataset = db.read(['state', dataset_id])
+        return true
+      }
+    })
+    if (!dataset) 
+      throw new Error(`Dataset "${dataset_name}" not found in node "${node.name}"`)
+    return dataset.files.some(file_id => {
+      const file = db.read(['state', file_id])
+      return file && file.name === filename
+    })
+  }
 }
 async function make_input_map (inputs) {
   const input_map = []   

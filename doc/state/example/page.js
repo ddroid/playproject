@@ -1,6 +1,6 @@
 const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
-const { id, sdb, get, io } = statedb(fallback_module)
+const { id, sdb, io } = statedb(fallback_module)
 
 /******************************************************************************
   PAGE
@@ -73,7 +73,7 @@ async function inject(data) {
   sheet.replaceSync(data.join('\n'))
 }
 
-function fallback_module(listfy, tree) {
+function fallback_module ({ listfy, tree }) {
   console.log('fallback_module', listfy(tree))
   const rainbow_theme = {
     type: 'theme',
@@ -117,7 +117,7 @@ function fallback_module(listfy, tree) {
   return {
     _: {
       app: {
-        $: '',
+        $: { x: 0, y: 1 },
         0: override_app,
         mapping: {
           theme: 'theme'
