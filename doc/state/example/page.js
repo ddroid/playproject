@@ -41,6 +41,7 @@ async function boot(opts) {
   io.on(port => {
     const { by, to } = port
     port.onmessage = event => {
+      console.log(event.data)
       const data = event.data
       on[data.type] && on[data.type](data.args)
     }
@@ -73,8 +74,8 @@ async function inject(data) {
   sheet.replaceSync(data.join('\n'))
 }
 
-function fallback_module ({ listfy, tree }) {
-  console.log('fallback_module', listfy(tree))
+function fallback_module (args, { listfy, tree }) {
+  listfy(tree)
   const rainbow_theme = {
     type: 'theme',
     name: 'rainbow',
@@ -133,42 +134,42 @@ function fallback_module ({ listfy, tree }) {
       'lang/': {}
     }
   }
-  function override_app ([app]) {
+  function override_app (args, tools, [app]) {
     const data = app()
-    data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
-      const data = menu()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        links: ['custom', 'menu'],
-        title: 'Custom'
-      }
-      return data
-    }
-    data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
-      const data = btn()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        title: 'Register'
-      }
-      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
-      return data
-    }
-    data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
-      const data = btn()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        title: 'Switch'
-      }
-      data.net.event.click.push({
-        address: 'page',
-        type: 'swtch',
-        args: {
-          type: 'theme',
-          name: 'rainbow'
-        }
-      })
-      return data
-    }
+    // data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
+    //   const data = menu()
+    //   // console.log(nav$menu([menu]))
+    //   data.drive['lang/']['en-us.json'].raw = {
+    //     links: ['custom', 'menu'],
+    //     title: 'Custom'
+    //   }
+    //   return data
+    // }
+    // data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
+    //   const data = btn()
+    //   // console.log(nav$menu([menu]))
+    //   data.drive['lang/']['en-us.json'].raw = {
+    //     title: 'Register'
+    //   }
+    //   data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+    //   return data
+    // }
+    // data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
+    //   const data = btn()
+    //   // console.log(nav$menu([menu]))
+    //   data.drive['lang/']['en-us.json'].raw = {
+    //     title: 'Switch'
+    //   }
+    //   data.net.event.click.push({
+    //     address: 'page',
+    //     type: 'swtch',
+    //     args: [
+    //       { type: 'theme', name: 'default' },
+    //       { type: 'theme', name: 'rainbow' }
+    //     ]
+    //   })
+    //   return data
+    // }
     return data
   }
 }

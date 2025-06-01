@@ -66,7 +66,7 @@ async function app(opts) {
 }
 
 
-function fallback_module ({ args }) { // -> set database defaults or load from database
+function fallback_module (args) { // -> set database defaults or load from database
 	return {
     api: fallback_instance,
     _: { "head": { $: '', }, "foot": { $: '' } }
@@ -115,6 +115,7 @@ async function btn(opts) {
     theme: inject,
     lang: fill
   }
+  const connections = {}
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -143,22 +144,30 @@ async function btn(opts) {
   // ----------------------------------------
   // EVENT LISTENERS
   // ----------------------------------------
-  net.event.length && net.event.click.forEach(msg => {
-    io.at(msg.id)
-  })
-  button.onclick = () => {
-    net.event.click.forEach(msg => io_port.postMessage(msg))
-  }
-  let io_port
   io.on(port => {
     const { by, to } = port
-    io_port = port
     port.onmessage = event => {
       const txt = event.data
       const key = `[${by} -> ${to}]`
-      console.log(key, txt)
     }
   })
+  net.event?.click.length && net.event.click.forEach(async msg => {
+    connections[msg.id] = { port: await io.at(msg.id), data_index: 0 }
+  })
+  button.onclick = () => {
+    net.event.click.forEach(msg => {
+      const connection = connections[msg.id]
+      if(msg.args.length){
+        connection.data_index++
+        connection.data_index %= msg.args.length
+      }
+      const temp = JSON.parse(JSON.stringify(msg))
+      temp.args = msg.args.length ? msg.args[connection.data_index] : msg.args,
+      connection.port.postMessage(temp)
+      
+    })
+  }
+  
   return el
 
   function onbatch(batch){
@@ -427,7 +436,6 @@ function fallback_module () { // -> set database defaults or load from database
     _: { "foo": { $: '' } }
   }
   function fallback_instance ({ args }) {
-    console.log('Hello from head: ', args)
     return {
       _: { "foo": { 0: '',
         mapping: {
@@ -594,8 +602,6 @@ async function menu(opts) {
   // ----------------------------------------
   
   title.onclick = () => {
-    console.log(net)
-    io.at(net[0].id)
     main.classList.toggle('active')
   }
   title.onblur = () => {
@@ -630,6 +636,7 @@ async function menu_hover(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
+  console.log('Hello from menu_hover', get.hover)
   const { id, sdb } = get.hover(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     style: inject,
@@ -859,31 +866,25 @@ async function nav(opts) {
 
 
 function fallback_module () { // -> set database defaults or load from database
-	return {
-    api: fallback_instance,
-    _: { 'menu':{ $: ([menu]) => {
-          const state = menu()
-          state.api = (args) => {
-            const { old_fallback } = args
-            const data = old_fallback[0]()
-            data.drive['lang/']['en-us.json'].raw.links = ['temp1', 'temp2']
-            return data
-          }
-          return state
-          }},
-          btn: { $: '' }
-}}
-  function fallback_instance () {
+  return { api, _: { 'menu':{ $: menu$ }, btn: { $: btn$ } } }
+  function api () {
+    const links = ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    const opts_menu = { title: 'Services', links }
+    const opts_menu_hover = { title: 'Services#hover', links }
     return {
-      _: { 'menu':{ 
-        0: override_menu, 1: override_menu1, 2: '',
-        3: override_menu_hover,
+      _: { 
+        menu: { 
+          0: opts_menu,
+          1: opts_menu,
+          2: '',
+          3: opts_menu_hover,
           mapping: { 'style': 'theme', 'lang': 'lang', 'io': 'io' }
-        }, btn: {
-          0: override_btn,
-          1: override_btn1,
+        }, 
+        btn: {
+          0: 'Register',
+          1: 'Switch',
           mapping: { 'lang': 'lang' }
-        },
+        }
       },
       drive: {
         'theme/': {
@@ -901,44 +902,30 @@ function fallback_module () { // -> set database defaults or load from database
       }
     }
   }
-  function override_menu ([menu], path){
-    const data = menu()
-    data.drive['lang/']['en-us.json'].raw = {
-      title: 'Services',
-      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+  function menu$ (args, tools, [menu]){
+    const state = menu()
+    state.api = api
+    state.api.hover = api
+    return state
+    function api (args, tools, [menu]) {
+      console.log('menu$ called', args)
+      const data = menu()
+      if (args) data.drive['lang/']['en-us.json'].raw = args
+      return data
     }
-    return data
   }
-  function override_menu1 ([menu]){
-    const data = menu()
-    data.drive['lang/']['en-us.json'].raw = {
-      title: 'Services',
-      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
-    }
-    return data
-  }
-  function override_menu_hover ([menu], path){
-    const data = menu()
-    data.drive['lang/']['en-us.json'].raw = {
-      title: 'Services#hover',
-      links: ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
-    }
-    return data
-  }
-  function override_btn ([btn]){
+  function btn$ (args, tools, [btn]){
     const data = btn()
-    data.drive['lang/']['en-us.json'].raw = {
-      title: 'Register',
-    }
+    data.api = api
     return data
-  }
-  function override_btn1 ([btn]){
-    const data = btn()
-    data.drive['lang/']['en-us.json'].raw = {
-      title: 'Switch',
+    function api (args, tools, [btn]) {
+      console.log('btn$ called', args)
+      const data = btn()
+      if (args) data.drive['lang/']['en-us.json'].raw.title = args
+      return data
     }
-    return data
   }
+  
 }
 }).call(this)}).call(this,"/doc/state/example/node_modules/nav/nav.js")
 },{"../../../../../src/node_modules/STATE":12,"btn":3,"menu":8}],10:[function(require,module,exports){
@@ -1044,6 +1031,7 @@ async function boot(opts) {
   io.on(port => {
     const { by, to } = port
     port.onmessage = event => {
+      console.log(event.data)
       const data = event.data
       on[data.type] && on[data.type](data.args)
     }
@@ -1076,8 +1064,8 @@ async function inject(data) {
   sheet.replaceSync(data.join('\n'))
 }
 
-function fallback_module ({ listfy, tree }) {
-  console.log('fallback_module', listfy(tree))
+function fallback_module (args, { listfy, tree }) {
+  listfy(tree)
   const rainbow_theme = {
     type: 'theme',
     name: 'rainbow',
@@ -1136,42 +1124,42 @@ function fallback_module ({ listfy, tree }) {
       'lang/': {}
     }
   }
-  function override_app ([app]) {
+  function override_app (args, tools, [app]) {
     const data = app()
-    data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
-      const data = menu()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        links: ['custom', 'menu'],
-        title: 'Custom'
-      }
-      return data
-    }
-    data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
-      const data = btn()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        title: 'Register'
-      }
-      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
-      return data
-    }
-    data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
-      const data = btn()
-      // console.log(nav$menu([menu]))
-      data.drive['lang/']['en-us.json'].raw = {
-        title: 'Switch'
-      }
-      data.net.event.click.push({
-        address: 'page',
-        type: 'swtch',
-        args: {
-          type: 'theme',
-          name: 'rainbow'
-        }
-      })
-      return data
-    }
+    // data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
+    //   const data = menu()
+    //   // console.log(nav$menu([menu]))
+    //   data.drive['lang/']['en-us.json'].raw = {
+    //     links: ['custom', 'menu'],
+    //     title: 'Custom'
+    //   }
+    //   return data
+    // }
+    // data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
+    //   const data = btn()
+    //   // console.log(nav$menu([menu]))
+    //   data.drive['lang/']['en-us.json'].raw = {
+    //     title: 'Register'
+    //   }
+    //   data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+    //   return data
+    // }
+    // data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
+    //   const data = btn()
+    //   // console.log(nav$menu([menu]))
+    //   data.drive['lang/']['en-us.json'].raw = {
+    //     title: 'Switch'
+    //   }
+    //   data.net.event.click.push({
+    //     address: 'page',
+    //     type: 'swtch',
+    //     args: [
+    //       { type: 'theme', name: 'default' },
+    //       { type: 'theme', name: 'rainbow' }
+    //     ]
+    //   })
+    //   return data
+    // }
     return data
   }
 }
@@ -1246,7 +1234,7 @@ function STATE (address, modulepath, dependencies) {
   return statedb
   
   function statedb (fallback) {
-    const data = fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[modulepath] })
+    const data = fallback(status.args[modulepath], { listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath] })
     local_status.fallback_instance = data.api
     const super_id = modulepath.split(/>(?=[^>]*$)/)[0]
     
@@ -1290,6 +1278,7 @@ function STATE (address, modulepath, dependencies) {
 
     const get = init_instance
     const extra_fallbacks = Object.entries(local_status.fallback_instance || {})
+    console.log('Extra fallbacks: ', extra_fallbacks[0]?.[1])
     extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
       get[key] = (sid) => get(sid, value)
     })
@@ -1349,13 +1338,16 @@ function STATE (address, modulepath, dependencies) {
       if(local_status.fallback_instance ? local_status.fallback_instance?.toString() === statedata.api?.toString() : false)
         local_status.fallback_instance = statedata.api
       else
-        local_status.fallback_instance = (args) => {
-          console.log('Old fallback: ', old_fallback)
-          return statedata.api({old_fallback: [old_fallback], ...args})
+        local_status.fallback_instance = (args, tools) => {
+          console.log('Old fallback: ', statedata.api)
+          return statedata.api(args, tools, [old_fallback])
         }
       const extra_fallbacks = Object.entries(old_fallback || {})
       extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
-        local_status.fallback_instance[key] = () => statedata.api[key] ? statedata.api[key]([value]) : old_fallback[key]()
+        local_status.fallback_instance[key] = (args, tools) => {
+          console.log('Extra fallback: ', statedata.api[key] ? statedata.api[key] : old_fallback[key])
+          return (statedata.api[key] ? statedata.api[key] : old_fallback[key])(args, tools, [value])
+        }
       })
       db.append(['state'], state_entries)
       // add_source_code(statedata.inputs) // @TODO: remove side effect
@@ -1543,20 +1535,20 @@ function STATE (address, modulepath, dependencies) {
     let {id: pre_id, hubs: pre_hubs, mapping} = pre_data
     let fallback_data
     try {
-      validate(fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[pre_id] }), xtype)
+      validate(fallback(status.args[pre_id], { listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath] }), xtype)
     } catch (error) {
       throw new Error(`in fallback function of ${pre_id} ${xtype}\n${error.stack}`)
     }
     if(fun_status.overrides[pre_id]){
-      fallback_data = fun_status.overrides[pre_id].fun[0](get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
+      fallback_data = fun_status.overrides[pre_id].fun[0](status.args[pre_id], { listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath] }, get_fallbacks({ fallback, modulename: local_status.name, modulepath, instance_path: pre_id }))
       console.log('Override used: ', pre_id)
       fun_status.overrides[pre_id].by.splice(0, 1)
       fun_status.overrides[pre_id].fun.splice(0, 1)
     }
     else
-      fallback_data = fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[pre_id] })
+      fallback_data = fallback(status.args[pre_id], { listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath] })
 
-    // console.log('fallback_data: ', fallback_data)
+    console.log('fallback_data: ', fallback)
     fun_status.overrides = register_overrides({ overrides: fun_status.overrides, tree: fallback_data, path: modulepath, id: pre_id })
     console.log('overrides: ', Object.keys(fun_status.overrides))
     orphan_check && (fallback_data.orphan = orphan_check)
@@ -1945,7 +1937,7 @@ function register_overrides ({overrides, ...args}) {
           else
             overrides[resultant_path] = {fun: [override], by: [id]}
         }
-        else if (typeof(override) === 'object' && id !== 'mapping' && override._ === undefined)
+        else if ( ['object', 'string'].includes(typeof(override)) && id !== 'mapping' && override._ === undefined)
           status.args[resultant_path] = structuredClone(override)
         else
           recurse({ tree: override, path: sub_path, id, xtype, local_modulepaths })
@@ -1958,7 +1950,7 @@ function get_fallbacks ({ fallback, modulename, modulepath, instance_path }) {
     
   function mutated_fallback () {
     console.log('Args: ', status.args[instance_path])
-    const data = fallback({ listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath], args: status.args[instance_path] })
+    const data = fallback(status.args[instance_path], { listfy: tree => listfy(tree, modulepath), tree: status.tree_pointers[modulepath] })
 
     data.overrider = status.overrides[instance_path].by[0]
     merge_trees(data, modulepath)
@@ -2281,7 +2273,7 @@ function io(seed, alias) {
     // }
     // self.peer[id] = peer
     if (!peer.online) return wait() // peer with id is offline or doesnt exist
-    connect()
+    return connect()
     function wait () {
       const { resolve, reject, promise } = Promise.withResolvers()
       signal.onabort = () => reject(`timeout connecting to "${id}"`)
@@ -2295,6 +2287,7 @@ function io(seed, alias) {
       port2.to = port1.by = seed
       self.online(self.peer[id] = port1)
       peer.online(peer.peer[seed] = port2)
+      return port1
     }
   }
   function on (online) { 
