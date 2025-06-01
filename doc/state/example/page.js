@@ -136,40 +136,40 @@ function fallback_module (args, { listfy, tree }) {
   }
   function override_app (args, tools, [app]) {
     const data = app()
-    // data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
-    //   const data = menu()
-    //   // console.log(nav$menu([menu]))
-    //   data.drive['lang/']['en-us.json'].raw = {
-    //     links: ['custom', 'menu'],
-    //     title: 'Custom'
-    //   }
-    //   return data
-    // }
-    // data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
-    //   const data = btn()
-    //   // console.log(nav$menu([menu]))
-    //   data.drive['lang/']['en-us.json'].raw = {
-    //     title: 'Register'
-    //   }
-    //   data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
-    //   return data
-    // }
-    // data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
-    //   const data = btn()
-    //   // console.log(nav$menu([menu]))
-    //   data.drive['lang/']['en-us.json'].raw = {
-    //     title: 'Switch'
-    //   }
-    //   data.net.event.click.push({
-    //     address: 'page',
-    //     type: 'swtch',
-    //     args: [
-    //       { type: 'theme', name: 'default' },
-    //       { type: 'theme', name: 'rainbow' }
-    //     ]
-    //   })
-    //   return data
-    // }
+    data._.head.$._['foo>nav'].$._.menu[0] = (args, tools, [menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
+    }
+    data._.head.$._['foo>nav'].$._.btn[0] = (args, tools, [btn, btn1]) => {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Register'
+      }
+      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+      return data
+    }
+    data._.head.$._['foo>nav'].$._.btn[1] = (args, tools, [btn, btn1]) => {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Switch'
+      }
+      data.net.event.click.push({
+        address: 'page',
+        type: 'swtch',
+        args: [
+          { type: 'theme', name: 'default' },
+          { type: 'theme', name: 'rainbow' }
+        ]
+      })
+      return data
+    }
     return data
   }
 }

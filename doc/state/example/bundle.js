@@ -1126,40 +1126,40 @@ function fallback_module (args, { listfy, tree }) {
   }
   function override_app (args, tools, [app]) {
     const data = app()
-    // data._.head.$._['foo>nav'].$._.menu[0] = ([menu, nav$menu]) => {
-    //   const data = menu()
-    //   // console.log(nav$menu([menu]))
-    //   data.drive['lang/']['en-us.json'].raw = {
-    //     links: ['custom', 'menu'],
-    //     title: 'Custom'
-    //   }
-    //   return data
-    // }
-    // data._.head.$._['foo>nav'].$._.btn[0] = ([btn, btn1]) => {
-    //   const data = btn()
-    //   // console.log(nav$menu([menu]))
-    //   data.drive['lang/']['en-us.json'].raw = {
-    //     title: 'Register'
-    //   }
-    //   data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
-    //   return data
-    // }
-    // data._.head.$._['foo>nav'].$._.btn[1] = ([btn, btn1]) => {
-    //   const data = btn()
-    //   // console.log(nav$menu([menu]))
-    //   data.drive['lang/']['en-us.json'].raw = {
-    //     title: 'Switch'
-    //   }
-    //   data.net.event.click.push({
-    //     address: 'page',
-    //     type: 'swtch',
-    //     args: [
-    //       { type: 'theme', name: 'default' },
-    //       { type: 'theme', name: 'rainbow' }
-    //     ]
-    //   })
-    //   return data
-    // }
+    data._.head.$._['foo>nav'].$._.menu[0] = (args, tools, [menu, nav$menu]) => {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
+    }
+    data._.head.$._['foo>nav'].$._.btn[0] = (args, tools, [btn, btn1]) => {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Register'
+      }
+      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+      return data
+    }
+    data._.head.$._['foo>nav'].$._.btn[1] = (args, tools, [btn, btn1]) => {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Switch'
+      }
+      data.net.event.click.push({
+        address: 'page',
+        type: 'swtch',
+        args: [
+          { type: 'theme', name: 'default' },
+          { type: 'theme', name: 'rainbow' }
+        ]
+      })
+      return data
+    }
     return data
   }
 }
@@ -1279,8 +1279,8 @@ function STATE (address, modulepath, dependencies) {
     const get = init_instance
     const extra_fallbacks = Object.entries(local_status.fallback_instance || {})
     console.log('Extra fallbacks: ', extra_fallbacks[0]?.[1])
-    extra_fallbacks.length && extra_fallbacks.forEach(([key, value]) => {
-      get[key] = (sid) => get(sid, value)
+    extra_fallbacks.length && extra_fallbacks.forEach(([key]) => {
+      get[key] = (sid) => get(sid, key)
     })
     if(!status.a2i[modulepath]){
       status.i2a[status.a2i[modulepath] = encode(modulepath)] = modulepath
@@ -1369,7 +1369,8 @@ function STATE (address, modulepath, dependencies) {
     //   sub_modules[db.read(['state', id]).type] = id
     // })
   }
-  function init_instance (sid, fallback = local_status.fallback_instance) {
+  function init_instance (sid, fallback_key) {
+    const fallback = local_status.fallback_instance[fallback_key] || local_status.fallback_instance
     const {statedata, state_entries, newstatus} = get_instance_data(sid, fallback)
     
     if (status.fallback_check) {
