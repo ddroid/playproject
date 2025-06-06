@@ -163,9 +163,11 @@ Provides access to following two APIs:
 **sdb.watch(onbatch)**
 ```js
 const subs = await sdb.watch(onbatch)
-function onbatch(batch) {
-  for (const {type, data} of batch) {
-    on[type](data)
+const { drive } = sdb
+async function onbatch(batch){
+  for (const {type, paths} of batch) {
+    const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+    on[type] && on[type](data)
   }
 }
 ```
@@ -173,6 +175,7 @@ function onbatch(batch) {
 - Changes are batched and processed through the `onbatch` handler
 - Different types of changes can be handled separately using `on`.
 - `type` refers to the `dataset_type` used in fallbacks. The key names need to match. E.g. see `template.js`
+- `paths` refers to the paths to the files inside the dataset.
 
 **sdb.get_sub**  
   @TODO
