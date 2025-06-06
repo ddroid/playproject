@@ -34,6 +34,7 @@ async function app(opts) {
     theme: inject,
     lang: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -53,8 +54,9 @@ async function app(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -73,7 +75,7 @@ function fallback_module (args) { // -> set database defaults or load from datab
   }
   function fallback_instance () {
     return {
-      _: { "head": { 0: {x: args.x + 1, y: args.y + 2},
+      _: { "head": { 0: '',
         mapping: {
           'theme': 'theme',
         }
@@ -115,6 +117,7 @@ async function btn(opts) {
     theme: inject,
     lang: fill
   }
+  const { drive } = sdb
   const connections = {}
   // ----------------------------------------
   // TEMPLATE
@@ -170,8 +173,9 @@ async function btn(opts) {
   
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -191,6 +195,7 @@ async function btn_small(opts) {
     css: inject,
     json: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -211,8 +216,9 @@ async function btn_small(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -335,6 +341,7 @@ async function foot(opts) {
     css: inject,
     json: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -353,8 +360,9 @@ async function foot(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type](data)
     }
   }
@@ -399,6 +407,7 @@ async function head(opts) {
     theme: inject,
     lang: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -417,8 +426,9 @@ async function head(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -473,6 +483,7 @@ async function icon(opts) {
     theme: inject,
     lang: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -489,8 +500,9 @@ async function icon(opts) {
   // ----------------------------------------
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type](data)
     }
   }
@@ -534,6 +546,7 @@ async function menu(opts) {
     style: inject,
     lang: fill,
   }
+  const { drive } = sdb
   io.on(port => {
     const { by, to } = port
     port.onmessage = event => {
@@ -615,8 +628,9 @@ async function menu(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -636,12 +650,12 @@ async function menu_hover(opts) {
   // ----------------------------------------
   // ID + JSON STATE
   // ----------------------------------------
-  console.log('Hello from menu_hover', get.hover)
   const { id, sdb } = get.hover(opts.sid) // hub is "parent's" io "id" to send/receive messages
   const on = {
     style: inject,
     lang: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -674,8 +688,9 @@ async function menu_hover(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -846,8 +861,9 @@ async function nav(opts) {
   }
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -947,6 +963,7 @@ async function text(opts) {
     css: inject,
     json: fill
   }
+  const { drive } = sdb
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------
@@ -963,8 +980,9 @@ async function text(opts) {
   // ----------------------------------------
   return el
 
-  function onbatch(batch){
-    for (const {type, data} of batch) {
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type](data)
     }
   }
@@ -1025,6 +1043,7 @@ async function boot(opts) {
     theme: inject,
     ...sdb.admin
   }
+  const { drive } = sdb
 
   const subs = await sdb.watch(onbatch, on)
 
@@ -1054,8 +1073,9 @@ async function boot(opts) {
   // INIT
   // ----------------------------------------
 
-  function onbatch(batch) {
-    for (const { type, data } of batch) {
+  async function onbatch(batch) {
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -1107,26 +1127,21 @@ function fallback_module (args, { listfy, tree }) {
   }
   return {
     _: {
-      app: {
-        $: { x: 0, y: 1 },
-        0: override_app,
-        mapping: {
-          theme: 'theme'
-        }
-      }
+      app: { $: { x: 0, y: 1 }, 0: app0, mapping: { theme: 'theme' } }
     },
     drive: {
-      'theme/': {
-        'style.css': {
-          raw: 'body { font-family: \'system-ui\'; }'
-        }
-      },
+      'theme/': { 'style.css': { raw: "body { font-family: 'system-ui'; }" } },
       'lang/': {}
     }
   }
-  function override_app (args, tools, [app]) {
+  function app0 (args, tools, [app]) {
     const data = app()
-    data._.head.$._['foo>nav'].$._.menu[0] = (args, tools, [menu, nav$menu]) => {
+    const foonav_ = data._.head.$._['foo>nav'].$._
+    foonav_.menu[0] = menu0
+    foonav_.btn[0] = btn0
+    foonav_.btn[1] = btn1
+
+    function menu0 (args, tools, [menu, nav$menu]) {
       const data = menu()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
@@ -1135,7 +1150,7 @@ function fallback_module (args, { listfy, tree }) {
       }
       return data
     }
-    data._.head.$._['foo>nav'].$._.btn[0] = (args, tools, [btn, btn1]) => {
+    function btn0 (args, tools, [btn, btn1]) {
       const data = btn()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
@@ -1144,7 +1159,7 @@ function fallback_module (args, { listfy, tree }) {
       data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
       return data
     }
-    data._.head.$._['foo>nav'].$._.btn[1] = (args, tools, [btn, btn1]) => {
+    function btn1 (args, tools, [btn, btn1]) {
       const data = btn()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
@@ -1278,7 +1293,6 @@ function STATE (address, modulepath, dependencies) {
 
     const get = init_instance
     const extra_fallbacks = Object.entries(local_status.fallback_instance || {})
-    console.log('Extra fallbacks: ', extra_fallbacks[0]?.[1])
     extra_fallbacks.length && extra_fallbacks.forEach(([key]) => {
       get[key] = (sid) => get(sid, key)
     })
@@ -1339,7 +1353,6 @@ function STATE (address, modulepath, dependencies) {
         local_status.fallback_instance = statedata.api
       else
         local_status.fallback_instance = (args, tools) => {
-          console.log('Old fallback: ', statedata.api)
           return statedata.api(args, tools, [old_fallback])
         }
       const extra_fallbacks = Object.entries(old_fallback || {})
@@ -2006,7 +2019,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
     const data = db.read(['state', node_id])
     if(listener){
       status.listeners[data.id] = listener
-      listener(await make_input_map(data.inputs))
+      await listener(await make_input_map(data.inputs))
     }
     return xtype === 'module' ? local_status.sub_modules : local_status.sub_instances[node_id]
   }
@@ -2179,10 +2192,10 @@ function create_statedb_interface (local_status, node_id, xtype) {
     if (!dataset) 
       throw new Error(`Dataset "${dataset_name}" not found in node "${node.name}"`)
     
-    return dataset.files.map(file_id => {
+    return dataset.files.map(async file_id => {
       const file = db.read(['state', file_id])
       if (file.name === file_name) {
-        return { id: file.id, name: file.name, type: file.type, raw: file.raw }
+        return { id: file.id, name: file.name, type: file.type, raw: await get_input(file)}
       }
     }).filter(Boolean)[0] || null
   }
@@ -2241,9 +2254,9 @@ async function make_input_map (inputs) {
       const dataset = db.read(['state', input])
       await Promise.all(dataset.files.map(async file_id => {
         const input_state = db.read(['state', file_id])
-        files.push(await get_input(input_state))
+        files.push(dataset.id.split('.').at(1) + '/' + input_state.name)
       }))
-      input_map.push({ type: dataset.type, data: files })
+      input_map.push({ type: dataset.type, paths: files })
     }))
   }
   return input_map

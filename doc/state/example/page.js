@@ -35,6 +35,7 @@ async function boot(opts) {
     theme: inject,
     ...sdb.admin
   }
+  const { drive } = sdb
 
   const subs = await sdb.watch(onbatch, on)
 
@@ -64,8 +65,9 @@ async function boot(opts) {
   // INIT
   // ----------------------------------------
 
-  function onbatch(batch) {
-    for (const { type, data } of batch) {
+  async function onbatch(batch) {
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
       on[type] && on[type](data)
     }
   }
@@ -117,26 +119,21 @@ function fallback_module (args, { listfy, tree }) {
   }
   return {
     _: {
-      app: {
-        $: { x: 0, y: 1 },
-        0: override_app,
-        mapping: {
-          theme: 'theme'
-        }
-      }
+      app: { $: { x: 0, y: 1 }, 0: app0, mapping: { theme: 'theme' } }
     },
     drive: {
-      'theme/': {
-        'style.css': {
-          raw: 'body { font-family: \'system-ui\'; }'
-        }
-      },
+      'theme/': { 'style.css': { raw: "body { font-family: 'system-ui'; }" } },
       'lang/': {}
     }
   }
-  function override_app (args, tools, [app]) {
+  function app0 (args, tools, [app]) {
     const data = app()
-    data._.head.$._['foo>nav'].$._.menu[0] = (args, tools, [menu, nav$menu]) => {
+    const foonav_ = data._.head.$._['foo>nav'].$._
+    foonav_.menu[0] = menu0
+    foonav_.btn[0] = btn0
+    foonav_.btn[1] = btn1
+
+    function menu0 (args, tools, [menu, nav$menu]) {
       const data = menu()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
@@ -145,7 +142,7 @@ function fallback_module (args, { listfy, tree }) {
       }
       return data
     }
-    data._.head.$._['foo>nav'].$._.btn[0] = (args, tools, [btn, btn1]) => {
+    function btn0 (args, tools, [btn, btn1]) {
       const data = btn()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
@@ -154,7 +151,7 @@ function fallback_module (args, { listfy, tree }) {
       data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
       return data
     }
-    data._.head.$._['foo>nav'].$._.btn[1] = (args, tools, [btn, btn1]) => {
+    function btn1 (args, tools, [btn, btn1]) {
       const data = btn()
       // console.log(nav$menu([menu]))
       data.drive['lang/']['en-us.json'].raw = {
