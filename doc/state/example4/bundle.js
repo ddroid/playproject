@@ -1,3 +1,1186 @@
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const prefix = 'https://raw.githubusercontent.com/alyhxn/playproject/a31832ad3cb24fe15ab36bdc73a929f43179d7b8/'
+const init_url = location.hash === '#dev' ? '/doc/state/example/init.js' : prefix + 'doc/state/example/init.js'
+const args = arguments
+
+fetch(init_url, { cache: 'no-store' }).then(res => res.text()).then(async source => {
+  const module = { exports: {} }
+  const f = new Function('module', 'require', source)
+  f(module, require)
+  const init = module.exports
+  await init(args, prefix)
+  require('./page') // or whatever is otherwise the main entry of our project
+})
+
+},{"./page":11}],2:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  PAGE
+******************************************************************************/
+const head = require('head')
+const foot = require('foot')
+
+module.exports = app
+async function app(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    theme: inject,
+    lang: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // sub nodes
+    shadow.append(await head(subs[0]), await foot(subs[1]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+
+function fallback_module (args) { // -> set database defaults or load from database
+	return {
+    api: fallback_instance,
+    _: { "head": { $: '', }, "foot": { $: '' } }
+  }
+  function fallback_instance () {
+    return {
+      _: { "head": { 0: '',
+        mapping: {
+          'theme': 'theme',
+        }
+       }, "foot": { 0: '',
+        mapping: {
+          'theme': 'theme',
+        }
+        } },
+      drive: {
+        'theme/': {
+          'style.css': {
+            raw: ''
+          }
+        }
+      }
+    }
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/app.js")
+},{"../../../../src/node_modules/STATE":12,"foot":5,"head":6}],3:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  BTN
+******************************************************************************/
+const icon = require('icon')
+
+module.exports = {btn, btn_small}
+async function btn(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb, io, net } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    theme: inject,
+    lang: fill
+  }
+  const { drive } = sdb
+  const connections = {}
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <button>
+      <span></span>
+    </button>
+    <style>
+      button{
+        padding: 10px 40px;
+      }
+    </style>`
+  const style = shadow.querySelector('style')
+  const button = shadow.querySelector('button')
+  const title = shadow.querySelector('button > span')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    button.append(await icon(subs[0]))
+  }
+  // ----------------------------------------
+  // EVENT LISTENERS
+  // ----------------------------------------
+  io.on(port => {
+    const { by, to } = port
+    port.onmessage = event => {
+      const txt = event.data
+      const key = `[${by} -> ${to}]`
+    }
+  })
+  net.event?.click.length && net.event.click.forEach(async msg => {
+    connections[msg.id] = { port: await io.at(msg.id), data_index: 0 }
+  })
+  button.onclick = () => {
+    net.event.click.forEach(msg => {
+      const connection = connections[msg.id]
+      if(msg.args.length){
+        connection.data_index++
+        connection.data_index %= msg.args.length
+      }
+      const temp = JSON.parse(JSON.stringify(msg))
+      temp.args = msg.args.length ? msg.args[connection.data_index] : msg.args,
+      connection.port.postMessage(temp)
+      
+    })
+  }
+  
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    title.replaceChildren(data.title)
+  }
+}
+async function btn_small(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <button></button>
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const button = shadow.querySelector('button')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    button.append(await icon(subs[0]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    button.innerHTML = data.title
+  }
+}
+
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+    _: { icon: {$: ''} }
+  }
+  function fallback_instance () {
+    return {
+      _: { icon: {0: ''} },
+      drive: {
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              title: 'Click me'
+            }
+          }
+        },
+      },
+      net: {
+        api: ['inject', 'fill'],
+        event: {
+          click: [],
+        }
+      }
+    }
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/btn.js")
+},{"../../../../src/node_modules/STATE":12,"icon":7}],4:[function(require,module,exports){
+function fallback_module () { // -> set database defaults or load from database
+	return {
+    _: {
+      "nav": {},
+    }
+  }
+}
+function fallback_instance () {
+  return {
+    _: {
+      "nav": {
+        0: override_nav,
+        mapping: {
+          'style.css': 'style.css'
+        }
+      },
+      drive: {
+        'theme/': 'style.css',
+        'style.css': {
+          raw: ''
+        }
+      }
+    }
+  }
+}
+function override_nav ([nav]) {
+  const data = nav()
+  console.log(JSON.parse(JSON.stringify(data)))
+  data.inputs['nav.json'].data.links.push('Page')
+  return data
+}
+/******************************************************************************
+  FOO
+******************************************************************************/
+const nav = require('nav')
+
+module.exports = foo
+async function foo(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const main = shadow.querySelector('nav')
+  const style = shadow.querySelector('style')
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // nav
+    shadow.append(await nav())
+  }
+  return el
+}
+
+},{"nav":9}],5:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  FOOT
+******************************************************************************/
+const text = require('text')
+
+module.exports = foot
+async function foot(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  {
+    shadow.prepend(await text(subs[0]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+    _:{ text: { $: '' } }
+  }
+  function fallback_instance () {
+    return {
+      _:{ text: { 0: '' } } } 
+    }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/foot.js")
+},{"../../../../src/node_modules/STATE":12,"text":10}],6:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  HEAD
+******************************************************************************/
+const foo = require('foo')
+
+module.exports = head
+async function head(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    theme: inject,
+    lang: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // nav
+    shadow.append(await foo(subs[0]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+
+function fallback_module () { // -> set database defaults or load from database
+	return {
+    api: fallback_instance,
+    _: { "foo": { $: '' } }
+  }
+  function fallback_instance ({ args }) {
+    return {
+      _: { "foo": { 0: '',
+        mapping: {
+          'theme': 'theme',
+          'lang': 'lang',
+        }
+       } },
+      drive: {
+        'theme/': {
+          'style.css': {
+            raw: ''
+          }
+        }
+      }
+    }
+  }
+}
+}).call(this)}).call(this,"/doc/state/example/node_modules/head.js")
+},{"../../../../src/node_modules/STATE":12,"foo":4}],7:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  ICON
+******************************************************************************/
+module.exports = icon
+async function icon(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    theme: inject,
+    lang: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    🗃
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+  }
+  function fallback_instance () {
+    return {}
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/icon.js")
+},{"../../../../src/node_modules/STATE":12}],8:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get, io } = statedb(fallback_module)
+
+/******************************************************************************
+  MENU
+******************************************************************************/
+const {btn, btn_small} = require('btn')
+
+
+module.exports = {menu, menu_hover}
+async function menu(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb, net, io } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    style: inject,
+    lang: fill,
+  }
+  const { drive } = sdb
+  io.on(port => {
+    const { by, to } = port
+    port.onmessage = event => {
+      const txt = event.data
+      const key = `[${by} -> ${to}]`
+      console.log(key, txt)
+    }
+    port.postMessage({type: 'register', args: {
+      type: 'theme', 
+      name: 'rainbow', 
+      dataset: {
+      'page': {
+        'style.css': {
+          raw: `body { font-family: cursive; }`,
+        }
+      },
+      'page>app>head>foo>nav:0': {
+        'style.css': {
+              raw: `
+                nav{
+                  display: flex;
+                  gap: 20px;
+                  padding: 20px;
+                  background: #4b2d6d;
+                  color: white;
+                  box-shadow: 0px 1px 6px 1px gray;
+                  margin: 5px;
+                }
+                .title{
+                  background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                  transition: color .5s ease, background-size .5s;
+                  cursor: pointer;
+                }
+                .box{
+                  display: flex;
+                  gap: 20px;
+                }
+                .title:hover{
+                  --underline-width: 100%
+                }
+              `
+            }
+      },
+      
+    }
+    }})
+  
+  })
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <div tabindex='0' class='title'></div>
+    <ul>
+    </ul>
+    <style></style>`
+  const main = shadow.querySelector('ul')
+  const title = shadow.querySelector('.title')
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // EVENT LISTENERS
+  // ----------------------------------------
+  
+  title.onclick = () => {
+    main.classList.toggle('active')
+  }
+  title.onblur = () => {
+    main.classList.remove('active')
+  }
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { //btn
+    main.append(await btn(subs[0]), await btn_small(subs[1]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    title.replaceChildren(data.title)
+    main.replaceChildren(...data.links.map(link => {
+      const el = document.createElement('li')
+      el.innerHTML = link
+      return el
+    }))
+  }
+}
+async function menu_hover(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = get.hover(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    style: inject,
+    lang: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <div tabindex='0' class='title'></div>
+    <ul>
+    </ul>
+    <style></style>`
+  const main = shadow.querySelector('ul')
+  const title = shadow.querySelector('.title')
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // EVENT LISTENERS
+  // ----------------------------------------
+  title.onmouseover = () => {
+    main.classList.add('active')
+  }
+  title.onmouseout = () => {
+    main.classList.remove('active')
+  }
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { //btn
+    main.append(await btn(subs[0]), await btn_small(subs[1]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    title.replaceChildren(data.title)
+    main.replaceChildren(...data.links.map(link => {
+      const el = document.createElement('li')
+      el.innerHTML = link
+      return el
+    }))
+  }
+}
+
+
+function fallback_module () {
+  const api = fallback_instance
+  api.hover = fallback_instance_hover
+  return {
+    api,
+    _: { btn: { $: '' }}
+  }
+  function fallback_instance () {
+    return {
+      _: {
+        btn: { 0: '' , 1: '',
+          mapping: {
+            'lang': 'lang',
+          }
+         }},
+      drive: {
+        'style/': {
+          'theme.css': {
+            raw: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
+          }
+        },
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              title: 'menu',
+              links: ['link1', 'link2'],
+            }
+          },
+        },
+      }
+    }
+  }
+  function fallback_instance_hover () {
+    return {
+      _: {
+        btn: { 0: '' , 1: '',
+          mapping: {
+            'lang': 'lang',
+          }
+         }},
+      drive: {
+        'style/': {
+          'theme.css': {
+            raw: `
+              .title{
+                background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                transition: color .5s ease, background-size .5s;
+                cursor: pointer;
+              }
+              .title:hover{
+                --underline-width: 100%
+              }
+              ul{
+                background: #273d3d;
+                list-style: none;
+                display: none;
+                position: absolute;
+                padding: 10px;
+                box-shadow: 0px 1px 6px 1px gray;
+                border-radius: 5px;
+              }
+              ul.active{
+                display: block;
+              }
+            `
+          }
+        },
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              title: 'menu',
+              links: ['link1', 'link2'],
+            }
+          },
+        },
+      }
+    }
+  }
+}
+}).call(this)}).call(this,"/doc/state/example/node_modules/menu.js")
+},{"../../../../src/node_modules/STATE":12,"btn":3}],9:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  NAV
+******************************************************************************/
+const {menu, menu_hover} = require('menu')
+const {btn, btn_small} = require('btn')
+
+module.exports = nav
+async function nav(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts?.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    theme: inject,
+    lang: fill
+  }
+
+  const { drive } = sdb
+  // console.log(await drive.put('lang/en-uk.json', { links: ['Home', 'About', 'Contact'] }))
+  // console.log(await drive.get('lang/en-uk.json'))
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    <nav>
+      <div class="box">
+
+      <div>
+    </nav>
+    <style></style>`
+  const main = shadow.querySelector('nav')
+  const div = shadow.querySelector('div')
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  console.log(subs)
+  { //menu
+    main.append(await menu(subs[0]), await menu(subs[1]), await menu(subs[2]), await menu_hover(subs[3]), await btn(subs[4]), await btn(subs[5]))
+  }
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+    div.replaceChildren(...data.links.map(link => {
+      const el = document.createElement('div')
+      el.classList.add('title')
+      el.innerHTML = link
+      return el
+    }))
+  }
+}
+
+
+function fallback_module () { // -> set database defaults or load from database
+  return { api, _: { 'menu':{ $: menu$ }, btn: { $: btn$ } } }
+  function api () {
+    const links = ['Marketing', 'Design', 'Web Dev', 'Ad Compaign']
+    const opts_menu = { title: 'Services', links }
+    const opts_menu_hover = { title: 'Services#hover', links }
+    return {
+      _: { 
+        menu: { 
+          0: opts_menu,
+          1: opts_menu,
+          2: '',
+          3: opts_menu_hover,
+          mapping: { 'style': 'theme', 'lang': 'lang', 'io': 'io' }
+        }, 
+        btn: {
+          0: 'Register',
+          1: 'Switch',
+          mapping: { 'lang': 'lang' }
+        }
+      },
+      drive: {
+        'theme/': {
+          'style.css': {
+            $ref: 'nav.css'
+          }
+        },
+        'lang/': {
+          'en-us.json': {
+            raw: {
+              links: ['Home', 'About', 'Contact']
+            }
+          }
+        }
+      }
+    }
+  }
+  function menu$ (args, tools, [menu]){
+    const state = menu()
+    state.api = api
+    state.api.hover = api
+    return state
+    function api (args, tools, [menu]) {
+      console.log('menu$ called', args)
+      const data = menu()
+      if (args) data.drive['lang/']['en-us.json'].raw = args
+      return data
+    }
+  }
+  function btn$ (args, tools, [btn]){
+    const data = btn()
+    data.api = api
+    return data
+    function api (args, tools, [btn]) {
+      console.log('btn$ called', args)
+      const data = btn()
+      if (args) data.drive['lang/']['en-us.json'].raw.title = args
+      return data
+    }
+  }
+  
+}
+}).call(this)}).call(this,"/doc/state/example/node_modules/nav/nav.js")
+},{"../../../../../src/node_modules/STATE":12,"btn":3,"menu":8}],10:[function(require,module,exports){
+(function (__filename){(function (){
+const STATE = require('../../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { sdb, get } = statedb(fallback_module)
+
+/******************************************************************************
+  TEXT
+******************************************************************************/
+module.exports = text
+async function text(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const { id, sdb } = await get(opts.sid) // hub is "parent's" io "id" to send/receive messages
+  const on = {
+    css: inject,
+    json: fill
+  }
+  const { drive } = sdb
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.createElement('div')
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.innerHTML = `
+    Copyright © 2024  Playproject Inc.
+    <style></style>`
+  const style = shadow.querySelector('style')
+  const subs = await sdb.watch(onbatch)
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  return el
+
+  async function onbatch(batch){
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type](data)
+    }
+  }
+  async function inject (data){
+    style.innerHTML = data.join('\n')
+  }
+  async function fill([data]) {
+  }
+}
+
+
+function fallback_module () {
+  return {
+    api: fallback_instance,
+  }
+  function fallback_instance () {
+    return {}
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/node_modules/text.js")
+},{"../../../../src/node_modules/STATE":12}],11:[function(require,module,exports){
+(function (__filename,__dirname){(function (){
+const STATE = require('../../../src/node_modules/STATE')
+const statedb = STATE(__filename)
+const { id, sdb, io } = statedb(fallback_module)
+
+/******************************************************************************
+  PAGE
+******************************************************************************/
+const app = require('app')
+const sheet = new CSSStyleSheet()
+config().then(() => boot({ sid: '' }))
+
+async function config() {
+  const path = path => new URL(`../src/node_modules/${path}`, `file://${__dirname}`).href.slice(8)
+  const html = document.documentElement
+  const meta = document.createElement('meta')
+  const font = 'https://fonts.googleapis.com/css?family=Nunito:300,400,700,900|Slackey&display=swap'
+  const loadFont = `<link href=${font} rel='stylesheet' type='text/css'>`
+  html.setAttribute('lang', 'en')
+  meta.setAttribute('name', 'viewport')
+  meta.setAttribute('content', 'width=device-width,initial-scale=1.0')
+  // @TODO: use font api and cache to avoid re-downloading the font data every time
+  document.head.append(meta)
+  document.head.innerHTML += loadFont
+  document.adoptedStyleSheets = [sheet]
+  await document.fonts.ready // @TODO: investigate why there is a FOUC
+}
+/******************************************************************************
+  PAGE BOOT
+******************************************************************************/
+async function boot(opts) {
+  // ----------------------------------------
+  // ID + JSON STATE
+  // ----------------------------------------
+  const on = {
+    theme: inject,
+    ...sdb.admin
+  }
+  const { drive } = sdb
+
+  const subs = await sdb.watch(onbatch, on)
+
+  io.on(port => {
+    const { by, to } = port
+    port.onmessage = event => {
+      console.log(event.data)
+      const data = event.data
+      on[data.type] && on[data.type](data.args)
+    }
+  })
+  const status = {}
+  // ----------------------------------------
+  // TEMPLATE
+  // ----------------------------------------
+  const el = document.body
+  const shopts = { mode: 'closed' }
+  const shadow = el.attachShadow(shopts)
+  shadow.adoptedStyleSheets = [sheet]
+  // ----------------------------------------
+  // ELEMENTS
+  // ----------------------------------------
+  { // desktop
+    shadow.append(await app(subs[0]))
+  }
+  // ----------------------------------------
+  // INIT
+  // ----------------------------------------
+
+  async function onbatch(batch) {
+    for (const {type, paths} of batch) {
+      const data = await Promise.all(paths.map(path => drive.get(path).then(file => file.raw)))
+      on[type] && on[type](data)
+    }
+  }
+}
+async function inject(data) {
+  sheet.replaceSync(data.join('\n'))
+}
+
+function fallback_module (args, { listfy, tree }) {
+  listfy(tree)
+  const rainbow_theme = {
+    type: 'theme',
+    name: 'rainbow',
+    dataset: {
+      page: {
+        'style.css': {
+          raw: 'body { font-family: cursive; }'
+        }
+      },
+      'page>app>head>foo>nav:0': {
+        'style.css': {
+          raw: `
+                  nav{
+                    display: flex;
+                    gap: 20px;
+                    padding: 20px;
+                    background: #4b2d6d;
+                    color: white;
+                    box-shadow: 0px 1px 6px 1px gray;
+                    margin: 5px;
+                  }
+                  .title{
+                    background: linear-gradient(currentColor 0 0) 0 100% / var(--underline-width, 0) .1em no-repeat;
+                    transition: color .5s ease, background-size .5s;
+                    cursor: pointer;
+                  }
+                  .box{
+                    display: flex;
+                    gap: 20px;
+                  }
+                  .title:hover{
+                    --underline-width: 100%
+                  }
+                `
+        }
+      }
+
+    }
+  }
+  return {
+    _: {
+      app: { $: { x: 0, y: 1 }, 0: app0, mapping: { theme: 'theme' } }
+    },
+    drive: {
+      'theme/': { 'style.css': { raw: "body { font-family: 'system-ui'; }" } },
+      'lang/': {}
+    }
+  }
+  function app0 (args, tools, [app]) {
+    const data = app()
+    const foonav_ = data._.head.$._['foo>nav'].$._
+    foonav_.menu[0] = menu0
+    foonav_.btn[0] = btn0
+    foonav_.btn[1] = btn1
+
+    function menu0 (args, tools, [menu, nav$menu]) {
+      const data = menu()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        links: ['custom', 'menu'],
+        title: 'Custom'
+      }
+      return data
+    }
+    function btn0 (args, tools, [btn, btn1]) {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Register'
+      }
+      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+      return data
+    }
+    function btn1 (args, tools, [btn, btn1]) {
+      const data = btn()
+      // console.log(nav$menu([menu]))
+      data.drive['lang/']['en-us.json'].raw = {
+        title: 'Switch'
+      }
+      data.net.event.click.push({
+        address: 'page',
+        type: 'swtch',
+        args: [
+          { type: 'theme', name: 'default' },
+          { type: 'theme', name: 'rainbow' }
+        ]
+      })
+      return data
+    }
+    return data
+  }
+}
+
+}).call(this)}).call(this,"/doc/state/example/page.js","/doc/state/example")
+},{"../../../src/node_modules/STATE":12,"app":2}],12:[function(require,module,exports){
 const localdb = require('localdb')
 const io = require('io')
 
@@ -89,7 +1272,7 @@ function STATE (address, modulepath, dependencies) {
     }
 
     if(data._){
-      status.open_branches[modulepath] = Object.values(data._).filter(node => node).length
+      status.open_branches[modulepath] = Object.keys(data._).length
       status.expected_imports[modulepath] = Object.keys(data._)
       status.current_node = modulepath
     }
@@ -548,7 +1731,7 @@ function validate (data, xtype) {
   const expected_structure = {
     'api::function': () => {},
     '_::object': {
-      ":*:object|number": xtype === 'module' ? {
+      ":*:object": xtype === 'module' ? {
         ":*:function|string|object": '',
         "mapping::": {}
       } : { // Required key, any name allowed
@@ -824,8 +2007,7 @@ function create_statedb_interface (local_status, node_id, xtype) {
         window.location.reload()
       },
       swtch,
-      unregister,
-      status,
+      unregister
     }
   }
   node_id === status.ROOT_ID && (api.public_api.admin = api.private_api)
@@ -1001,8 +2183,6 @@ function create_statedb_interface (local_status, node_id, xtype) {
     const [dataset_name, file_name] = path.split('/')
     const node = db.read(['state', node_id])
     let dataset
-    if(!node.drive)
-      throw new Error(`Node ${node.id} has no drive defined in the fallback` + FALLBACK_POST_ERROR)
     node.drive.some(dataset_id => {
       if (dataset_name === dataset_id.split('.').at(1)) {
         dataset = db.read(['state', dataset_id])
@@ -1084,3 +2264,149 @@ async function make_input_map (inputs) {
 
 
 module.exports = STATE
+},{"io":13,"localdb":14}],13:[function(require,module,exports){
+const taken = {}
+
+module.exports = io
+function io(seed, alias) {
+  if (taken[seed]) throw new Error(`seed "${seed}" already taken`)
+  // const pk = seed.slice(0, seed.length / 2)
+  // const sk = seed.slice(seed.length / 2, seed.length)
+  const self = taken[seed] = { id: seed, alias, peer: {} }
+  const io = { at, on }
+  return io
+
+  async function at (id, signal = AbortSignal.timeout(1000)) {
+    if (id === seed) throw new Error('cannot connect to loopback address')
+    if (!self.online) throw new Error('network must be online')
+    const peer = taken[id] || {}
+    // if (self.peer[id] && peer.peer[pk]) {
+    //   self.peer[id].close() || delete self.peer[id]
+    //   peer.peer[pk].close() || delete peer.peer[pk]
+    //   return console.log('disconnect')
+    // }
+    // self.peer[id] = peer
+    if (!peer.online) return wait() // peer with id is offline or doesnt exist
+    return connect()
+    function wait () {
+      const { resolve, reject, promise } = Promise.withResolvers()
+      signal.onabort = () => reject(`timeout connecting to "${id}"`)
+      peer.online = { resolve }
+      return promise.then(connect)
+    }
+    function connect () {
+      signal.onabort = null
+      const { port1, port2 } = new MessageChannel()
+      port2.by = port1.to = id
+      port2.to = port1.by = seed
+      self.online(self.peer[id] = port1)
+      peer.online(peer.peer[seed] = port2)
+      return port1
+    }
+  }
+  function on (online) { 
+    if (!online) return self.online = null
+    const resolve = self.online?.resolve
+    self.online = online
+    if (resolve) resolve(online)
+  }
+}
+},{}],14:[function(require,module,exports){
+/******************************************************************************
+  LOCALDB COMPONENT
+******************************************************************************/
+module.exports = localdb
+
+function localdb () {
+  const prefix = '153/'
+  return { add, read_all, read, drop, push, length, append, find }
+
+  function length (keys) {
+    const address = prefix + keys.join('/')
+    return Object.keys(localStorage).filter(key => key.includes(address)).length
+  }
+  /**
+   * Assigns value to the key of an object already present in the DB
+   * 
+   * @param {String[]} keys 
+   * @param {any} value 
+   */
+  function add (keys, value, precheck) {
+    localStorage[(precheck ? '' : prefix) + keys.join('/')] = JSON.stringify(value)
+  }
+  /**
+   * Appends values into an object already present in the DB
+   * 
+   * @param {String[]} keys 
+   * @param {any} value 
+   */
+  function append (keys, data) {
+    const pre = keys.join('/')
+    Object.entries(data).forEach(([key, value]) => {
+      localStorage[prefix + pre+'/'+key] = JSON.stringify(value)
+    })
+  }
+  /**
+   * Pushes value to an array already present in the DB
+   * 
+   * @param {String[]} keys
+   * @param {any} value 
+   */
+  function push (keys, value) {
+    const independent_key = keys.slice(0, -1)
+    const data = JSON.parse(localStorage[prefix + independent_key.join('/')])
+    data[keys.at(-1)].push(value)
+    localStorage[prefix + independent_key.join('/')] = JSON.stringify(data)
+  }
+  function read (keys) {
+    const result = localStorage[prefix + keys.join('/')]
+    return result && JSON.parse(result)
+  }
+  function read_all (keys) {
+    const address = prefix + keys.join('/')
+    let result = {}
+    Object.entries(localStorage).forEach(([key, value]) => {
+      if(key.includes(address))
+        result[key.split('/').at(-1)] = JSON.parse(value)
+      })
+    return result
+  }
+  function drop (keys) {
+    if(keys.length > 1){
+      const data = JSON.parse(localStorage[keys[0]])
+      let temp = data
+      keys.slice(1, -1).forEach(key => {
+        temp = temp[key]
+      })
+      if(Array.isArray(temp))
+        temp.splice(keys[keys.length - 1], 1)
+      else
+        delete(temp[keys[keys.length - 1]])
+      localStorage[keys[0]] = JSON.stringify(data)
+    }
+    else
+      delete(localStorage[keys[0]])
+  }
+  function find (keys, filters, index = 0) {
+    let index_count = 0
+    const address = prefix + keys.join('/')
+    const target_key = Object.keys(localStorage).find(key => {
+      if(key.includes(address)){
+        const entry = JSON.parse(localStorage[key])
+        let count = 0
+        Object.entries(filters).some(([search_key, value]) => {
+          if(entry[search_key] !== value)
+            return
+          count++
+        })
+        if(count === Object.keys(filters).length){
+          if(index_count === index)
+            return key
+          index_count++
+        }
+      }
+    }, undefined)
+    return target_key && JSON.parse(localStorage[target_key])
+  } 
+}
+},{}]},{},[1]);
