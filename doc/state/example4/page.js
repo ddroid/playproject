@@ -2,6 +2,7 @@ const STATE = require('../../../src/node_modules/STATE')
 const statedb = STATE(__filename)
 const { id, sdb, io } = statedb(fallback_module)
 const editor = require('quick_editor')
+const editor = require('quick_editor')
 
 /******************************************************************************
   PAGE
@@ -91,8 +92,56 @@ function fallback_module (args, { listfy, tree }) {
     _: {
       app: { $: '', 0: '', mapping: { theme: 'theme' } },
       quick_editor: 0
+      app: { $: '', 0: '', mapping: { theme: 'theme' } },
+      editor: 0
     },
     drive: {
+      'theme/': { 'style.css': {
+        raw: `
+        body { font-family: 'system-ui'; }
+        .toggle-switch {
+          position: relative;
+          display: inline-block;
+          width: 50px;
+          height: 26px;
+        }
+
+        .toggle-switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          inset: 0;
+          background-color: #ccc;
+          border-radius: 26px;
+          transition: 0.4s;
+        }
+
+        .slider::before {
+          content: "";
+          position: absolute;
+          height: 20px;
+          width: 20px;
+          left: 3px;
+          bottom: 3px;
+          background-color: white;
+          border-radius: 50%;
+          transition: 0.4s;
+        }
+
+        input:checked + .slider {
+          background-color: #2196F3;
+        }
+
+        input:checked + .slider::before {
+          transform: translateX(24px);
+        }
+        `
+      }},
       'theme/': { 'style.css': {
         raw: `
         body { font-family: 'system-ui'; }
