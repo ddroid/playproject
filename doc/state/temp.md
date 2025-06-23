@@ -84,7 +84,26 @@ function fallback_module() {
   }
   
   function fallback_instance() {
-    // See template.js
+    return {
+    _: {
+      sub_module: {
+        instance_number: sub_instance$,
+      },
+    },
+    drive: {
+      dataset_type: {
+        file: {
+          raw: {},
+          link: '',
+        },
+      },
+    },
+    net: {
+      node_id: {
+        event_name: message_to_node_id
+      }
+    }
+  }
   }
   
   function override_sub_module() {
@@ -132,6 +151,14 @@ function fallback_module() {
          - Stores raw file content as an `object` or `string`.
        - **`$ref`** (External File Link)
          - Stores a link to an external file (any type), the file needs to be inside the module folder.
+     - **`net`** (Communication)
+       - **`node_id`**(Node addrress/Decoded ID)
+         - Used in override to share the encoded ID of a receiver to a sender node
+         - **`event_name`** (Message condition)
+           - Send a message on this event
+           - **`message_to_node_id`** (Message)
+             - The content of the message
+
 
 ---
 ## Module Structure and Usage
