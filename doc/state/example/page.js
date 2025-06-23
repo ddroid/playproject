@@ -148,7 +148,7 @@ function fallback_module (args, { listfy, tree }) {
       data.drive['lang/']['en-us.json'].raw = {
         title: 'Register'
       }
-      data.net.event.click.push({ address: 'page', type: 'register', args: rainbow_theme })
+      data.net.page = { click: { type: 'register', args: rainbow_theme } }
       return data
     }
     function btn1 (args, tools, [btn, btn1]) {
@@ -157,14 +157,15 @@ function fallback_module (args, { listfy, tree }) {
       data.drive['lang/']['en-us.json'].raw = {
         title: 'Switch'
       }
-      data.net.event.click.push({
-        address: 'page',
-        type: 'swtch',
-        args: [
-          { type: 'theme', name: 'default' },
-          { type: 'theme', name: 'rainbow' }
-        ]
-      })
+      data.net.page = {
+        click: {
+          type: 'swtch',
+          args: [
+            { type: 'theme', name: 'default' },
+            { type: 'theme', name: 'rainbow' }
+          ]
+        }
+      }
       return data
     }
     return data
