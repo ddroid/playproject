@@ -47,7 +47,6 @@ async function boot(opts) {
       on[data.type] && on[data.type](data.args)
     }
   })
-  const status = {}
   // ----------------------------------------
   // TEMPLATE
   // ----------------------------------------

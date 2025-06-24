@@ -1,8 +1,10 @@
 const hash = 'a31832ad3cb24fe15ab36bdc73a929f43179d7b8'
 const base = 'https://raw.githubusercontent.com/alyhxn/playproject/'
 const prefix = base + hash
-const init_url = location.hash === '#dev' ? '/src/node_modules/init.js' : prefix + 'src/node_modules/init.js'
+const init_url = location.hash === '#dev' ? '/src/node_modules/init.js' : prefix + '/src/node_modules/init.js'
 const args = arguments
+
+
 
 fetch(init_url, { cache: 'no-store' }).then(res => res.text()).then(async source => {
   const module = { exports: {} }
