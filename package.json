@@ -50,6 +50,6 @@
   },
   "dependencies": {
     "rellax": "^1.12.0",
-    "ui-components": "github:ddroid/ui-components#bbc461d2fc02ce1b49eb7d8d41504803fae22044"
+    "ui-components": "github:ddroid/ui-components#f6095bc536d2ab461c091fe73c9010190243339f"
   }
 }
