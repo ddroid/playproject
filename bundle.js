@@ -9083,7 +9083,6 @@ async function component (opts, invite) {
       sync_tab_count: handle_sync_tab_count
     }
     return function onmessage (msg) {
-      console.error('tabs: message from up', msg)
       ;(on[msg.type] || onfail)(msg)
     }
     function handle_add_link_tab ({ data }) { add_link_tab(data) }
@@ -10688,6 +10687,7 @@ async function theme_widget (opts, invite) {
 
   let program_container_el = null
   let taskbar_el = null
+  const program_container_queue = []
   io.on = {
     up: io_up(),
     program_container: io_program_container(),
@@ -10700,6 +10700,7 @@ async function theme_widget (opts, invite) {
   taskbar_slot.replaceWith(taskbar_el)
 
   program_container_el = await program_container({ ...subs[0] }, io.invite('program_container', { up: id }))
+  program_container_queue.splice(0).forEach(send_program_container)
   program_container_el.classList.add('program-container')
   program_container_slot.replaceWith(program_container_el)
 
@@ -10740,11 +10741,9 @@ async function theme_widget (opts, invite) {
       handler(msg)
 
       function root_update_actions_for_app (msg) {
-        if (_.program_container) _.program_container(msg.type, msg.head ? { cause: msg.head } : {}, msg.data)
-        else setTimeout(root_retry_send_program_container, 500, msg)
+        send_program_container(msg)
       }
 
-      function root_retry_send_program_container (msg) { _.program_container(msg.type, msg.head ? { cause: msg.head } : {}, msg.data) }
       function root_forward_taskbar (msg) { _.taskbar(msg.type, msg.head ? { cause: msg.head } : {}, msg.data) }
     }
   }
@@ -10794,9 +10793,15 @@ async function theme_widget (opts, invite) {
 
       function taskbar_forward_ui_focus (msg) { handle_ui_focus(msg) }
       function taskbar_forward_up (msg) { _.up(msg.type, msg.head ? { cause: msg.head } : {}, msg.data) }
-      function taskbar_forward_program_container (msg) { _.program_container(msg.type, msg.head ? { cause: msg.head } : {}, msg.data) }
-      function taskbar_docs_toggle (msg) { _.program_container(msg.type, msg.head ? { cause: msg.head } : {}, msg.data) }
+      function taskbar_forward_program_container (msg) { send_program_container(msg) }
+      function taskbar_docs_toggle (msg) { send_program_container(msg) }
     }
+  }
+
+  // messages for program_container wait in the queue until it has accepted its invite
+  function send_program_container (msg) {
+    if (!_.program_container) return program_container_queue.push(msg)
+    _.program_container(msg.type, msg.head ? { cause: msg.head } : {}, msg.data)
   }
 }
 
