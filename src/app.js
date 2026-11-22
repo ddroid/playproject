@@ -84,7 +84,7 @@ async function app (opts) {
   function jump (msg) {
     const { to } = msg.data
     const target = shadow.querySelector('#' + to)
-    if (!target) return console.info(`app: section "${to}" is not on the page yet`)
+    if (!target) return console.error(`app: section "${to}" is not on the page yet`)
     target.scrollIntoView({ behavior: 'smooth' })
   }
 
